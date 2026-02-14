@@ -1,0 +1,97 @@
+services:
+  # ─── PHP-FPM Application ───
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inbound-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage
+      - app-public:/var/www/html/public
+    env_file:
+      - .env.docker
+    networks:
+      - inbound-net
+
+  # ─── Nginx Web Server ───
+  nginx:
+    image: nginx:alpine
+    container_name: inbound-nginx
+    restart: unless-stopped
+    ports:
+      - "8070:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - app-public:/var/www/html/public:ro
+    depends_on:
+      - app
+    networks:
+      - inbound-net
+
+  # ─── MySQL Database ───
+  mysql:
+    image: mysql:8.0
+    container_name: inbound-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - inbound-net
+
+  # ─── Queue Worker ───
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inbound-queue
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command:
+      ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90"]
+    volumes:
+      - app-storage:/var/www/html/storage
+    env_file:
+      - .env.docker
+    networks:
+      - inbound-net
+
+volumes:
+  mysql-data:
+    driver: local
+  app-storage:
+    driver: local
+  app-public:
+    driver: local
+
+networks:
+  inbound-net:
+    driver: bridge
