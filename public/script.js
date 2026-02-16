@@ -527,7 +527,7 @@ function renderDmgDashboard() {
     setText('rptDmgTotal', items.length.toLocaleString());
     setText('rptDmgQty', totalQty.toLocaleString());
 
-    // Damage Note breakdown
+    // Damage Note pie chart
     const noteMap = {};
     items.forEach(d => {
         const note = d.damageNote || 'Unknown';
@@ -536,16 +536,42 @@ function renderDmgDashboard() {
         noteMap[note].qty += parseInt(d.qty) || 0;
     });
 
-    const noteBody = document.getElementById('rptDmgNoteBody');
-    if (noteBody) {
+    const pieColors = ['#6366f1', '#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
+    const pieEl = document.getElementById('dmgPieChart');
+    const legendEl = document.getElementById('dmgPieLegend');
+
+    if (pieEl && legendEl) {
         const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].count - a[1].count);
-        noteBody.innerHTML = sortedNotes.map(([note, data]) => `
-            <tr>
-                <td>${escapeHtml(note)}</td>
-                <td>${data.count}</td>
-                <td>${data.qty.toLocaleString()}</td>
-            </tr>`
-        ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
+        const total = items.length;
+
+        if (sortedNotes.length === 0) {
+            pieEl.style.background = 'var(--border)';
+            pieEl.style.boxShadow = 'none';
+            legendEl.innerHTML = '<div class="donut-legend-row"><span class="donut-legend-label" style="color:var(--text-secondary); text-align:center; width:100%;">Belum ada data</span></div>';
+        } else {
+            // Build conic-gradient
+            let gradientParts = [];
+            let cumPct = 0;
+            sortedNotes.forEach(([note, data], i) => {
+                const pct = (data.count / total) * 100;
+                const color = pieColors[i % pieColors.length];
+                gradientParts.push(`${color} ${cumPct}% ${cumPct + pct}%`);
+                cumPct += pct;
+            });
+            pieEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+            pieEl.style.boxShadow = '0 0 20px rgba(99, 102, 241, 0.2)';
+
+            // Build legend
+            legendEl.innerHTML = sortedNotes.map(([note, data], i) => {
+                const color = pieColors[i % pieColors.length];
+                const pct = ((data.count / total) * 100).toFixed(1);
+                return `<div class="donut-legend-row">
+                    <span class="donut-legend-dot" style="background:${color};"></span>
+                    <span class="donut-legend-label">${escapeHtml(note)}</span>
+                    <span class="donut-legend-value">${data.count} <small style="color:var(--text-secondary);font-weight:400;">(${pct}%)</small></span>
+                </div>`;
+            }).join('');
+        }
     }
 
     // Brand breakdown

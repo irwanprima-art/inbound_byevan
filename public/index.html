@@ -564,27 +564,34 @@
                                 <h3><i class="fas fa-chart-pie"></i> Damage Note Breakdown</h3>
                             </div>
                             <div class="chart-card__body">
-                                <div class="accuracy-list">
-                                    <div class="accuracy-row">
-                                        <span class="accuracy-label">Total Record</span>
-                                        <span class="accuracy-value" id="rptDmgTotal">0</span>
+                                <div class="donut-chart-container">
+                                    <div class="donut-chart" id="dmgPieChart" style="border-radius: 50%;">
+                                        <div class="donut-chart__center" style="display:none;"></div>
                                     </div>
-                                    <div class="accuracy-row">
-                                        <span class="accuracy-label">Total Qty</span>
-                                        <span class="accuracy-value" id="rptDmgQty">0</span>
+                                    <div class="donut-chart__legend" id="dmgPieLegend">
+                                        <div class="donut-legend-row">
+                                            <span class="donut-legend-label"
+                                                style="color:var(--text-secondary); text-align:center; width:100%;">Belum
+                                                ada data</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style="margin-top: 12px;">
-                                    <table class="data-table" id="rptDmgNoteTable" style="font-size: 13px;">
-                                        <thead>
-                                            <tr>
-                                                <th>Damage Note</th>
-                                                <th>Jumlah Record</th>
-                                                <th>Total Qty</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="rptDmgNoteBody"></tbody>
-                                    </table>
+                                <div
+                                    style="display:flex; gap:20px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                                    <div style="flex:1; text-align:center;">
+                                        <div
+                                            style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                            Total Record</div>
+                                        <div style="font-size:18px; font-weight:800; color:var(--text-heading);"
+                                            id="rptDmgTotal">0</div>
+                                    </div>
+                                    <div style="flex:1; text-align:center;">
+                                        <div
+                                            style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                            Total Qty</div>
+                                        <div style="font-size:18px; font-weight:800; color:var(--text-heading);"
+                                            id="rptDmgQty">0</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
