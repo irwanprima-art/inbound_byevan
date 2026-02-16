@@ -2860,25 +2860,39 @@ function initQcrPage() {
     // Add button
     document.getElementById('btnAddQcr')?.addEventListener('click', () => openQcrModal());
 
+    // SKU blur → auto-lookup Brand from SOH
+    document.getElementById('qcrSku')?.addEventListener('blur', () => {
+        const sku = document.getElementById('qcrSku')?.value?.trim();
+        const brandEl = document.getElementById('qcrBrand');
+        if (!brandEl) return;
+        if (!sku) { brandEl.value = ''; return; }
+        const sohData = getData(STORAGE_KEYS.soh);
+        const match = sohData.find(s => (s.sku || '').toLowerCase() === sku.toLowerCase());
+        brandEl.value = match ? (match.skuBrand || '') : '';
+    });
+
     // Save button
     document.getElementById('btnSaveQcr')?.addEventListener('click', () => {
         const editId = document.getElementById('qcrEditId')?.value;
         const date = document.getElementById('qcrDate')?.value;
+        const receipt = document.getElementById('qcrReceipt')?.value?.trim();
+        const returnDate = document.getElementById('qcrReturnDate')?.value;
         const owner = document.getElementById('qcrOwner')?.value?.trim();
         const sku = document.getElementById('qcrSku')?.value?.trim();
+        const brand = document.getElementById('qcrBrand')?.value?.trim();
         const qty = parseInt(document.getElementById('qcrQty')?.value) || 0;
         const fromLoc = document.getElementById('qcrFromLoc')?.value?.trim();
         const toLoc = document.getElementById('qcrToLoc')?.value?.trim();
         const operator = document.getElementById('qcrOperator')?.value?.trim();
         const status = document.getElementById('qcrStatus')?.value || 'Good';
 
-        if (!date || !owner || !sku || qty <= 0 || !fromLoc || !toLoc) {
+        if (!date || !returnDate || !owner || !sku || qty <= 0 || !fromLoc || !toLoc) {
             showToast('Harap isi semua field wajib (*)', 'error');
             return;
         }
 
         const data = getData(STORAGE_KEYS.qcReturn);
-        const record = { date, owner, sku, qty, fromLoc, toLoc, operator, status };
+        const record = { date, receipt, returnDate, brand, owner, sku, qty, fromLoc, toLoc, operator, status };
 
         if (editId) {
             const idx = data.findIndex(d => d.id === editId);
@@ -2903,8 +2917,8 @@ function initQcrPage() {
     document.getElementById('btnExportQcr')?.addEventListener('click', () => {
         exportToCSV(
             STORAGE_KEYS.qcReturn,
-            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
-            (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', d.status || 'Good'],
+            ['QC Date', 'Receipt#', 'Return Date', 'Brand', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'QC Lead Time', 'Status'],
+            (d) => [d.date || '', d.receipt || '', d.returnDate || '', d.brand || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', calcLeadTime(d.date, d.returnDate), d.status || 'Good'],
             'qc_return'
         );
     });
@@ -2913,18 +2927,29 @@ function initQcrPage() {
     document.getElementById('btnImportQcr')?.addEventListener('click', () => {
         importFromCSV(
             STORAGE_KEYS.qcReturn,
-            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
+            ['QC Date', 'Receipt#', 'Return Date', 'Brand', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
             (vals) => {
-                if (vals.length < 4) return null;
+                if (vals.length < 6) return null;
+                const sku = vals[5]?.trim() || '';
+                let brand = vals[3]?.trim() || '';
+                // Auto-lookup brand from SOH if not provided
+                if (!brand && sku) {
+                    const sohData = getData(STORAGE_KEYS.soh);
+                    const match = sohData.find(s => (s.sku || '').toLowerCase() === sku.toLowerCase());
+                    if (match) brand = match.skuBrand || '';
+                }
                 return {
                     date: vals[0]?.trim() || '',
-                    owner: vals[1]?.trim() || '',
-                    sku: vals[2]?.trim() || '',
-                    qty: parseInt(vals[3]) || 0,
-                    fromLoc: vals[4]?.trim() || '',
-                    toLoc: vals[5]?.trim() || '',
-                    operator: vals[6]?.trim() || '',
-                    status: vals[7]?.trim() || 'Good'
+                    receipt: vals[1]?.trim() || '',
+                    returnDate: vals[2]?.trim() || '',
+                    brand: brand,
+                    owner: vals[4]?.trim() || '',
+                    sku: sku,
+                    qty: parseInt(vals[6]) || 0,
+                    fromLoc: vals[7]?.trim() || '',
+                    toLoc: vals[8]?.trim() || '',
+                    operator: vals[9]?.trim() || '',
+                    status: vals[10]?.trim() || 'Good'
                 };
             },
             () => renderQcrTable()
@@ -2939,8 +2964,8 @@ function initQcrPage() {
 
     // Bulk actions
     initBulkActions('Qcr', STORAGE_KEYS.qcReturn,
-        ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
-        (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', d.status || 'Good'],
+        ['QC Date', 'Receipt#', 'Return Date', 'Brand', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'QC Lead Time', 'Status'],
+        (d) => [d.date || '', d.receipt || '', d.returnDate || '', d.brand || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', calcLeadTime(d.date, d.returnDate), d.status || 'Good'],
         renderQcrTable
     );
 
@@ -2959,14 +2984,28 @@ function initQcrPage() {
     });
 }
 
+// Calculate QC Lead Time (Return Date - QC Date) in days
+function calcLeadTime(qcDate, returnDate) {
+    if (!qcDate || !returnDate) return '-';
+    const d1 = new Date(qcDate);
+    const d2 = new Date(returnDate);
+    if (isNaN(d1) || isNaN(d2)) return '-';
+    const diffMs = d2 - d1;
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    return diffDays + ' hari';
+}
+
 function openQcrModal(editId = null) {
     const modal = document.getElementById('modalQcr');
     const title = document.getElementById('modalQcrTitle');
     const idEl = document.getElementById('qcrEditId');
 
     document.getElementById('qcrDate').value = '';
+    document.getElementById('qcrReceipt').value = '';
+    document.getElementById('qcrReturnDate').value = '';
     document.getElementById('qcrOwner').value = '';
     document.getElementById('qcrSku').value = '';
+    document.getElementById('qcrBrand').value = '';
     document.getElementById('qcrQty').value = '';
     document.getElementById('qcrFromLoc').value = '';
     document.getElementById('qcrToLoc').value = '';
@@ -2981,8 +3020,11 @@ function openQcrModal(editId = null) {
             title.textContent = 'Edit Data QC Return';
             idEl.value = editId;
             document.getElementById('qcrDate').value = item.date || '';
+            document.getElementById('qcrReceipt').value = item.receipt || '';
+            document.getElementById('qcrReturnDate').value = item.returnDate || '';
             document.getElementById('qcrOwner').value = item.owner || '';
             document.getElementById('qcrSku').value = item.sku || '';
+            document.getElementById('qcrBrand').value = item.brand || '';
             document.getElementById('qcrQty').value = item.qty || '';
             document.getElementById('qcrFromLoc').value = item.fromLoc || '';
             document.getElementById('qcrToLoc').value = item.toLoc || '';
@@ -2992,7 +3034,9 @@ function openQcrModal(editId = null) {
     } else {
         title.textContent = 'Tambah Data QC Return';
         const now = new Date();
-        document.getElementById('qcrDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        document.getElementById('qcrDate').value = today;
+        document.getElementById('qcrReturnDate').value = today;
     }
 
     modal.classList.add('show');
@@ -3022,7 +3066,9 @@ function renderQcrTable(search = '') {
             (d.operator || '').toLowerCase().includes(q) ||
             (d.fromLoc || '').toLowerCase().includes(q) ||
             (d.toLoc || '').toLowerCase().includes(q) ||
-            (d.status || '').toLowerCase().includes(q)
+            (d.status || '').toLowerCase().includes(q) ||
+            (d.receipt || '').toLowerCase().includes(q) ||
+            (d.brand || '').toLowerCase().includes(q)
         );
     }
 
@@ -3047,12 +3093,16 @@ function renderQcrTable(search = '') {
             <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Qcr')"></td>
             <td>${start + i + 1}</td>
             <td>${d.date ? formatDate(d.date) : '-'}</td>
+            <td>${escapeHtml(d.receipt || '-')}</td>
+            <td>${d.returnDate ? formatDate(d.returnDate) : '-'}</td>
+            <td>${escapeHtml(d.brand || '-')}</td>
             <td>${escapeHtml(d.owner || '-')}</td>
             <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
             <td>${(parseInt(d.qty) || 0).toLocaleString()}</td>
             <td>${escapeHtml(d.fromLoc || '-')}</td>
             <td>${escapeHtml(d.toLoc || '-')}</td>
             <td>${escapeHtml(d.operator || '-')}</td>
+            <td>${calcLeadTime(d.date, d.returnDate)}</td>
             <td><span class="badge ${(d.status || 'Good') === 'Good' ? 'badge--putaway' : 'badge--discrepancy'}">${escapeHtml(d.status || 'Good')}</span></td>
             <td>
                 <div class="action-cell">
