@@ -382,7 +382,7 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .sidebar.collapsed~.main-content {
@@ -552,7 +552,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* Page Sections */
@@ -562,17 +562,9 @@ body {
 }
 
 .page.active {
-    display: flex;
-    flex-direction: column;
+    display: block;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
-}
-
-/* Dashboard page needs to scroll its content freely */
-.page.active#page-dashboard {
-    display: block;
-    overflow-y: auto;
 }
 
 @keyframes pageIn {
