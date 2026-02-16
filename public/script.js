@@ -687,7 +687,7 @@ function renderCountingTable(dccItems) {
     // Group locations by (locationType, zone)
     const locGroups = {};
     locations.forEach(l => {
-        const type = (l.locationType || '').trim();
+        const type = (l.locType || '').trim();
         const typeKey = type.toLowerCase();
         if (!allowedTypes.includes(typeKey)) return;
         const zone = (l.zone || '').trim() || '-';
