@@ -2862,11 +2862,11 @@ function initSohPage() {
     document.getElementById('btnExportSoh')?.addEventListener('click', () => {
         exportToCSV(
             STORAGE_KEYS.soh,
-            ['Location', 'Location Category', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#', 'Update Date', 'ED Note', 'Aging Note'],
+            ['Location', 'Location Category', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#', 'Update Date', 'Week', 'ED Note', 'Aging Note'],
             (d) => {
                 const locData = getData(STORAGE_KEYS.locations);
                 const locMatch = locData.find(l => (l.location || '').toLowerCase() === (d.location || '').toLowerCase());
-                return [d.location || '', locMatch ? (locMatch.category || '') : '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || '', d.updateDate || '', calcEdNote(d.expDate, d.updateDate), calcAgingNote(d.whArrivalDate)];
+                return [d.location || '', locMatch ? (locMatch.category || '') : '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || '', d.updateDate || '', calcWeek(d.updateDate), calcEdNote(d.expDate, d.updateDate), calcAgingNote(d.whArrivalDate)];
             },
             'stock_on_hand'
         );
@@ -2891,6 +2891,17 @@ function initSohPage() {
     });
 
     renderSohTable();
+}
+
+// Week: categorize Update Date into week of month
+function calcWeek(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '-';
+    const day = d.getDate();
+    const weekNum = Math.ceil(day / 7);
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `Week ${weekNum} ${months[d.getMonth()]}`;
 }
 
 // ED Note: categorize days between Exp Date and Update Date
@@ -2971,6 +2982,7 @@ function renderSohTable(search = '') {
         const locCat = locCatMap[(d.location || '').toLowerCase()] || '-';
         const edNote = calcEdNote(d.expDate, d.updateDate);
         const agingNote = calcAgingNote(d.whArrivalDate);
+        const week = calcWeek(d.updateDate);
         return `
         <tr>
             <td>${start + i + 1}</td>
@@ -2990,6 +3002,7 @@ function renderSohTable(search = '') {
             <td>${d.expDate ? formatDate(d.expDate) : '-'}</td>
             <td>${escapeHtml(d.batchNo || '-')}</td>
             <td>${d.updateDate ? formatDate(d.updateDate) : '-'}</td>
+            <td>${week}</td>
             <td><span class="badge ${edNote === 'Expired' ? 'badge--discrepancy' : edNote.includes('1') && edNote.includes('month') ? 'badge--break' : 'badge--putaway'}">${edNote}</span></td>
             <td>${agingNote}</td>
         </tr>`;
