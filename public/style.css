@@ -322,11 +322,11 @@ body {
     font-size: 13px;
 }
 
-.nav-group.active-group > .nav-group__header {
+.nav-group.active-group>.nav-group__header {
     color: var(--accent-blue-light);
 }
 
-.nav-group.active-group > .nav-group__header i.nav-group__icon {
+.nav-group.active-group>.nav-group__header i.nav-group__icon {
     color: var(--accent-blue-light);
 }
 
@@ -2213,6 +2213,16 @@ body {
 .badge--vas {
     background: rgba(251, 146, 60, 0.15);
     color: var(--accent-orange);
+}
+
+.badge--shortage {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--accent-red);
+}
+
+.badge--gain {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
 }
 
 /* Export/Import buttons */

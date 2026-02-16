@@ -6,7 +6,8 @@
 const STORAGE_KEYS = {
     arrivals: 'inbound_arrivals',
     transactions: 'inbound_transactions',
-    vas: 'inbound_vas'
+    vas: 'inbound_vas',
+    dcc: 'inbound_dcc'
 };
 
 function getData(key) {
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initArrivalPage();
     initTransactionPage();
     initVasPage();
+    initDccPage();
     updateDashboardStats();
 });
 
@@ -136,6 +138,7 @@ function navigateTo(pageId) {
     if (pageId === 'inbound-arrival') renderArrivalTable();
     if (pageId === 'inbound-transaction') renderTransactionTable();
     if (pageId === 'vas') renderVasTable();
+    if (pageId === 'daily-cycle-count') renderDccTable();
     if (pageId === 'dashboard') updateDashboardStats();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
@@ -1679,7 +1682,8 @@ function closeModal(modal) {
 const pageState = {
     Arrival: { current: 1, perPage: 50 },
     Transaction: { current: 1, perPage: 50 },
-    Vas: { current: 1, perPage: 50 }
+    Vas: { current: 1, perPage: 50 },
+    Dcc: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -1859,4 +1863,263 @@ function updateBulkButtons(pageName) {
     if (selectAll && allChecks.length > 0) {
         selectAll.checked = Array.from(allChecks).every(cb => cb.checked);
     }
+}
+
+// ========================================
+// DAILY CYCLE COUNT
+// ========================================
+function initDccPage() {
+    const modal = document.getElementById('modalDcc');
+    const form = document.getElementById('formDcc');
+    const btnAdd = document.getElementById('btnAddDcc');
+    const btnClose = document.getElementById('closeModalDcc');
+    const btnCancel = document.getElementById('cancelDcc');
+    const searchInput = document.getElementById('searchDcc');
+
+    btnAdd?.addEventListener('click', () => openDccModal());
+    btnClose?.addEventListener('click', () => closeModal(modal));
+    btnCancel?.addEventListener('click', () => closeModal(modal));
+    modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); });
+
+    form?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveDcc();
+    });
+
+    searchInput?.addEventListener('input', () => { pageState.Dcc.current = 1; renderDccTable(searchInput.value); });
+
+    // Export
+    document.getElementById('btnExportDcc')?.addEventListener('click', () => {
+        exportToCSV(
+            STORAGE_KEYS.dcc,
+            'daily_cycle_count.csv',
+            ['Date', 'Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Description', 'Sys. Qty', 'Phy. Qty', 'Variance', 'Variance %', 'Operator', 'Remarks'],
+            (d) => {
+                const sysQty = parseInt(d.sysQty) || 0;
+                const phyQty = parseInt(d.phyQty) || 0;
+                const variance = phyQty - sysQty;
+                const variancePct = sysQty !== 0 ? ((variance / sysQty) * 100).toFixed(2) + '%' : (variance === 0 ? '0%' : 'N/A');
+                const remarks = variance === 0 ? 'Match' : variance < 0 ? 'Shortage' : 'Gain';
+                return [d.date || '', d.phyInv || '', d.zone || '', d.location || '', d.owner || '', d.sku || '', d.brand || '', d.description || '', sysQty, phyQty, variance, variancePct, d.operator || '', remarks];
+            }
+        );
+    });
+
+    // Import
+    document.getElementById('btnImportDcc')?.addEventListener('click', () => {
+        importFromCSV(
+            STORAGE_KEYS.dcc,
+            ['Date', 'Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Description', 'Sys. Qty', 'Phy. Qty', 'Variance', 'Variance %', 'Operator', 'Remarks'],
+            (vals) => {
+                if (vals.length < 10) return null;
+                return {
+                    date: vals[0]?.trim() || '',
+                    phyInv: vals[1]?.trim() || '',
+                    zone: vals[2]?.trim() || '',
+                    location: vals[3]?.trim() || '',
+                    owner: vals[4]?.trim() || '',
+                    sku: vals[5]?.trim() || '',
+                    brand: vals[6]?.trim() || '',
+                    description: vals[7]?.trim() || '',
+                    sysQty: parseInt(vals[8]) || 0,
+                    phyQty: parseInt(vals[9]) || 0,
+                    operator: vals[12]?.trim() || '',
+                };
+            },
+            () => renderDccTable()
+        );
+    });
+
+    renderDccTable();
+
+    initBulkActions('Dcc', STORAGE_KEYS.dcc,
+        ['Date', 'Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Description', 'Sys. Qty', 'Phy. Qty', 'Operator'],
+        (d) => [d.date || '', d.phyInv || '', d.zone || '', d.location || '', d.owner || '', d.sku || '', d.brand || '', d.description || '', d.sysQty, d.phyQty, d.operator || ''],
+        renderDccTable
+    );
+}
+
+function openDccModal(editId = null) {
+    const modal = document.getElementById('modalDcc');
+    const title = document.getElementById('modalDccTitle');
+    const editIdField = document.getElementById('dccEditId');
+    const form = document.getElementById('formDcc');
+
+    form.reset();
+    editIdField.value = '';
+
+    if (editId) {
+        const items = getData(STORAGE_KEYS.dcc);
+        const item = items.find(d => d.id === editId);
+        if (item) {
+            title.innerHTML = '<i class="fas fa-edit"></i> Edit Cycle Count';
+            editIdField.value = editId;
+            document.getElementById('dccDate').value = item.date || '';
+            document.getElementById('dccPhyInv').value = item.phyInv || '';
+            document.getElementById('dccZone').value = item.zone || '';
+            document.getElementById('dccLocation').value = item.location || '';
+            document.getElementById('dccOwner').value = item.owner || '';
+            document.getElementById('dccSku').value = item.sku || '';
+            document.getElementById('dccBrand').value = item.brand || '';
+            document.getElementById('dccDescription').value = item.description || '';
+            document.getElementById('dccSysQty').value = item.sysQty || 0;
+            document.getElementById('dccPhyQty').value = item.phyQty || 0;
+            document.getElementById('dccOperator').value = item.operator || '';
+        }
+    } else {
+        title.innerHTML = '<i class="fas fa-clipboard-check"></i> Tambah Cycle Count';
+        // Auto-fill today's date
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mo = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        document.getElementById('dccDate').value = `${yyyy}-${mo}-${dd}`;
+    }
+
+    modal.classList.add('show');
+}
+
+function saveDcc() {
+    const editId = document.getElementById('dccEditId').value;
+    const data = {
+        date: document.getElementById('dccDate').value,
+        phyInv: document.getElementById('dccPhyInv').value.trim(),
+        zone: document.getElementById('dccZone').value.trim(),
+        location: document.getElementById('dccLocation').value.trim(),
+        owner: document.getElementById('dccOwner').value.trim(),
+        sku: document.getElementById('dccSku').value.trim(),
+        brand: document.getElementById('dccBrand').value.trim(),
+        description: document.getElementById('dccDescription').value.trim(),
+        sysQty: parseInt(document.getElementById('dccSysQty').value) || 0,
+        phyQty: parseInt(document.getElementById('dccPhyQty').value) || 0,
+        operator: document.getElementById('dccOperator').value.trim()
+    };
+
+    let items = getData(STORAGE_KEYS.dcc);
+    if (editId) {
+        const idx = items.findIndex(d => d.id === editId);
+        if (idx !== -1) items[idx] = { ...items[idx], ...data };
+    } else {
+        data.id = generateId();
+        data.createdAt = new Date().toISOString();
+        items.push(data);
+    }
+    setData(STORAGE_KEYS.dcc, items);
+
+    closeModal(document.getElementById('modalDcc'));
+    renderDccTable();
+}
+
+function deleteDcc(id) {
+    if (!confirm('Hapus data cycle count ini?')) return;
+    let items = getData(STORAGE_KEYS.dcc);
+    items = items.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.dcc, items);
+    renderDccTable();
+}
+
+function renderDccTable(search = '') {
+    const tbody = document.getElementById('dccTableBody');
+    const emptyEl = document.getElementById('dccEmpty');
+    const table = document.getElementById('dccTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.dcc);
+
+    if (search) {
+        const q = search.toLowerCase();
+        items = items.filter(d =>
+            (d.sku || '').toLowerCase().includes(q) ||
+            (d.zone || '').toLowerCase().includes(q) ||
+            (d.location || '').toLowerCase().includes(q) ||
+            (d.owner || '').toLowerCase().includes(q) ||
+            (d.brand || '').toLowerCase().includes(q) ||
+            (d.operator || '').toLowerCase().includes(q) ||
+            (d.phyInv || '').toLowerCase().includes(q) ||
+            (d.description || '').toLowerCase().includes(q)
+        );
+    }
+
+    // Update stat cards
+    updateDccStats(items);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Dcc', 0, renderDccTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Dcc', items.length, renderDccTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const sysQty = parseInt(d.sysQty) || 0;
+        const phyQty = parseInt(d.phyQty) || 0;
+        const variance = phyQty - sysQty;
+        const variancePct = sysQty !== 0 ? ((variance / sysQty) * 100).toFixed(2) : (variance === 0 ? '0.00' : 'N/A');
+        let remarks, remarkClass;
+        if (variance === 0) {
+            remarks = 'Match';
+            remarkClass = 'badge badge--receive';
+        } else if (variance < 0) {
+            remarks = 'Shortage';
+            remarkClass = 'badge badge--shortage';
+        } else {
+            remarks = 'Gain';
+            remarkClass = 'badge badge--gain';
+        }
+        const varianceClass = variance < 0 ? 'qty-negative' : variance > 0 ? 'qty-positive' : '';
+
+        return `
+        <tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Dcc')"></td>
+            <td>${start + i + 1}</td>
+            <td>${d.date ? formatDate(d.date) : '-'}</td>
+            <td>${escapeHtml(d.phyInv || '-')}</td>
+            <td>${escapeHtml(d.zone || '-')}</td>
+            <td>${escapeHtml(d.location || '-')}</td>
+            <td>${escapeHtml(d.owner || '-')}</td>
+            <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
+            <td>${escapeHtml(d.brand || '-')}</td>
+            <td>${escapeHtml(d.description || '-')}</td>
+            <td>${sysQty.toLocaleString()}</td>
+            <td>${phyQty.toLocaleString()}</td>
+            <td class="${varianceClass}">${variance > 0 ? '+' : ''}${variance.toLocaleString()}</td>
+            <td class="${varianceClass}">${variancePct}%</td>
+            <td>${escapeHtml(d.operator || '-')}</td>
+            <td><span class="${remarkClass}">${remarks}</span></td>
+            <td>
+                <div class="action-cell">
+                    <button class="btn btn--edit" onclick="openDccModal('${d.id}')" title="Edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn btn--danger" onclick="deleteDcc('${d.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateDccStats(items) {
+    let total = items.length;
+    let match = 0, shortage = 0, gain = 0;
+
+    items.forEach(d => {
+        const variance = (parseInt(d.phyQty) || 0) - (parseInt(d.sysQty) || 0);
+        if (variance === 0) match++;
+        else if (variance < 0) shortage++;
+        else gain++;
+    });
+
+    animateCounter('statDccTotal', total);
+    animateCounter('statDccMatch', match);
+    animateCounter('statDccShortage', shortage);
+    animateCounter('statDccGain', gain);
 }

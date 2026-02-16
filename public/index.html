@@ -752,13 +752,113 @@
                     <h2><i class="fas fa-clipboard-check"></i> Daily Cycle Count</h2>
                     <p>Pencatatan dan pelaporan cycle count harian inventory</p>
                 </div>
-                <div class="chart-card" style="max-width: 500px;">
-                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
-                        <i class="fas fa-hard-hat"
-                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman Daily Cycle Count sedang dalam
-                            pengembangan.</p>
+
+                <!-- Stat Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-card--blue">
+                        <div class="stat-card__icon"><i class="fas fa-clipboard-list"></i></div>
+                        <div class="stat-card__info">
+                            <span class="stat-card__label">Total Count</span>
+                            <span class="stat-card__value" id="statDccTotal">0</span>
+                        </div>
+                        <i class="fas fa-clipboard-list stat-card__bg-icon"></i>
+                    </div>
+                    <div class="stat-card stat-card--green">
+                        <div class="stat-card__icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-card__info">
+                            <span class="stat-card__label">Match</span>
+                            <span class="stat-card__value" id="statDccMatch">0</span>
+                        </div>
+                        <i class="fas fa-check-circle stat-card__bg-icon"></i>
+                    </div>
+                    <div class="stat-card stat-card--orange">
+                        <div class="stat-card__icon"><i class="fas fa-arrow-down"></i></div>
+                        <div class="stat-card__info">
+                            <span class="stat-card__label">Shortage</span>
+                            <span class="stat-card__value" id="statDccShortage">0</span>
+                        </div>
+                        <i class="fas fa-arrow-down stat-card__bg-icon"></i>
+                    </div>
+                    <div class="stat-card stat-card--purple">
+                        <div class="stat-card__icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="stat-card__info">
+                            <span class="stat-card__label">Gain</span>
+                            <span class="stat-card__value" id="statDccGain">0</span>
+                        </div>
+                        <i class="fas fa-arrow-up stat-card__bg-icon"></i>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn--primary" id="btnAddDcc">
+                            <i class="fas fa-plus"></i> <span>Tambah Data</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnExportDcc">
+                            <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnImportDcc">
+                            <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnBulkDeleteDcc" style="display:none">
+                            <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnBulkExportDcc" style="display:none">
+                            <i class="fas fa-file-export"></i> <span>Export (0)</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari SKU, zona, operator..." id="searchDcc">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table" id="dccTable">
+                        <thead>
+                            <tr>
+                                <th class="th-checkbox"><input type="checkbox" id="selectAllDcc"
+                                        onchange="toggleSelectAll('Dcc')"></th>
+                                <th>No</th>
+                                <th>Date</th>
+                                <th>Phy. Inventory#</th>
+                                <th>Zone</th>
+                                <th>Location</th>
+                                <th>Owner</th>
+                                <th>SKU</th>
+                                <th>Brand</th>
+                                <th>Description</th>
+                                <th>Sys. Qty</th>
+                                <th>Phy. Qty</th>
+                                <th>Variance</th>
+                                <th>Variance %</th>
+                                <th>Operator</th>
+                                <th>Remarks</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dccTableBody"></tbody>
+                    </table>
+                    <div class="table-empty" id="dccEmpty">
+                        <i class="fas fa-clipboard-check"></i>
+                        <p>Belum ada data cycle count</p>
+                        <small>Klik "Tambah Data" untuk menambahkan data baru</small>
+                    </div>
+                    <div class="pagination-wrapper">
+                        <div class="pagination" id="paginationDcc"></div>
+                        <div class="page-info">
+                            <label>Per halaman:</label>
+                            <select id="perPageDcc">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -961,6 +1061,72 @@
                     </form>
                 </div>
             </div>
+        </div>
+
+        <!-- Modal: Daily Cycle Count -->
+        <div class="modal-overlay" id="modalDcc">
+            <div class="modal">
+                <div class="modal__header">
+                    <h3 id="modalDccTitle"><i class="fas fa-clipboard-check"></i> Tambah Cycle Count</h3>
+                    <button class="modal__close" id="closeModalDcc">&times;</button>
+                </div>
+                <form id="formDcc" class="modal__form">
+                    <input type="hidden" id="dccEditId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="dccDate">Date</label>
+                            <input type="date" id="dccDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dccPhyInv">Phy. Inventory#</label>
+                            <input type="text" id="dccPhyInv" placeholder="Physical Inventory No">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccZone">Zone</label>
+                            <input type="text" id="dccZone" placeholder="Zone">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccLocation">Location</label>
+                            <input type="text" id="dccLocation" placeholder="Location">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccOwner">Owner</label>
+                            <input type="text" id="dccOwner" placeholder="Owner">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccSku">SKU</label>
+                            <input type="text" id="dccSku" placeholder="SKU" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dccBrand">Brand</label>
+                            <input type="text" id="dccBrand" placeholder="Brand">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccDescription">Description</label>
+                            <input type="text" id="dccDescription" placeholder="Description">
+                        </div>
+                        <div class="form-group">
+                            <label for="dccSysQty">Sys. Qty</label>
+                            <input type="number" id="dccSysQty" placeholder="0" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dccPhyQty">Phy. Qty</label>
+                            <input type="number" id="dccPhyQty" placeholder="0" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dccOperator">Operator</label>
+                            <input type="text" id="dccOperator" placeholder="Nama operator">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn--ghost" id="cancelDcc">Batal</button>
+                        <button type="submit" class="btn btn--primary">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         </div>
     </main>
