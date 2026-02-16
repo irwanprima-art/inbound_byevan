@@ -510,6 +510,102 @@ function updateInventoryDashboard() {
     setText('accLocMatch', locMatch.toLocaleString());
     setText('accLocUnmatch', locUnmatch.toLocaleString());
     setText('accLocPct', locAccuracy + '%');
+
+    // ===== 4. PROJECT DAMAGE SUMMARY =====
+    renderDmgDashboard();
+
+    // ===== 5. QC RETURN REPORT =====
+    renderQcrDashboard();
+}
+
+// --- Project Damage Dashboard Report ---
+function renderDmgDashboard() {
+    const items = getData(STORAGE_KEYS.damage);
+    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+    const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
+    setText('rptDmgTotal', items.length.toLocaleString());
+    setText('rptDmgQty', totalQty.toLocaleString());
+
+    // Damage Note breakdown
+    const noteMap = {};
+    items.forEach(d => {
+        const note = d.damageNote || 'Unknown';
+        if (!noteMap[note]) noteMap[note] = { count: 0, qty: 0 };
+        noteMap[note].count++;
+        noteMap[note].qty += parseInt(d.qty) || 0;
+    });
+
+    const noteBody = document.getElementById('rptDmgNoteBody');
+    if (noteBody) {
+        const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].count - a[1].count);
+        noteBody.innerHTML = sortedNotes.map(([note, data]) => `
+            <tr>
+                <td>${escapeHtml(note)}</td>
+                <td>${data.count}</td>
+                <td>${data.qty.toLocaleString()}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
+    }
+
+    // Brand breakdown
+    const brandMap = {};
+    items.forEach(d => {
+        const brand = d.brand || 'Unknown';
+        if (!brandMap[brand]) brandMap[brand] = { skus: new Set(), qty: 0 };
+        if (d.sku) brandMap[brand].skus.add(d.sku);
+        brandMap[brand].qty += parseInt(d.qty) || 0;
+    });
+
+    const brandBody = document.getElementById('rptDmgBrandBody');
+    if (brandBody) {
+        const sortedBrands = Object.entries(brandMap).sort((a, b) => b[1].qty - a[1].qty);
+        brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
+            <tr>
+                <td>${escapeHtml(brand)}</td>
+                <td>${data.skus.size}</td>
+                <td>${data.qty.toLocaleString()}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
+    }
+}
+
+// --- QC Return Dashboard Report ---
+function renderQcrDashboard() {
+    const items = getData(STORAGE_KEYS.qcReturn);
+    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+    // Operator productivity
+    const opMap = {};
+    items.forEach(d => {
+        const op = d.operator || 'Unknown';
+        if (!opMap[op]) opMap[op] = { count: 0, qty: 0 };
+        opMap[op].count++;
+        opMap[op].qty += parseInt(d.qty) || 0;
+    });
+
+    const opBody = document.getElementById('rptQcrOperatorBody');
+    if (opBody) {
+        const sortedOps = Object.entries(opMap).sort((a, b) => b[1].count - a[1].count);
+        opBody.innerHTML = sortedOps.map(([op, data]) => `
+            <tr>
+                <td>${escapeHtml(op)}</td>
+                <td>${data.count}</td>
+                <td>${data.qty.toLocaleString()}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
+    }
+
+    // Status breakdown
+    const total = items.length;
+    const damageCount = items.filter(d => (d.status || '').toLowerCase() === 'damage').length;
+    const goodCount = items.filter(d => (d.status || 'Good').toLowerCase() === 'good').length;
+    const goodRate = total > 0 ? ((goodCount / total) * 100).toFixed(2) : '0.00';
+
+    setText('rptQcrTotal', total.toLocaleString());
+    setText('rptQcrDamage', damageCount.toLocaleString());
+    setText('rptQcrGood', goodCount.toLocaleString());
+    setText('rptQcrGoodPct', goodRate + '%');
 }
 
 function renderPendingTable() {
@@ -2767,6 +2863,7 @@ function initQcrPage() {
         const fromLoc = document.getElementById('qcrFromLoc')?.value?.trim();
         const toLoc = document.getElementById('qcrToLoc')?.value?.trim();
         const operator = document.getElementById('qcrOperator')?.value?.trim();
+        const status = document.getElementById('qcrStatus')?.value || 'Good';
 
         if (!date || !owner || !sku || qty <= 0 || !fromLoc || !toLoc) {
             showToast('Harap isi semua field wajib (*)', 'error');
@@ -2774,7 +2871,7 @@ function initQcrPage() {
         }
 
         const data = getData(STORAGE_KEYS.qcReturn);
-        const record = { date, owner, sku, qty, fromLoc, toLoc, operator };
+        const record = { date, owner, sku, qty, fromLoc, toLoc, operator, status };
 
         if (editId) {
             const idx = data.findIndex(d => d.id === editId);
@@ -2799,8 +2896,8 @@ function initQcrPage() {
     document.getElementById('btnExportQcr')?.addEventListener('click', () => {
         exportToCSV(
             STORAGE_KEYS.qcReturn,
-            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
-            (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || ''],
+            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
+            (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', d.status || 'Good'],
             'qc_return'
         );
     });
@@ -2809,7 +2906,7 @@ function initQcrPage() {
     document.getElementById('btnImportQcr')?.addEventListener('click', () => {
         importFromCSV(
             STORAGE_KEYS.qcReturn,
-            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
+            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
             (vals) => {
                 if (vals.length < 4) return null;
                 return {
@@ -2819,7 +2916,8 @@ function initQcrPage() {
                     qty: parseInt(vals[3]) || 0,
                     fromLoc: vals[4]?.trim() || '',
                     toLoc: vals[5]?.trim() || '',
-                    operator: vals[6]?.trim() || ''
+                    operator: vals[6]?.trim() || '',
+                    status: vals[7]?.trim() || 'Good'
                 };
             },
             () => renderQcrTable()
@@ -2834,8 +2932,8 @@ function initQcrPage() {
 
     // Bulk actions
     initBulkActions('Qcr', STORAGE_KEYS.qcReturn,
-        ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
-        (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || ''],
+        ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator', 'Status'],
+        (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || '', d.status || 'Good'],
         renderQcrTable
     );
 
@@ -2866,6 +2964,7 @@ function openQcrModal(editId = null) {
     document.getElementById('qcrFromLoc').value = '';
     document.getElementById('qcrToLoc').value = '';
     document.getElementById('qcrOperator').value = '';
+    document.getElementById('qcrStatus').value = 'Good';
     idEl.value = '';
 
     if (editId) {
@@ -2881,6 +2980,7 @@ function openQcrModal(editId = null) {
             document.getElementById('qcrFromLoc').value = item.fromLoc || '';
             document.getElementById('qcrToLoc').value = item.toLoc || '';
             document.getElementById('qcrOperator').value = item.operator || '';
+            document.getElementById('qcrStatus').value = item.status || 'Good';
         }
     } else {
         title.textContent = 'Tambah Data QC Return';
@@ -2914,7 +3014,8 @@ function renderQcrTable(search = '') {
             (d.owner || '').toLowerCase().includes(q) ||
             (d.operator || '').toLowerCase().includes(q) ||
             (d.fromLoc || '').toLowerCase().includes(q) ||
-            (d.toLoc || '').toLowerCase().includes(q)
+            (d.toLoc || '').toLowerCase().includes(q) ||
+            (d.status || '').toLowerCase().includes(q)
         );
     }
 
@@ -2945,6 +3046,7 @@ function renderQcrTable(search = '') {
             <td>${escapeHtml(d.fromLoc || '-')}</td>
             <td>${escapeHtml(d.toLoc || '-')}</td>
             <td>${escapeHtml(d.operator || '-')}</td>
+            <td><span class="badge ${(d.status || 'Good') === 'Good' ? 'badge--putaway' : 'badge--discrepancy'}">${escapeHtml(d.status || 'Good')}</span></td>
             <td>
                 <div class="action-cell">
                     <button class="btn btn--edit" onclick="openQcrModal('${d.id}')" title="Edit">

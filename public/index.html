@@ -552,6 +552,115 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- PROJECT DAMAGE SUMMARY -->
+                    <div class="report-section" style="margin-top: 28px;">
+                        <h3 class="section-title"><i class="fas fa-exclamation-triangle"></i> Project Damage — Summary
+                        </h3>
+                    </div>
+                    <div class="accuracy-grid">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-chart-pie"></i> Damage Note Breakdown</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="accuracy-list">
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total Record</span>
+                                        <span class="accuracy-value" id="rptDmgTotal">0</span>
+                                    </div>
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total Qty</span>
+                                        <span class="accuracy-value" id="rptDmgQty">0</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px;">
+                                    <table class="data-table" id="rptDmgNoteTable" style="font-size: 13px;">
+                                        <thead>
+                                            <tr>
+                                                <th>Damage Note</th>
+                                                <th>Jumlah Record</th>
+                                                <th>Total Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rptDmgNoteBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-boxes"></i> Damage Per Brand</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div style="max-height: 280px; overflow-y: auto;">
+                                    <table class="data-table" id="rptDmgBrandTable" style="font-size: 13px;">
+                                        <thead>
+                                            <tr>
+                                                <th>Brand</th>
+                                                <th>SKU Terdampak</th>
+                                                <th>Total Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rptDmgBrandBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QC RETURN REPORT -->
+                    <div class="report-section" style="margin-top: 28px;">
+                        <h3 class="section-title"><i class="fas fa-undo-alt"></i> QC Return — Productivity & Status</h3>
+                    </div>
+                    <div class="accuracy-grid">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-user-cog"></i> Productivity Per Operator</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div style="max-height: 280px; overflow-y: auto;">
+                                    <table class="data-table" id="rptQcrOperatorTable" style="font-size: 13px;">
+                                        <thead>
+                                            <tr>
+                                                <th>Operator</th>
+                                                <th>Jumlah Proses</th>
+                                                <th>Total Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rptQcrOperatorBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-clipboard-check"></i> Status Breakdown</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="accuracy-list">
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total QC Return</span>
+                                        <span class="accuracy-value" id="rptQcrTotal">0</span>
+                                    </div>
+                                    <div class="accuracy-row accuracy-row--shortage">
+                                        <span class="accuracy-label">Damage</span>
+                                        <span class="accuracy-value" id="rptQcrDamage">0</span>
+                                    </div>
+                                    <div class="accuracy-row accuracy-row--match">
+                                        <span class="accuracy-label">Good</span>
+                                        <span class="accuracy-value" id="rptQcrGood">0</span>
+                                    </div>
+                                </div>
+                                <div class="accuracy-result">
+                                    <span class="accuracy-result__label">Good Rate</span>
+                                    <span class="accuracy-result__value" id="rptQcrGoodPct">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <!-- END INVENTORY DASHBOARD -->
 
@@ -1454,6 +1563,7 @@
                                 <th>From Loc</th>
                                 <th>To Loc</th>
                                 <th>Operator</th>
+                                <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1509,6 +1619,13 @@
                             <div class="form-group">
                                 <label>Operator</label>
                                 <input type="text" id="qcrOperator" placeholder="Nama operator">
+                            </div>
+                            <div class="form-group">
+                                <label>Status <span class="required">*</span></label>
+                                <select id="qcrStatus">
+                                    <option value="Good">Good</option>
+                                    <option value="Damage">Damage</option>
+                                </select>
                             </div>
                         </div>
                     </div>
