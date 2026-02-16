@@ -3165,18 +3165,27 @@ function renderQcrTable(search = '') {
     if (!tbody) return;
 
     let items = getData(STORAGE_KEYS.qcReturn);
+
+    // Build SKU→Brand lookup from latest SOH
+    const latestSoh = getLatestSohData();
+    const skuBrandMap = {};
+    latestSoh.forEach(s => {
+        if (s.sku && s.skuBrand) skuBrandMap[s.sku.toLowerCase()] = s.skuBrand;
+    });
+
     const q = (search || document.getElementById('searchQcr')?.value || '').toLowerCase();
     if (q) {
-        items = items.filter(d =>
-            (d.sku || '').toLowerCase().includes(q) ||
-            (d.owner || '').toLowerCase().includes(q) ||
-            (d.operator || '').toLowerCase().includes(q) ||
-            (d.fromLoc || '').toLowerCase().includes(q) ||
-            (d.toLoc || '').toLowerCase().includes(q) ||
-            (d.status || '').toLowerCase().includes(q) ||
-            (d.receipt || '').toLowerCase().includes(q) ||
-            (d.brand || '').toLowerCase().includes(q)
-        );
+        items = items.filter(d => {
+            const brand = d.brand || skuBrandMap[(d.sku || '').toLowerCase()] || '';
+            return (d.sku || '').toLowerCase().includes(q) ||
+                (d.owner || '').toLowerCase().includes(q) ||
+                (d.operator || '').toLowerCase().includes(q) ||
+                (d.fromLoc || '').toLowerCase().includes(q) ||
+                (d.toLoc || '').toLowerCase().includes(q) ||
+                (d.status || '').toLowerCase().includes(q) ||
+                (d.receipt || '').toLowerCase().includes(q) ||
+                brand.toLowerCase().includes(q);
+        });
     }
 
     updateQcrStats(items);
@@ -3195,14 +3204,16 @@ function renderQcrTable(search = '') {
     const { start, end } = renderPagination('Qcr', items.length, renderQcrTable);
     const pageData = items.slice(start, end);
 
-    tbody.innerHTML = pageData.map((d, i) => `
+    tbody.innerHTML = pageData.map((d, i) => {
+        const brand = d.brand || skuBrandMap[(d.sku || '').toLowerCase()] || '-';
+        return `
         <tr>
             <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Qcr')"></td>
             <td>${start + i + 1}</td>
             <td>${d.date ? formatDate(d.date) : '-'}</td>
             <td>${escapeHtml(d.receipt || '-')}</td>
             <td>${d.returnDate ? formatDate(d.returnDate) : '-'}</td>
-            <td>${escapeHtml(d.brand || '-')}</td>
+            <td>${escapeHtml(brand)}</td>
             <td>${escapeHtml(d.owner || '-')}</td>
             <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
             <td>${(parseInt(d.qty) || 0).toLocaleString()}</td>
@@ -3221,8 +3232,8 @@ function renderQcrTable(search = '') {
                     </button>
                 </div>
             </td>
-        </tr>`
-    ).join('');
+        </tr>`;
+    }).join('');
 }
 
 function updateQcrStats(items) {
