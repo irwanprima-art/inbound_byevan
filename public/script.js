@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
     transactions: 'inbound_transactions',
     vas: 'inbound_vas',
     dcc: 'inbound_dcc',
-    damage: 'inbound_damage'
+    damage: 'inbound_damage',
+    soh: 'inbound_soh'
 };
 
 function getData(key) {
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVasPage();
     initDccPage();
     initDmgPage();
+    initSohPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -137,6 +139,7 @@ function navigateTo(pageId) {
             'vas': 'VAS',
             'daily-cycle-count': 'Daily Cycle Count',
             'project-damage': 'Project Damage',
+            'stock-on-hand': 'Stock On Hand',
             'qc-return': 'QC Return'
         };
         breadcrumb.textContent = names[pageId] || pageId;
@@ -147,6 +150,7 @@ function navigateTo(pageId) {
     if (pageId === 'vas') renderVasTable();
     if (pageId === 'daily-cycle-count') renderDccTable();
     if (pageId === 'project-damage') renderDmgTable();
+    if (pageId === 'stock-on-hand') renderSohTable();
     if (pageId === 'dashboard') updateDashboardStats();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
@@ -1903,7 +1907,8 @@ const pageState = {
     Transaction: { current: 1, perPage: 50 },
     Vas: { current: 1, perPage: 50 },
     Dcc: { current: 1, perPage: 50 },
-    Dmg: { current: 1, perPage: 50 }
+    Dmg: { current: 1, perPage: 50 },
+    Soh: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -2597,3 +2602,145 @@ function updateDmgStats(items) {
     animateCounter('statDmgBrand', brands.size);
 }
 
+// ========================================
+// STOCK ON HAND
+// ========================================
+
+function initSohPage() {
+    // Import (Replace) — clears existing data first
+    document.getElementById('btnImportSoh')?.addEventListener('click', () => {
+        const existingCount = getData(STORAGE_KEYS.soh).length;
+        const msg = existingCount > 0
+            ? `Ada ${existingCount} data Stock On Hand saat ini.\nImport akan MENGGANTI semua data lama.\nLanjutkan?`
+            : 'Import data Stock On Hand dari CSV?';
+
+        if (existingCount > 0 && !confirm(msg)) return;
+
+        // Clear existing data first, then import
+        setData(STORAGE_KEYS.soh, []);
+
+        importFromCSV(
+            STORAGE_KEYS.soh,
+            ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#'],
+            (vals) => {
+                if (vals.length < 2) return null;
+                return {
+                    location: vals[0]?.trim() || '',
+                    sku: vals[1]?.trim() || '',
+                    skuCategory: vals[2]?.trim() || '',
+                    skuBrand: vals[3]?.trim() || '',
+                    zone: vals[4]?.trim() || '',
+                    locationType: vals[5]?.trim() || '',
+                    owner: vals[6]?.trim() || '',
+                    status: vals[7]?.trim() || '',
+                    qty: parseInt(vals[8]) || 0,
+                    whArrivalDate: vals[9]?.trim() || '',
+                    receiptNo: vals[10]?.trim() || '',
+                    mfgDate: vals[11]?.trim() || '',
+                    expDate: vals[12]?.trim() || '',
+                    batchNo: vals[13]?.trim() || ''
+                };
+            },
+            () => renderSohTable()
+        );
+    });
+
+    // Export
+    document.getElementById('btnExportSoh')?.addEventListener('click', () => {
+        exportToCSV(
+            STORAGE_KEYS.soh,
+            ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#'],
+            (d) => [d.location || '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || ''],
+            'stock_on_hand'
+        );
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchSoh');
+    searchInput?.addEventListener('input', () => { pageState.Soh.current = 1; renderSohTable(searchInput.value); });
+
+    // Clear All
+    document.getElementById('btnClearSoh')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.soh);
+        if (items.length === 0) {
+            showToast('Tidak ada data untuk dihapus', 'info');
+            return;
+        }
+        if (confirm(`Hapus semua ${items.length} data Stock On Hand?`)) {
+            setData(STORAGE_KEYS.soh, []);
+            renderSohTable();
+            showToast('Semua data Stock On Hand berhasil dihapus', 'success');
+        }
+    });
+
+    renderSohTable();
+}
+
+function renderSohTable(search = '') {
+    const tbody = document.getElementById('sohTableBody');
+    const emptyEl = document.getElementById('sohEmpty');
+    const table = document.getElementById('sohTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.soh);
+    const q = (search || document.getElementById('searchSoh')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d =>
+            (d.sku || '').toLowerCase().includes(q) ||
+            (d.location || '').toLowerCase().includes(q) ||
+            (d.owner || '').toLowerCase().includes(q) ||
+            (d.skuBrand || '').toLowerCase().includes(q) ||
+            (d.zone || '').toLowerCase().includes(q) ||
+            (d.receiptNo || '').toLowerCase().includes(q) ||
+            (d.batchNo || '').toLowerCase().includes(q) ||
+            (d.status || '').toLowerCase().includes(q)
+        );
+    }
+
+    updateSohStats(items);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Soh', 0, renderSohTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Soh', items.length, renderSohTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => `
+        <tr>
+            <td>${start + i + 1}</td>
+            <td>${escapeHtml(d.location || '-')}</td>
+            <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
+            <td>${escapeHtml(d.skuCategory || '-')}</td>
+            <td>${escapeHtml(d.skuBrand || '-')}</td>
+            <td>${escapeHtml(d.zone || '-')}</td>
+            <td>${escapeHtml(d.locationType || '-')}</td>
+            <td>${escapeHtml(d.owner || '-')}</td>
+            <td><span class="badge badge--receive">${escapeHtml(d.status || '-')}</span></td>
+            <td>${(parseInt(d.qty) || 0).toLocaleString()}</td>
+            <td>${d.whArrivalDate ? formatDate(d.whArrivalDate) : '-'}</td>
+            <td>${escapeHtml(d.receiptNo || '-')}</td>
+            <td>${d.mfgDate ? formatDate(d.mfgDate) : '-'}</td>
+            <td>${d.expDate ? formatDate(d.expDate) : '-'}</td>
+            <td>${escapeHtml(d.batchNo || '-')}</td>
+        </tr>`
+    ).join('');
+}
+
+function updateSohStats(items) {
+    const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
+    const skus = new Set(items.map(d => d.sku).filter(Boolean));
+    const locs = new Set(items.map(d => d.location).filter(Boolean));
+
+    animateCounter('statSohTotal', items.length);
+    animateCounter('statSohQty', totalQty);
+    animateCounter('statSohSku', skus.size);
+    animateCounter('statSohLoc', locs.size);
+}

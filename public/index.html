@@ -92,6 +92,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="stock-on-hand" id="nav-stock-on-hand">
+                                <i class="fas fa-warehouse"></i>
+                                <span>Stock On Hand</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="#" class="nav-link" data-page="qc-return" id="nav-qc-return">
                                 <i class="fas fa-undo-alt"></i>
                                 <span>QC Return</span>
@@ -637,6 +643,24 @@
                         <div class="menu-card__body">
                             <h3>Project Damage</h3>
                             <p>Pencatatan dan tracking barang rusak dalam inventory warehouse.</p>
+                        </div>
+                        <div class="menu-card__footer">
+                            <span class="menu-card__action">
+                                Buka Menu <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="menu-card" data-navigate="stock-on-hand" id="card-stock-on-hand">
+                        <div class="menu-card__header">
+                            <div class="menu-card__icon menu-card__icon--green">
+                                <i class="fas fa-warehouse"></i>
+                            </div>
+                            <span class="menu-card__badge">Folder</span>
+                        </div>
+                        <div class="menu-card__body">
+                            <h3>Stock On Hand</h3>
+                            <p>Data stok aktual di warehouse berdasarkan export WMS.</p>
                         </div>
                         <div class="menu-card__footer">
                             <span class="menu-card__action">
@@ -1244,6 +1268,105 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Stock On Hand Page -->
+            <section class="page" id="page-stock-on-hand">
+                <div class="page-header">
+                    <div class="page-header__top">
+                        <button class="back-btn" data-navigate="dashboard" id="btn-back-stock-on-hand">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Kembali</span>
+                        </button>
+                    </div>
+                    <h2><i class="fas fa-warehouse"></i> Stock On Hand</h2>
+                    <p>Data stok aktual di warehouse — import dari WMS (data lama otomatis diganti)</p>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="stats-grid stats-grid--compact">
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statSohTotal">0</span>
+                            <span class="stat-card__label">Total Record</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statSohQty">0</span>
+                            <span class="stat-card__label">Total Qty</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statSohSku">0</span>
+                            <span class="stat-card__label">Unique SKU</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statSohLoc">0</span>
+                            <span class="stat-card__label">Unique Location</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn--primary" id="btnImportSoh">
+                            <i class="fas fa-file-import"></i> <span>Import CSV (Replace)</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnExportSoh">
+                            <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnClearSoh">
+                            <i class="fas fa-broom"></i> <span>Clear All</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari SKU, location, owner..." id="searchSoh">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table" id="sohTable">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Location</th>
+                                <th>SKU</th>
+                                <th>SKU Category</th>
+                                <th>SKU Brand</th>
+                                <th>Zone</th>
+                                <th>Location Type</th>
+                                <th>Owner</th>
+                                <th>Status</th>
+                                <th>Qty</th>
+                                <th>WH Arrival Date</th>
+                                <th>Receipt#</th>
+                                <th>Mfg. Date</th>
+                                <th>Exp. Date</th>
+                                <th>Batch#</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sohTableBody"></tbody>
+                    </table>
+                    <div class="table-empty" id="sohEmpty">
+                        <i class="fas fa-warehouse"></i>
+                        <p>Belum ada data Stock On Hand. Import CSV dari WMS.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationSoh">
+                    <div class="pagination__info" id="paginationSohInfo"></div>
+                    <div class="pagination__pages" id="paginationSohPages"></div>
+                </div>
+            </section>
 
             <!-- QC Return Page -->
             <section class="page" id="page-qc-return">
