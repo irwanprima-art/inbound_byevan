@@ -2862,8 +2862,12 @@ function initSohPage() {
     document.getElementById('btnExportSoh')?.addEventListener('click', () => {
         exportToCSV(
             STORAGE_KEYS.soh,
-            ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#', 'Update Date'],
-            (d) => [d.location || '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || '', d.updateDate || ''],
+            ['Location', 'Location Category', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#', 'Update Date', 'ED Note', 'Aging Note'],
+            (d) => {
+                const locData = getData(STORAGE_KEYS.locations);
+                const locMatch = locData.find(l => (l.location || '').toLowerCase() === (d.location || '').toLowerCase());
+                return [d.location || '', locMatch ? (locMatch.category || '') : '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || '', d.updateDate || '', calcEdNote(d.expDate, d.updateDate), calcAgingNote(d.whArrivalDate)];
+            },
             'stock_on_hand'
         );
     });
@@ -2889,6 +2893,34 @@ function initSohPage() {
     renderSohTable();
 }
 
+// ED Note: categorize days between Exp Date and Update Date
+function calcEdNote(expDate, updateDate) {
+    if (!expDate || !updateDate) return '-';
+    const exp = new Date(expDate);
+    const upd = new Date(updateDate);
+    if (isNaN(exp) || isNaN(upd)) return '-';
+    const diffDays = Math.floor((exp - upd) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'Expired';
+    if (diffDays <= 30) return '< 1 Month';
+    if (diffDays <= 60) return '< 2 Month';
+    if (diffDays <= 90) return '< 3 Month';
+    if (diffDays <= 180) return '3 - 6 Month';
+    if (diffDays <= 365) return '6 - 12 Month';
+    return '1yr++';
+}
+
+// Aging Note: categorize WH Arrival Date into quarterly buckets
+function calcAgingNote(whArrivalDate) {
+    if (!whArrivalDate) return '-';
+    const d = new Date(whArrivalDate);
+    if (isNaN(d)) return '-';
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1; // 1-12
+    if (year < 2025) return 'Under 2025';
+    const quarter = month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
+    return `${quarter} ${year}`;
+}
+
 function renderSohTable(search = '') {
     const tbody = document.getElementById('sohTableBody');
     const emptyEl = document.getElementById('sohEmpty');
@@ -2896,6 +2928,14 @@ function renderSohTable(search = '') {
     if (!tbody) return;
 
     let items = getData(STORAGE_KEYS.soh);
+
+    // Build Location→Category lookup from Master Location
+    const locData = getData(STORAGE_KEYS.locations);
+    const locCatMap = {};
+    locData.forEach(l => {
+        if (l.location) locCatMap[l.location.toLowerCase()] = l.category || '';
+    });
+
     const q = (search || document.getElementById('searchSoh')?.value || '').toLowerCase();
     if (q) {
         items = items.filter(d =>
@@ -2906,7 +2946,8 @@ function renderSohTable(search = '') {
             (d.zone || '').toLowerCase().includes(q) ||
             (d.receiptNo || '').toLowerCase().includes(q) ||
             (d.batchNo || '').toLowerCase().includes(q) ||
-            (d.status || '').toLowerCase().includes(q)
+            (d.status || '').toLowerCase().includes(q) ||
+            (locCatMap[(d.location || '').toLowerCase()] || '').toLowerCase().includes(q)
         );
     }
 
@@ -2926,10 +2967,15 @@ function renderSohTable(search = '') {
     const { start, end } = renderPagination('Soh', items.length, renderSohTable);
     const pageData = items.slice(start, end);
 
-    tbody.innerHTML = pageData.map((d, i) => `
+    tbody.innerHTML = pageData.map((d, i) => {
+        const locCat = locCatMap[(d.location || '').toLowerCase()] || '-';
+        const edNote = calcEdNote(d.expDate, d.updateDate);
+        const agingNote = calcAgingNote(d.whArrivalDate);
+        return `
         <tr>
             <td>${start + i + 1}</td>
             <td>${escapeHtml(d.location || '-')}</td>
+            <td>${escapeHtml(locCat)}</td>
             <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
             <td>${escapeHtml(d.skuCategory || '-')}</td>
             <td>${escapeHtml(d.skuBrand || '-')}</td>
@@ -2944,8 +2990,10 @@ function renderSohTable(search = '') {
             <td>${d.expDate ? formatDate(d.expDate) : '-'}</td>
             <td>${escapeHtml(d.batchNo || '-')}</td>
             <td>${d.updateDate ? formatDate(d.updateDate) : '-'}</td>
-        </tr>`
-    ).join('');
+            <td><span class="badge ${edNote === 'Expired' ? 'badge--discrepancy' : edNote.includes('1') && edNote.includes('month') ? 'badge--break' : 'badge--putaway'}">${edNote}</span></td>
+            <td>${agingNote}</td>
+        </tr>`;
+    }).join('');
 }
 
 function updateSohStats(items) {
