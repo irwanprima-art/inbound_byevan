@@ -2474,3 +2474,96 @@ body {
         max-width: 100%;
     }
 }
+
+/* Dashboard Tabs */
+.dashboard-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--bg-card);
+    padding: 6px;
+    border-radius: var(--border-radius-md);
+    width: fit-content;
+}
+
+.dashboard-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    white-space: nowrap;
+}
+
+.dashboard-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dashboard-tab.active {
+    background: var(--accent-blue);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(79, 140, 255, 0.3);
+}
+
+.dashboard-tab i {
+    font-size: 14px;
+}
+
+/* Dashboard Panels */
+.dashboard-panel {
+    display: none;
+}
+
+.dashboard-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Bar fill color variants */
+.bar-fill--red {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.bar-fill--blue {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+/* Bar summary color variants */
+.bar-summary__value--red {
+    color: #f87171;
+}
+
+.bar-summary__value--blue {
+    color: #60a5fa;
+}
+
+/* Variance table helper classes */
+.qty-negative {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.qty-positive {
+    color: #34d399;
+    font-weight: 600;
+}

@@ -142,258 +142,449 @@
                     <p>Overview manajemen inbound warehouse</p>
                 </div>
 
-                <div class="report-section">
-                    <h3 class="section-title"><i class="fas fa-chart-bar"></i> Inbound Report</h3>
-                    <div class="stats-grid stats-grid--report">
-                        <div class="stat-card stat-card--gradient-green">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-check-double"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statPOReceived">0</span>
-                                <span class="stat-card__label">Total PO Diterima</span>
-                                <span class="stat-card__sub">Total PO di Inbound Arrival</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-check-double"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-blue">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-copyright"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statBrandReceived">0</span>
-                                <span class="stat-card__label">Total Brand Diterima</span>
-                                <span class="stat-card__sub">Brand unik yang sudah diterima</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-copyright"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-orange">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-hourglass-half"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statPOPending">0</span>
-                                <span class="stat-card__label">PO Open / Pending</span>
-                                <span class="stat-card__sub">PO yang belum diterima lengkap</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-hourglass-half"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-red">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-boxes"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statQtyPending">0</span>
-                                <span class="stat-card__label">Total Qty Pending</span>
-                                <span class="stat-card__sub">Total unit yang masih ditunggu</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-boxes"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-purple">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statAvgRecPut">-</span>
-                                <span class="stat-card__label">Avg Receive → Putaway</span>
-                                <span class="stat-card__sub">Rata-rata waktu per Receipt No</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-orange">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-shipping-fast"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statAvgLeadTime">-</span>
-                                <span class="stat-card__label">Avg Lead Time</span>
-                                <span class="stat-card__sub">Kedatangan → Putaway per PO</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-shipping-fast"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-blue">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-user-cog"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statVasAvgPerOp">-</span>
-                                <span class="stat-card__label">Avg Qty VAS / Operator / Hari</span>
-                                <span class="stat-card__sub">Rata-rata qty per operator per hari</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-user-cog"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--gradient-green">
-                            <div class="stat-card__icon">
-                                <i class="fas fa-calendar-day"></i>
-                            </div>
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statVasAvgQtyDay">-</span>
-                                <span class="stat-card__label">Avg Qty VAS / Hari</span>
-                                <span class="stat-card__sub">Rata-rata qty VAS per hari</span>
-                            </div>
-                            <div class="stat-card__bg-icon">
-                                <i class="fas fa-calendar-day"></i>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Dashboard Filter Tabs -->
+                <div class="dashboard-tabs" id="dashboardTabs">
+                    <button class="dashboard-tab active" data-tab="inbound" id="tabInbound">
+                        <i class="fas fa-truck-loading"></i> Inbound
+                    </button>
+                    <button class="dashboard-tab" data-tab="inventory" id="tabInventory">
+                        <i class="fas fa-boxes"></i> Inventory
+                    </button>
                 </div>
 
-                <!-- Charts Section -->
-                <div class="charts-section">
-                    <div class="chart-card">
-                        <div class="chart-card__header">
-                            <h3><i class="fas fa-chart-pie"></i> Status Penerimaan</h3>
-                        </div>
-                        <div class="chart-card__body">
-                            <div class="donut-wrapper">
-                                <div class="donut-chart" id="donutChart">
-                                    <div class="donut-center">
-                                        <span class="donut-percent" id="donutPercent">0%</span>
-                                        <span class="donut-label">Completed</span>
-                                    </div>
+                <!-- ========== INBOUND DASHBOARD ========== -->
+                <div class="dashboard-panel active" id="dashboardInbound">
+                    <div class="report-section">
+                        <h3 class="section-title"><i class="fas fa-chart-bar"></i> Inbound Report</h3>
+                        <div class="stats-grid stats-grid--report">
+                            <div class="stat-card stat-card--gradient-green">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-check-double"></i>
                                 </div>
-                                <div class="donut-legend">
-                                    <div class="legend-item">
-                                        <span class="legend-dot legend-dot--green"></span>
-                                        <span class="legend-text">Completed</span>
-                                        <strong class="legend-value" id="legendCompleted">0</strong>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-dot legend-dot--red"></span>
-                                        <span class="legend-text">Pending</span>
-                                        <strong class="legend-value" id="legendPending">0</strong>
-                                    </div>
-                                    <div class="legend-item legend-item--total">
-                                        <span class="legend-dot legend-dot--blue"></span>
-                                        <span class="legend-text">Total PO Qty</span>
-                                        <strong class="legend-value" id="legendTotal">0</strong>
-                                    </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statPOReceived">0</span>
+                                    <span class="stat-card__label">Total PO Diterima</span>
+                                    <span class="stat-card__sub">Total PO di Inbound Arrival</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-blue">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-copyright"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statBrandReceived">0</span>
+                                    <span class="stat-card__label">Total Brand Diterima</span>
+                                    <span class="stat-card__sub">Brand unik yang sudah diterima</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-copyright"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-orange">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statPOPending">0</span>
+                                    <span class="stat-card__label">PO Open / Pending</span>
+                                    <span class="stat-card__sub">PO yang belum diterima lengkap</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-red">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-boxes"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statQtyPending">0</span>
+                                    <span class="stat-card__label">Total Qty Pending</span>
+                                    <span class="stat-card__sub">Total unit yang masih ditunggu</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-boxes"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-purple">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statAvgRecPut">-</span>
+                                    <span class="stat-card__label">Avg Receive → Putaway</span>
+                                    <span class="stat-card__sub">Rata-rata waktu per Receipt No</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-orange">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-shipping-fast"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statAvgLeadTime">-</span>
+                                    <span class="stat-card__label">Avg Lead Time</span>
+                                    <span class="stat-card__sub">Kedatangan → Putaway per PO</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-shipping-fast"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-blue">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statVasAvgPerOp">-</span>
+                                    <span class="stat-card__label">Avg Qty VAS / Operator / Hari</span>
+                                    <span class="stat-card__sub">Rata-rata qty per operator per hari</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-green">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statVasAvgQtyDay">-</span>
+                                    <span class="stat-card__label">Avg Qty VAS / Hari</span>
+                                    <span class="stat-card__sub">Rata-rata qty VAS per hari</span>
+                                </div>
+                                <div class="stat-card__bg-icon">
+                                    <i class="fas fa-calendar-day"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="chart-card">
-                        <div class="chart-card__header">
-                            <h3><i class="fas fa-chart-bar"></i> Breakdown Qty</h3>
-                        </div>
-                        <div class="chart-card__body">
-                            <div class="bar-chart" id="barChart">
-                                <div class="bar-row">
-                                    <div class="bar-label">
-                                        <i class="fas fa-arrow-down" style="color: #34d399"></i>
-                                        <span>Receive Qty</span>
-                                    </div>
-                                    <div class="bar-track">
-                                        <div class="bar-fill bar-fill--green" id="barReceive" style="width: 0%"></div>
-                                    </div>
-                                    <span class="bar-value" id="barReceiveVal">0</span>
-                                </div>
-                                <div class="bar-row">
-                                    <div class="bar-label">
-                                        <i class="fas fa-pallet" style="color: #a78bfa"></i>
-                                        <span>Putaway Qty</span>
-                                    </div>
-                                    <div class="bar-track">
-                                        <div class="bar-fill bar-fill--purple" id="barPutaway" style="width: 0%"></div>
-                                    </div>
-                                    <span class="bar-value" id="barPutawayVal">0</span>
-                                </div>
-                                <div class="bar-row">
-                                    <div class="bar-label">
-                                        <i class="fas fa-clock" style="color: #fb923c"></i>
-                                        <span>Pending Qty</span>
-                                    </div>
-                                    <div class="bar-track">
-                                        <div class="bar-fill bar-fill--orange" id="barPending" style="width: 0%"></div>
-                                    </div>
-                                    <span class="bar-value" id="barPendingVal">0</span>
-                                </div>
+                    <!-- Charts Section -->
+                    <div class="charts-section">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-chart-pie"></i> Status Penerimaan</h3>
                             </div>
-                            <div class="bar-summary" id="barSummary">
-                                <div class="bar-summary__item">
-                                    <span class="bar-summary__label">Receive Rate</span>
-                                    <span class="bar-summary__value bar-summary__value--green"
-                                        id="receiveRate">0%</span>
-                                </div>
-                                <div class="bar-summary__item">
-                                    <span class="bar-summary__label">Putaway Rate</span>
-                                    <span class="bar-summary__value bar-summary__value--purple"
-                                        id="putawayRate">0%</span>
-                                </div>
-                                <div class="bar-summary__item">
-                                    <span class="bar-summary__label">Pending Rate</span>
-                                    <span class="bar-summary__value bar-summary__value--orange"
-                                        id="pendingRate">0%</span>
+                            <div class="chart-card__body">
+                                <div class="donut-wrapper">
+                                    <div class="donut-chart" id="donutChart">
+                                        <div class="donut-center">
+                                            <span class="donut-percent" id="donutPercent">0%</span>
+                                            <span class="donut-label">Completed</span>
+                                        </div>
+                                    </div>
+                                    <div class="donut-legend">
+                                        <div class="legend-item">
+                                            <span class="legend-dot legend-dot--green"></span>
+                                            <span class="legend-text">Completed</span>
+                                            <strong class="legend-value" id="legendCompleted">0</strong>
+                                        </div>
+                                        <div class="legend-item">
+                                            <span class="legend-dot legend-dot--red"></span>
+                                            <span class="legend-text">Pending</span>
+                                            <strong class="legend-value" id="legendPending">0</strong>
+                                        </div>
+                                        <div class="legend-item legend-item--total">
+                                            <span class="legend-dot legend-dot--blue"></span>
+                                            <span class="legend-text">Total PO Qty</span>
+                                            <strong class="legend-value" id="legendTotal">0</strong>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Pending PO Table -->
-                <div class="dashboard-section">
-                    <div class="chart-card">
-                        <div class="chart-card__header">
-                            <h3><i class="fas fa-exclamation-triangle" style="color: #fb923c"></i> PO Pending</h3>
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-chart-bar"></i> Breakdown Qty</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="bar-chart" id="barChart">
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-arrow-down" style="color: #34d399"></i>
+                                            <span>Receive Qty</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--green" id="barReceive" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barReceiveVal">0</span>
+                                    </div>
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-pallet" style="color: #a78bfa"></i>
+                                            <span>Putaway Qty</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--purple" id="barPutaway" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barPutawayVal">0</span>
+                                    </div>
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-clock" style="color: #fb923c"></i>
+                                            <span>Pending Qty</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--orange" id="barPending" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barPendingVal">0</span>
+                                    </div>
+                                </div>
+                                <div class="bar-summary" id="barSummary">
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Receive Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--green"
+                                            id="receiveRate">0%</span>
+                                    </div>
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Putaway Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--purple"
+                                            id="putawayRate">0%</span>
+                                    </div>
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Pending Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--orange"
+                                            id="pendingRate">0%</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chart-card__body">
-                            <div class="table-container" style="border: none;">
-                                <table class="data-table" id="pendingTable">
-                                    <thead>
-                                        <tr>
-                                            <th>No</th>
-                                            <th>Tanggal Kedatangan</th>
-                                            <th>Brand</th>
-                                            <th>Receipt No</th>
-                                            <th>PO No</th>
-                                            <th>Pending Qty</th>
-                                            <th>Note</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="pendingTableBody">
-                                    </tbody>
-                                </table>
-                                <div class="table-empty" id="pendingEmpty">
-                                    <i class="fas fa-check-circle" style="color: #34d399"></i>
-                                    <p>Tidak ada PO pending. Semua PO sudah diterima.</p>
+                    </div>
+
+                    <!-- Pending PO Table -->
+                    <div class="dashboard-section">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-exclamation-triangle" style="color: #fb923c"></i> PO Pending</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="table-container" style="border: none;">
+                                    <table class="data-table" id="pendingTable">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Tanggal Kedatangan</th>
+                                                <th>Brand</th>
+                                                <th>Receipt No</th>
+                                                <th>PO No</th>
+                                                <th>Pending Qty</th>
+                                                <th>Note</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pendingTableBody">
+                                        </tbody>
+                                    </table>
+                                    <div class="table-empty" id="pendingEmpty">
+                                        <i class="fas fa-check-circle" style="color: #34d399"></i>
+                                        <p>Tidak ada PO pending. Semua PO sudah diterima.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VAS Report -->
+                    <div class="dashboard-section">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-tags" style="color: #fb923c"></i> Detail VAS per Tipe</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="donut-legend" id="vasTypeList" style="width: 100%;">
+                                    <!-- Dynamic legend items rendered by JS -->
+                                </div>
+                                <div class="table-empty" id="vasSummaryEmpty">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Belum ada data VAS.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <!-- END INBOUND DASHBOARD -->
 
-                <!-- VAS Report -->
-                <div class="dashboard-section">
-                    <div class="chart-card">
-                        <div class="chart-card__header">
-                            <h3><i class="fas fa-tags" style="color: #fb923c"></i> Detail VAS per Tipe</h3>
-                        </div>
-                        <div class="chart-card__body">
-                            <div class="donut-legend" id="vasTypeList" style="width: 100%;">
-                                <!-- Dynamic legend items rendered by JS -->
+                <!-- ========== INVENTORY DASHBOARD ========== -->
+                <div class="dashboard-panel" id="dashboardInventory">
+                    <div class="report-section">
+                        <h3 class="section-title"><i class="fas fa-boxes"></i> Inventory Report</h3>
+                        <div class="stats-grid stats-grid--report">
+                            <div class="stat-card stat-card--gradient-blue">
+                                <div class="stat-card__icon"><i class="fas fa-clipboard-list"></i></div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statInvTotal">0</span>
+                                    <span class="stat-card__label">Total Cycle Count</span>
+                                    <span class="stat-card__sub">Total data DCC</span>
+                                </div>
+                                <div class="stat-card__bg-icon"><i class="fas fa-clipboard-list"></i></div>
                             </div>
-                            <div class="table-empty" id="vasSummaryEmpty">
-                                <i class="fas fa-inbox"></i>
-                                <p>Belum ada data VAS.</p>
+                            <div class="stat-card stat-card--gradient-green">
+                                <div class="stat-card__icon"><i class="fas fa-check-circle"></i></div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statInvMatch">0</span>
+                                    <span class="stat-card__label">Match</span>
+                                    <span class="stat-card__sub">Variance = 0</span>
+                                </div>
+                                <div class="stat-card__bg-icon"><i class="fas fa-check-circle"></i></div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-red">
+                                <div class="stat-card__icon"><i class="fas fa-arrow-down"></i></div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statInvShortage">0</span>
+                                    <span class="stat-card__label">Shortage</span>
+                                    <span class="stat-card__sub">Phy. Qty &lt; Sys. Qty</span>
+                                </div>
+                                <div class="stat-card__bg-icon"><i class="fas fa-arrow-down"></i></div>
+                            </div>
+                            <div class="stat-card stat-card--gradient-orange">
+                                <div class="stat-card__icon"><i class="fas fa-arrow-up"></i></div>
+                                <div class="stat-card__info">
+                                    <span class="stat-card__value" id="statInvGain">0</span>
+                                    <span class="stat-card__label">Gain</span>
+                                    <span class="stat-card__sub">Phy. Qty &gt; Sys. Qty</span>
+                                </div>
+                                <div class="stat-card__bg-icon"><i class="fas fa-arrow-up"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Charts -->
+                    <div class="charts-section">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-chart-pie"></i> Stock Accuracy</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="donut-wrapper">
+                                    <div class="donut-chart" id="donutInvAccuracy">
+                                        <div class="donut-center">
+                                            <span class="donut-percent" id="donutInvPct">0%</span>
+                                            <span class="donut-label">Accuracy</span>
+                                        </div>
+                                    </div>
+                                    <div class="donut-legend">
+                                        <div class="legend-item">
+                                            <span class="legend-dot legend-dot--green"></span>
+                                            <span class="legend-text">Match</span>
+                                            <strong class="legend-value" id="legendInvMatch">0</strong>
+                                        </div>
+                                        <div class="legend-item">
+                                            <span class="legend-dot legend-dot--red"></span>
+                                            <span class="legend-text">Variance</span>
+                                            <strong class="legend-value" id="legendInvVariance">0</strong>
+                                        </div>
+                                        <div class="legend-item legend-item--total">
+                                            <span class="legend-dot legend-dot--blue"></span>
+                                            <span class="legend-text">Total SKU</span>
+                                            <strong class="legend-value" id="legendInvTotal">0</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-chart-bar"></i> Variance Summary</h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="bar-chart">
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-check-circle" style="color: #34d399"></i>
+                                            <span>Match</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--green" id="barInvMatch" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barInvMatchVal">0</span>
+                                    </div>
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-arrow-down" style="color: #f87171"></i>
+                                            <span>Shortage</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--red" id="barInvShortage" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barInvShortageVal">0</span>
+                                    </div>
+                                    <div class="bar-row">
+                                        <div class="bar-label">
+                                            <i class="fas fa-arrow-up" style="color: #60a5fa"></i>
+                                            <span>Gain</span>
+                                        </div>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-fill--blue" id="barInvGain" style="width: 0%">
+                                            </div>
+                                        </div>
+                                        <span class="bar-value" id="barInvGainVal">0</span>
+                                    </div>
+                                </div>
+                                <div class="bar-summary">
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Accuracy Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--green"
+                                            id="invAccuracyRate">0%</span>
+                                    </div>
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Shortage Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--red"
+                                            id="invShortageRate">0%</span>
+                                    </div>
+                                    <div class="bar-summary__item">
+                                        <span class="bar-summary__label">Gain Rate</span>
+                                        <span class="bar-summary__value bar-summary__value--blue"
+                                            id="invGainRate">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Variance SKUs -->
+                    <div class="dashboard-section">
+                        <div class="chart-card">
+                            <div class="chart-card__header">
+                                <h3><i class="fas fa-exclamation-triangle" style="color: #fb923c"></i> Top Variance SKUs
+                                </h3>
+                            </div>
+                            <div class="chart-card__body">
+                                <div class="table-container" style="border: none;">
+                                    <table class="data-table" id="invVarianceTable">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>SKU</th>
+                                                <th>Zone</th>
+                                                <th>Sys. Qty</th>
+                                                <th>Phy. Qty</th>
+                                                <th>Variance</th>
+                                                <th>Remarks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="invVarianceBody"></tbody>
+                                    </table>
+                                    <div class="table-empty" id="invVarianceEmpty">
+                                        <i class="fas fa-check-circle" style="color: #34d399"></i>
+                                        <p>Semua stock match. Tidak ada variance.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <!-- END INVENTORY DASHBOARD -->
 
                 <div class="menu-cards">
                     <div class="menu-card" data-navigate="inbound-arrival" id="card-inbound-arrival">
