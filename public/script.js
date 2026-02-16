@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
     arrivals: 'inbound_arrivals',
     transactions: 'inbound_transactions',
     vas: 'inbound_vas',
-    dcc: 'inbound_dcc'
+    dcc: 'inbound_dcc',
+    damage: 'inbound_damage'
 };
 
 function getData(key) {
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTransactionPage();
     initVasPage();
     initDccPage();
+    initDmgPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -144,6 +146,7 @@ function navigateTo(pageId) {
     if (pageId === 'inbound-transaction') renderTransactionTable();
     if (pageId === 'vas') renderVasTable();
     if (pageId === 'daily-cycle-count') renderDccTable();
+    if (pageId === 'project-damage') renderDmgTable();
     if (pageId === 'dashboard') updateDashboardStats();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
@@ -1899,7 +1902,8 @@ const pageState = {
     Arrival: { current: 1, perPage: 50 },
     Transaction: { current: 1, perPage: 50 },
     Vas: { current: 1, perPage: 50 },
-    Dcc: { current: 1, perPage: 50 }
+    Dcc: { current: 1, perPage: 50 },
+    Dmg: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -2354,3 +2358,242 @@ function updateDccStats(items) {
     animateCounter('statDccShortage', shortage);
     animateCounter('statDccGain', gain);
 }
+
+// ========================================
+// PROJECT DAMAGE
+// ========================================
+
+function initDmgPage() {
+    // Add button
+    document.getElementById('btnAddDmg')?.addEventListener('click', () => openDmgModal());
+
+    // Save button
+    document.getElementById('btnSaveDmg')?.addEventListener('click', () => {
+        const editId = document.getElementById('dmgEditId')?.value;
+        const date = document.getElementById('dmgDate')?.value;
+        const brand = document.getElementById('dmgBrand')?.value?.trim();
+        const sku = document.getElementById('dmgSku')?.value?.trim();
+        const qty = parseInt(document.getElementById('dmgQty')?.value) || 0;
+        const note = document.getElementById('dmgNote')?.value;
+        const reason = document.getElementById('dmgReason')?.value?.trim();
+        const operator = document.getElementById('dmgOperator')?.value?.trim();
+        const qcBy = document.getElementById('dmgQcBy')?.value?.trim();
+
+        if (!date || !brand || !sku || qty <= 0 || !note) {
+            showToast('Harap isi semua field wajib (*)', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.damage);
+        const record = { date, brand, sku, qty, note, reason, operator, qcBy };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) {
+                record.id = editId;
+                record.createdAt = data[idx].createdAt;
+                data[idx] = record;
+            }
+        } else {
+            record.id = generateId();
+            record.createdAt = new Date().toISOString();
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.damage, data);
+        closeModal('modalDmg');
+        renderDmgTable();
+        showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
+    });
+
+    // Export
+    document.getElementById('btnExportDmg')?.addEventListener('click', () => {
+        exportToCSV(
+            STORAGE_KEYS.damage,
+            ['Tanggal', 'Brand', 'SKU', 'Qty', 'Damage Note', 'Damage Reason', 'Operator', 'QC By'],
+            (d) => [d.date || '', d.brand || '', d.sku || '', d.qty, d.note || '', d.reason || '', d.operator || '', d.qcBy || ''],
+            'project_damage'
+        );
+    });
+
+    // Import
+    document.getElementById('btnImportDmg')?.addEventListener('click', () => {
+        importFromCSV(
+            STORAGE_KEYS.damage,
+            ['Tanggal', 'Brand', 'SKU', 'Qty', 'Damage Note', 'Damage Reason', 'Operator', 'QC By'],
+            (vals) => {
+                if (vals.length < 4) return null;
+                return {
+                    date: vals[0]?.trim() || '',
+                    brand: vals[1]?.trim() || '',
+                    sku: vals[2]?.trim() || '',
+                    qty: parseInt(vals[3]) || 0,
+                    note: vals[4]?.trim() || '',
+                    reason: vals[5]?.trim() || '',
+                    operator: vals[6]?.trim() || '',
+                    qcBy: vals[7]?.trim() || ''
+                };
+            },
+            () => renderDmgTable()
+        );
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchDmg');
+    searchInput?.addEventListener('input', () => { pageState.Dmg.current = 1; renderDmgTable(searchInput.value); });
+
+    renderDmgTable();
+
+    // Bulk actions
+    initBulkActions('Dmg', STORAGE_KEYS.damage,
+        ['Tanggal', 'Brand', 'SKU', 'Qty', 'Damage Note', 'Damage Reason', 'Operator', 'QC By'],
+        (d) => [d.date || '', d.brand || '', d.sku || '', d.qty, d.note || '', d.reason || '', d.operator || '', d.qcBy || ''],
+        renderDmgTable
+    );
+
+    // Clear All
+    document.getElementById('btnClearDmg')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.damage);
+        if (items.length === 0) {
+            showToast('Tidak ada data untuk dihapus', 'info');
+            return;
+        }
+        if (confirm(`Hapus semua ${items.length} data Project Damage?`)) {
+            setData(STORAGE_KEYS.damage, []);
+            renderDmgTable();
+            showToast('Semua data Project Damage berhasil dihapus', 'success');
+        }
+    });
+}
+
+function openDmgModal(editId = null) {
+    const modal = document.getElementById('modalDmg');
+    const title = document.getElementById('modalDmgTitle');
+    const idEl = document.getElementById('dmgEditId');
+
+    document.getElementById('dmgDate').value = '';
+    document.getElementById('dmgBrand').value = '';
+    document.getElementById('dmgSku').value = '';
+    document.getElementById('dmgQty').value = '';
+    document.getElementById('dmgNote').value = '';
+    document.getElementById('dmgReason').value = '';
+    document.getElementById('dmgOperator').value = '';
+    document.getElementById('dmgQcBy').value = '';
+    idEl.value = '';
+
+    if (editId) {
+        const data = getData(STORAGE_KEYS.damage);
+        const item = data.find(d => d.id === editId);
+        if (item) {
+            title.textContent = 'Edit Data Damage';
+            idEl.value = editId;
+            document.getElementById('dmgDate').value = item.date || '';
+            document.getElementById('dmgBrand').value = item.brand || '';
+            document.getElementById('dmgSku').value = item.sku || '';
+            document.getElementById('dmgQty').value = item.qty || '';
+            document.getElementById('dmgNote').value = item.note || '';
+            document.getElementById('dmgReason').value = item.reason || '';
+            document.getElementById('dmgOperator').value = item.operator || '';
+            document.getElementById('dmgQcBy').value = item.qcBy || '';
+        }
+    } else {
+        title.textContent = 'Tambah Data Damage';
+        // Default date to today
+        const now = new Date();
+        document.getElementById('dmgDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteDmg(id) {
+    if (!confirm('Hapus data ini?')) return;
+    let data = getData(STORAGE_KEYS.damage);
+    data = data.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.damage, data);
+    renderDmgTable();
+    showToast('Data berhasil dihapus', 'success');
+}
+
+function renderDmgTable(search = '') {
+    const tbody = document.getElementById('dmgTableBody');
+    const emptyEl = document.getElementById('dmgEmpty');
+    const table = document.getElementById('dmgTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.damage);
+    const q = (search || document.getElementById('searchDmg')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d =>
+            (d.sku || '').toLowerCase().includes(q) ||
+            (d.brand || '').toLowerCase().includes(q) ||
+            (d.operator || '').toLowerCase().includes(q) ||
+            (d.qcBy || '').toLowerCase().includes(q) ||
+            (d.note || '').toLowerCase().includes(q) ||
+            (d.reason || '').toLowerCase().includes(q)
+        );
+    }
+
+    // Update stats
+    updateDmgStats(items);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Dmg', 0, renderDmgTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Dmg', items.length, renderDmgTable);
+    const pageData = items.slice(start, end);
+
+    const noteColors = {
+        'External Damage': 'badge--shortage',
+        'Internal Damage': 'badge--late',
+        'Expired': 'badge--pending',
+        'PEST': 'badge--gain'
+    };
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const badgeClass = noteColors[d.note] || 'badge--default';
+        return `
+        <tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Dmg')"></td>
+            <td>${start + i + 1}</td>
+            <td>${d.date ? formatDate(d.date) : '-'}</td>
+            <td>${escapeHtml(d.brand || '-')}</td>
+            <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
+            <td>${(parseInt(d.qty) || 0).toLocaleString()}</td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(d.note || '-')}</span></td>
+            <td>${escapeHtml(d.reason || '-')}</td>
+            <td>${escapeHtml(d.operator || '-')}</td>
+            <td>${escapeHtml(d.qcBy || '-')}</td>
+            <td>
+                <div class="action-cell">
+                    <button class="btn btn--edit" onclick="openDmgModal('${d.id}')" title="Edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn btn--danger" onclick="deleteDmg('${d.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateDmgStats(items) {
+    const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
+    const skus = new Set(items.map(d => d.sku).filter(Boolean));
+    const brands = new Set(items.map(d => (d.brand || '').toLowerCase()).filter(Boolean));
+
+    animateCounter('statDmgTotal', items.length);
+    animateCounter('statDmgQty', totalQty);
+    animateCounter('statDmgSku', skus.size);
+    animateCounter('statDmgBrand', brands.size);
+}
+

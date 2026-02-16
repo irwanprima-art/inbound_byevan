@@ -1093,16 +1093,157 @@
                     <h2><i class="fas fa-exclamation-triangle"></i> Project Damage</h2>
                     <p>Pencatatan dan tracking barang rusak dalam inventory</p>
                 </div>
-                <div class="chart-card" style="max-width: 500px;">
-                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
-                        <i class="fas fa-hard-hat"
-                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman Project Damage sedang dalam
-                            pengembangan.</p>
+
+                <!-- Stat Cards -->
+                <div class="stats-grid stats-grid--compact">
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statDmgTotal">0</span>
+                            <span class="stat-card__label">Total Record</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statDmgQty">0</span>
+                            <span class="stat-card__label">Total Qty</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statDmgSku">0</span>
+                            <span class="stat-card__label">SKU Terdampak</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statDmgBrand">0</span>
+                            <span class="stat-card__label">Brand Terdampak</span>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn--primary" id="btnAddDmg">
+                            <i class="fas fa-plus"></i> <span>Tambah Data</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnExportDmg">
+                            <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnImportDmg">
+                            <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnBulkDeleteDmg" style="display:none">
+                            <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnBulkExportDmg" style="display:none">
+                            <i class="fas fa-file-export"></i> <span>Export (0)</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnClearDmg">
+                            <i class="fas fa-broom"></i> <span>Clear All</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari SKU, brand, operator..." id="searchDmg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table" id="dmgTable">
+                        <thead>
+                            <tr>
+                                <th class="th-checkbox"><input type="checkbox" id="selectAllDmg"
+                                        onchange="toggleSelectAll('Dmg')"></th>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Brand</th>
+                                <th>SKU</th>
+                                <th>Qty</th>
+                                <th>Damage Note</th>
+                                <th>Damage Reason</th>
+                                <th>Operator</th>
+                                <th>QC By</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dmgTableBody"></tbody>
+                    </table>
+                    <div class="table-empty" id="dmgEmpty">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Belum ada data Project Damage.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationDmg">
+                    <div class="pagination__info" id="paginationDmgInfo"></div>
+                    <div class="pagination__pages" id="paginationDmgPages"></div>
+                </div>
             </section>
+
+            <!-- Modal Project Damage -->
+            <div class="modal-overlay" id="modalDmg">
+                <div class="modal">
+                    <div class="modal__header">
+                        <h3 id="modalDmgTitle">Tambah Data Damage</h3>
+                        <button class="modal__close" onclick="closeModal('modalDmg')">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <input type="hidden" id="dmgEditId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tanggal <span class="required">*</span></label>
+                                <input type="date" id="dmgDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Brand <span class="required">*</span></label>
+                                <input type="text" id="dmgBrand" placeholder="Masukkan brand">
+                            </div>
+                            <div class="form-group">
+                                <label>SKU <span class="required">*</span></label>
+                                <input type="text" id="dmgSku" placeholder="Masukkan SKU">
+                            </div>
+                            <div class="form-group">
+                                <label>Qty <span class="required">*</span></label>
+                                <input type="number" id="dmgQty" placeholder="0" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Damage Note <span class="required">*</span></label>
+                                <select id="dmgNote">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="External Damage">External Damage</option>
+                                    <option value="Internal Damage">Internal Damage</option>
+                                    <option value="Expired">Expired</option>
+                                    <option value="PEST">PEST</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Damage Reason</label>
+                                <input type="text" id="dmgReason" placeholder="Alasan kerusakan">
+                            </div>
+                            <div class="form-group">
+                                <label>Operator</label>
+                                <input type="text" id="dmgOperator" placeholder="Nama operator">
+                            </div>
+                            <div class="form-group">
+                                <label>QC By</label>
+                                <input type="text" id="dmgQcBy" placeholder="Nama QC">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" onclick="closeModal('modalDmg')">Batal</button>
+                        <button class="btn btn--primary" id="btnSaveDmg">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- QC Return Page -->
             <section class="page" id="page-qc-return">
