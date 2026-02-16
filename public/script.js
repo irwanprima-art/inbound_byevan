@@ -2041,6 +2041,21 @@ function initDccPage() {
         (d) => [d.date || '', d.phyInv || '', d.zone || '', d.location || '', d.owner || '', d.sku || '', d.brand || '', d.description || '', d.sysQty, d.phyQty, d.operator || ''],
         renderDccTable
     );
+
+    // Clear All DCC data
+    document.getElementById('btnClearDcc')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.dcc);
+        if (items.length === 0) {
+            showToast('Tidak ada data untuk dihapus', 'info');
+            return;
+        }
+        if (confirm(`Hapus semua ${items.length} data Daily Cycle Count?`)) {
+            setData(STORAGE_KEYS.dcc, []);
+            renderDccTable();
+            updateInventoryDashboard();
+            showToast(`${items.length} data berhasil dihapus`, 'success');
+        }
+    });
 }
 
 function openDccModal(editId = null) {
