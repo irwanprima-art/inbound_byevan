@@ -527,7 +527,8 @@
                 </div>
                 <!-- END INVENTORY DASHBOARD -->
 
-                <div class="menu-cards">
+                <!-- Menu Cards: Inbound -->
+                <div class="menu-cards dashboard-menu-inbound">
                     <div class="menu-card" data-navigate="inbound-arrival" id="card-inbound-arrival">
                         <div class="menu-card__header">
                             <div class="menu-card__icon menu-card__icon--green">
@@ -575,6 +576,63 @@
                         <div class="menu-card__body">
                             <h3>VAS</h3>
                             <p>Value Added Services — pencatatan aktivitas VAS pada barang inbound.</p>
+                        </div>
+                        <div class="menu-card__footer">
+                            <span class="menu-card__action">
+                                Buka Menu <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menu Cards: Inventory -->
+                <div class="menu-cards dashboard-menu-inventory" style="display:none">
+                    <div class="menu-card" data-navigate="daily-cycle-count" id="card-daily-cycle-count">
+                        <div class="menu-card__header">
+                            <div class="menu-card__icon menu-card__icon--blue">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <span class="menu-card__badge">Folder</span>
+                        </div>
+                        <div class="menu-card__body">
+                            <h3>Daily Cycle Count</h3>
+                            <p>Pencatatan dan pelaporan cycle count harian inventory untuk menjaga akurasi stok.</p>
+                        </div>
+                        <div class="menu-card__footer">
+                            <span class="menu-card__action">
+                                Buka Menu <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="menu-card" data-navigate="project-damage" id="card-project-damage">
+                        <div class="menu-card__header">
+                            <div class="menu-card__icon menu-card__icon--red">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <span class="menu-card__badge">Folder</span>
+                        </div>
+                        <div class="menu-card__body">
+                            <h3>Project Damage</h3>
+                            <p>Pencatatan dan tracking barang rusak dalam inventory warehouse.</p>
+                        </div>
+                        <div class="menu-card__footer">
+                            <span class="menu-card__action">
+                                Buka Menu <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="menu-card" data-navigate="qc-return" id="card-qc-return">
+                        <div class="menu-card__header">
+                            <div class="menu-card__icon menu-card__icon--yellow">
+                                <i class="fas fa-undo-alt"></i>
+                            </div>
+                            <span class="menu-card__badge">Folder</span>
+                        </div>
+                        <div class="menu-card__body">
+                            <h3>QC Return</h3>
+                            <p>Pencatatan barang return dari quality control untuk proses pengembalian.</p>
                         </div>
                         <div class="menu-card__footer">
                             <span class="menu-card__action">

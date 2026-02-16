@@ -300,10 +300,19 @@ function initDashboardTabs() {
             // Toggle active panel
             const target = tab.getAttribute('data-tab');
             document.querySelectorAll('.dashboard-panel').forEach(p => p.classList.remove('active'));
+
+            // Toggle menu cards
+            const menuInbound = document.querySelector('.dashboard-menu-inbound');
+            const menuInventory = document.querySelector('.dashboard-menu-inventory');
+
             if (target === 'inbound') {
                 document.getElementById('dashboardInbound')?.classList.add('active');
+                if (menuInbound) menuInbound.style.display = '';
+                if (menuInventory) menuInventory.style.display = 'none';
             } else if (target === 'inventory') {
                 document.getElementById('dashboardInventory')?.classList.add('active');
+                if (menuInbound) menuInbound.style.display = 'none';
+                if (menuInventory) menuInventory.style.display = '';
                 updateInventoryDashboard();
             }
         });
