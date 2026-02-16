@@ -2,7 +2,7 @@
 // Inbound Management System - Script
 // ========================================
 
-// --- Data Store (localStorage) ---
+// --- Data Store (localStorage + IndexedDB for large data) ---
 const STORAGE_KEYS = {
     arrivals: 'inbound_arrivals',
     transactions: 'inbound_transactions',
@@ -14,13 +14,88 @@ const STORAGE_KEYS = {
     locations: 'master_locations'
 };
 
+// Keys that use IndexedDB (large datasets)
+const IDB_KEYS = new Set([STORAGE_KEYS.soh, STORAGE_KEYS.locations]);
+const _idbCache = {}; // in-memory cache for IndexedDB data
+
+// --- IndexedDB helpers ---
+function openIDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('InboundWarehouseDB', 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('data')) {
+                db.createObjectStore('data');
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function getDataIDB(key) {
+    try {
+        const db = await openIDB();
+        return new Promise((resolve) => {
+            const tx = db.transaction('data', 'readonly');
+            const store = tx.objectStore('data');
+            const req = store.get(key);
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+    } catch { return []; }
+}
+
+async function setDataIDB(key, data) {
+    try {
+        const db = await openIDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('data', 'readwrite');
+            const store = tx.objectStore('data');
+            store.put(data, key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) { console.error('IDB write error:', e); }
+}
+
+// Preload large data from IndexedDB into memory cache
+async function preloadLargeData() {
+    for (const key of IDB_KEYS) {
+        _idbCache[key] = await getDataIDB(key);
+        // Migrate from localStorage if exists (one-time)
+        if (_idbCache[key].length === 0) {
+            try {
+                const lsData = JSON.parse(localStorage.getItem(key));
+                if (lsData && lsData.length > 0) {
+                    _idbCache[key] = lsData;
+                    await setDataIDB(key, lsData);
+                    localStorage.removeItem(key);
+                }
+            } catch { }
+        } else {
+            // Clean up localStorage copy if IDB has data
+            localStorage.removeItem(key);
+        }
+    }
+}
+
+// --- Unified sync getData / setData ---
 function getData(key) {
+    if (IDB_KEYS.has(key)) {
+        return _idbCache[key] || [];
+    }
     try {
         return JSON.parse(localStorage.getItem(key)) || [];
     } catch { return []; }
 }
 
 function setData(key, data) {
+    if (IDB_KEYS.has(key)) {
+        _idbCache[key] = data;
+        setDataIDB(key, data); // async background write
+        return;
+    }
     localStorage.setItem(key, JSON.stringify(data));
 }
 
@@ -30,6 +105,9 @@ function generateId() {
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Preload large datasets from IndexedDB into memory cache
+    await preloadLargeData();
+
     // Check API availability first
     if (typeof initApiLayer === 'function') {
         await initApiLayer();
