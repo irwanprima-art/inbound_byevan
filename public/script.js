@@ -53,9 +53,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function syncFromApi() {
     try {
         for (const key of Object.values(STORAGE_KEYS)) {
-            const data = await getDataAsync(key);
-            if (data && data.length >= 0) {
-                localStorage.setItem(key, JSON.stringify(data));
+            const endpoint = API_ENDPOINTS[key];
+            if (!endpoint) continue; // Skip keys without API endpoints (e.g. DCC)
+            const apiData = await apiGet(key);
+            if (apiData && apiData.length > 0) {
+                localStorage.setItem(key, JSON.stringify(apiData));
             }
         }
         console.log('[Sync] Data synced from API to localStorage');

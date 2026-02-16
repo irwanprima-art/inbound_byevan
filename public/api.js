@@ -170,8 +170,10 @@ async function getDataAsync(key) {
     if (isApiAvailable()) {
         const apiData = await apiGet(key);
         if (apiData !== null) {
-            // Also cache to localStorage as backup
-            try { localStorage.setItem(key, JSON.stringify(apiData)); } catch { }
+            // Only cache to localStorage if API has actual data
+            if (apiData.length > 0) {
+                try { localStorage.setItem(key, JSON.stringify(apiData)); } catch { }
+            }
             return apiData;
         }
     }
