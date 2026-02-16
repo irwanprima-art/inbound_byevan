@@ -1989,6 +1989,15 @@ body {
     accent-color: var(--primary);
 }
 
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+    min-width: 900px;
+}
+
 .data-table tbody tr.row-selected {
     background: rgba(99, 102, 241, 0.1) !important;
 }
