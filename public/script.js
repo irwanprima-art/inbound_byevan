@@ -336,14 +336,16 @@ function updateInventoryDashboard() {
     setText('accQtyPct', qtyAccuracy + '%');
 
     // ===== 2. SKU ACCURACY =====
-    // Group by unique SKU, sum sysQty and phyQty per SKU
+    // Group by unique SKU + Owner, sum sysQty and phyQty per group
     const skuMap = {};
     items.forEach(d => {
         const sku = (d.sku || '').trim();
+        const owner = (d.owner || '').trim();
         if (!sku) return;
-        if (!skuMap[sku]) skuMap[sku] = { sys: 0, phy: 0 };
-        skuMap[sku].sys += parseInt(d.sysQty) || 0;
-        skuMap[sku].phy += parseInt(d.phyQty) || 0;
+        const key = sku + '|' + owner;
+        if (!skuMap[key]) skuMap[key] = { sys: 0, phy: 0 };
+        skuMap[key].sys += parseInt(d.sysQty) || 0;
+        skuMap[key].phy += parseInt(d.phyQty) || 0;
     });
 
     const skuKeys = Object.keys(skuMap);
