@@ -2575,6 +2575,25 @@ body {
     gap: 20px;
 }
 
+.accuracy-grid .chart-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.accuracy-grid .chart-card__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.accuracy-grid .accuracy-list {
+    flex: 1;
+}
+
+.accuracy-grid .accuracy-result {
+    margin-top: auto;
+}
+
 @media (max-width: 1024px) {
     .accuracy-grid {
         grid-template-columns: 1fr;
