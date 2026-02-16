@@ -91,6 +91,13 @@ function initNavigation() {
             navigateTo(btn.getAttribute('data-navigate'));
         });
     });
+
+    // Nav group toggle (expand/collapse)
+    document.querySelectorAll('.nav-group__header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.closest('.nav-group').classList.toggle('open');
+        });
+    });
 }
 
 function navigateTo(pageId) {
@@ -102,13 +109,26 @@ function navigateTo(pageId) {
     const nav = document.querySelector(`.nav-link[data-page="${pageId}"]`);
     if (nav) nav.classList.add('active');
 
+    // Highlight active parent group & auto-expand it
+    document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('active-group'));
+    if (nav) {
+        const parentGroup = nav.closest('.nav-group');
+        if (parentGroup) {
+            parentGroup.classList.add('active-group');
+            parentGroup.classList.add('open');
+        }
+    }
+
     const breadcrumb = document.getElementById('breadcrumbPage');
     if (breadcrumb) {
         const names = {
             'dashboard': 'Dashboard',
             'inbound-arrival': 'Inbound Arrival',
             'inbound-transaction': 'Inbound Transaction',
-            'vas': 'VAS'
+            'vas': 'VAS',
+            'daily-cycle-count': 'Daily Cycle Count',
+            'project-damage': 'Project Damage',
+            'qc-return': 'QC Return'
         };
         breadcrumb.textContent = names[pageId] || pageId;
     }

@@ -255,6 +255,98 @@ body {
     width: 0;
 }
 
+/* Nav Groups (collapsible sections) */
+.nav-group {
+    margin-bottom: 4px;
+}
+
+.nav-group__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--border-radius-sm);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nav-group__header:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-group__header i.nav-group__icon {
+    font-size: 14px;
+    min-width: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    transition: var(--transition-fast);
+}
+
+.nav-group__header:hover i.nav-group__icon {
+    color: var(--text-secondary);
+}
+
+.nav-group__header .nav-group__arrow {
+    font-size: 10px;
+    margin-left: auto;
+    transition: transform var(--transition-normal);
+    color: var(--text-muted);
+}
+
+.nav-group.open .nav-group__arrow {
+    transform: rotate(180deg);
+}
+
+.nav-group__items {
+    list-style: none;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-group.open .nav-group__items {
+    max-height: 200px;
+}
+
+.nav-group__items .nav-link {
+    padding-left: 46px;
+    font-size: 13px;
+}
+
+.nav-group.active-group > .nav-group__header {
+    color: var(--accent-blue-light);
+}
+
+.nav-group.active-group > .nav-group__header i.nav-group__icon {
+    color: var(--accent-blue-light);
+}
+
+.sidebar.collapsed .nav-group__header span,
+.sidebar.collapsed .nav-group__arrow {
+    opacity: 0;
+    width: 0;
+}
+
+.sidebar.collapsed .nav-group__items {
+    max-height: 0 !important;
+}
+
+/* Nav divider */
+.nav-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 14px;
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
     padding: 16px;

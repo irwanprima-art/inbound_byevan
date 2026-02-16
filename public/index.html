@@ -39,23 +39,65 @@
                         <span>Dashboard</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="inbound-arrival" id="nav-inbound-arrival">
-                        <i class="fas fa-truck-loading"></i>
-                        <span>Inbound Arrival</span>
-                    </a>
+
+                <li class="nav-divider"></li>
+
+                <!-- Inbound Group -->
+                <li class="nav-group open" id="navGroupInbound">
+                    <div class="nav-group__header">
+                        <i class="fas fa-truck-loading nav-group__icon"></i>
+                        <span>Inbound</span>
+                        <i class="fas fa-chevron-down nav-group__arrow"></i>
+                    </div>
+                    <ul class="nav-group__items">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="inbound-arrival" id="nav-inbound-arrival">
+                                <i class="fas fa-dolly"></i>
+                                <span>Inbound Arrival</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="inbound-transaction" id="nav-inbound-transaction">
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Inbound Transaction</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="vas" id="nav-vas">
+                                <i class="fas fa-tags"></i>
+                                <span>VAS</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="inbound-transaction" id="nav-inbound-transaction">
-                        <i class="fas fa-exchange-alt"></i>
-                        <span>Inbound Transaction</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="vas" id="nav-vas">
-                        <i class="fas fa-tags"></i>
-                        <span>VAS</span>
-                    </a>
+
+                <!-- Inventory Group -->
+                <li class="nav-group" id="navGroupInventory">
+                    <div class="nav-group__header">
+                        <i class="fas fa-boxes nav-group__icon"></i>
+                        <span>Inventory</span>
+                        <i class="fas fa-chevron-down nav-group__arrow"></i>
+                    </div>
+                    <ul class="nav-group__items">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="daily-cycle-count" id="nav-daily-cycle-count">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span>Daily Cycle Count</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="project-damage" id="nav-project-damage">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Project Damage</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="qc-return" id="nav-qc-return">
+                                <i class="fas fa-undo-alt"></i>
+                                <span>QC Return</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </nav>
@@ -694,6 +736,75 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Cycle Count Page -->
+            <section class="page" id="page-daily-cycle-count">
+                <div class="page-header">
+                    <div class="page-header__top">
+                        <button class="back-btn" data-navigate="dashboard" id="btn-back-daily-cycle-count">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Kembali</span>
+                        </button>
+                    </div>
+                    <h2><i class="fas fa-clipboard-check"></i> Daily Cycle Count</h2>
+                    <p>Pencatatan dan pelaporan cycle count harian inventory</p>
+                </div>
+                <div class="chart-card" style="max-width: 500px;">
+                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
+                        <i class="fas fa-hard-hat"
+                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman Daily Cycle Count sedang dalam
+                            pengembangan.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Project Damage Page -->
+            <section class="page" id="page-project-damage">
+                <div class="page-header">
+                    <div class="page-header__top">
+                        <button class="back-btn" data-navigate="dashboard" id="btn-back-project-damage">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Kembali</span>
+                        </button>
+                    </div>
+                    <h2><i class="fas fa-exclamation-triangle"></i> Project Damage</h2>
+                    <p>Pencatatan dan tracking barang rusak dalam inventory</p>
+                </div>
+                <div class="chart-card" style="max-width: 500px;">
+                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
+                        <i class="fas fa-hard-hat"
+                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman Project Damage sedang dalam
+                            pengembangan.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QC Return Page -->
+            <section class="page" id="page-qc-return">
+                <div class="page-header">
+                    <div class="page-header__top">
+                        <button class="back-btn" data-navigate="dashboard" id="btn-back-qc-return">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Kembali</span>
+                        </button>
+                    </div>
+                    <h2><i class="fas fa-undo-alt"></i> QC Return</h2>
+                    <p>Pencatatan dan tracking barang QC return</p>
+                </div>
+                <div class="chart-card" style="max-width: 500px;">
+                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
+                        <i class="fas fa-hard-hat"
+                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman QC Return sedang dalam
+                            pengembangan.</p>
                     </div>
                 </div>
             </section>
