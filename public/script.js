@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVasPage();
     initDccPage();
     initDashboardTabs();
+    initInvFilter();
     updateDashboardStats();
 });
 
@@ -309,9 +310,48 @@ function initDashboardTabs() {
     });
 }
 
-// --- Inventory Dashboard Stats ---
+// --- Inventory Dashboard Filter & Stats ---
+function initInvFilter() {
+    const typeEl = document.getElementById('invFilterType');
+    const dailyGroup = document.getElementById('invFilterDailyGroup');
+    const monthlyGroup = document.getElementById('invFilterMonthlyGroup');
+    const dateEl = document.getElementById('invFilterDate');
+    const monthEl = document.getElementById('invFilterMonth');
+
+    if (!typeEl) return;
+
+    // Set default date to today, month to current month
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+    if (monthEl) monthEl.value = `${yyyy}-${mm}`;
+
+    typeEl.addEventListener('change', () => {
+        const val = typeEl.value;
+        if (dailyGroup) dailyGroup.style.display = val === 'daily' ? '' : 'none';
+        if (monthlyGroup) monthlyGroup.style.display = val === 'monthly' ? '' : 'none';
+        updateInventoryDashboard();
+    });
+
+    dateEl?.addEventListener('change', () => updateInventoryDashboard());
+    monthEl?.addEventListener('change', () => updateInventoryDashboard());
+}
+
 function updateInventoryDashboard() {
-    const items = getData(STORAGE_KEYS.dcc);
+    let items = getData(STORAGE_KEYS.dcc);
+
+    // Apply filter
+    const filterType = document.getElementById('invFilterType')?.value || 'all';
+    if (filterType === 'daily') {
+        const filterDate = document.getElementById('invFilterDate')?.value || '';
+        if (filterDate) items = items.filter(d => (d.date || '') === filterDate);
+    } else if (filterType === 'monthly') {
+        const filterMonth = document.getElementById('invFilterMonth')?.value || '';
+        if (filterMonth) items = items.filter(d => (d.date || '').startsWith(filterMonth));
+    }
+
     const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
 
     // ===== 1. QTY ACCURACY =====

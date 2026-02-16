@@ -419,6 +419,25 @@
                             Summary</h3>
                     </div>
 
+                    <div class="inv-filter-bar">
+                        <div class="inv-filter-group">
+                            <label>Filter:</label>
+                            <select id="invFilterType" class="inv-filter-select">
+                                <option value="all">All Data</option>
+                                <option value="daily">Per Hari</option>
+                                <option value="monthly">Per Bulan</option>
+                            </select>
+                        </div>
+                        <div class="inv-filter-group" id="invFilterDailyGroup" style="display:none">
+                            <label>Tanggal:</label>
+                            <input type="date" id="invFilterDate" class="inv-filter-input">
+                        </div>
+                        <div class="inv-filter-group" id="invFilterMonthlyGroup" style="display:none">
+                            <label>Bulan:</label>
+                            <input type="month" id="invFilterMonth" class="inv-filter-input">
+                        </div>
+                    </div>
+
                     <div class="accuracy-grid">
                         <!-- QTY ACCURACY -->
                         <div class="chart-card">

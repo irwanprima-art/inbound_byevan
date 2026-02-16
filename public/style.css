@@ -2568,6 +2568,49 @@ body {
     font-weight: 600;
 }
 
+/* Inventory Dashboard Filter Bar */
+.inv-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+.inv-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inv-filter-group label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.inv-filter-select,
+.inv-filter-input {
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.inv-filter-select:focus,
+.inv-filter-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
 /* Accuracy Grid (Inventory Dashboard) */
 .accuracy-grid {
     display: grid;
