@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
     dcc: 'inbound_dcc',
     damage: 'inbound_damage',
     soh: 'inbound_soh',
-    qcReturn: 'inbound_qc_return'
+    qcReturn: 'inbound_qc_return',
+    locations: 'master_locations'
 };
 
 function getData(key) {
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDmgPage();
     initSohPage();
     initQcrPage();
+    initLocPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -2049,7 +2051,8 @@ const pageState = {
     Dcc: { current: 1, perPage: 50 },
     Dmg: { current: 1, perPage: 50 },
     Soh: { current: 1, perPage: 50 },
-    Qcr: { current: 1, perPage: 50 }
+    Qcr: { current: 1, perPage: 50 },
+    Loc: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -3153,4 +3156,278 @@ function updateQcrStats(items) {
     animateCounter('statQcrQty', totalQty);
     animateCounter('statQcrSku', skus.size);
     animateCounter('statQcrOwner', owners.size);
+}
+
+// ========================================
+// Master Location Page
+// ========================================
+
+// Get SOH data filtered by the LATEST updateDate only
+function getLatestSohData() {
+    const allSoh = getData(STORAGE_KEYS.soh);
+    if (allSoh.length === 0) return [];
+    // Find the latest updateDate
+    let maxDate = '';
+    allSoh.forEach(s => {
+        if (s.updateDate && s.updateDate > maxDate) maxDate = s.updateDate;
+    });
+    if (!maxDate) return allSoh; // fallback if no updateDate
+    // Only keep records from that same date (compare date portion only)
+    const maxDay = maxDate.substring(0, 10); // YYYY-MM-DD
+    return allSoh.filter(s => (s.updateDate || '').substring(0, 10) === maxDay);
+}
+
+function initLocPage() {
+    // Add button
+    document.getElementById('btnAddLoc')?.addEventListener('click', () => openLocModal());
+
+    // Save button
+    document.getElementById('btnSaveLoc')?.addEventListener('click', () => {
+        const editId = document.getElementById('locEditId')?.value;
+        const location = document.getElementById('locLocation')?.value?.trim();
+        const category = document.getElementById('locCategory')?.value?.trim();
+        const zone = document.getElementById('locZone')?.value?.trim();
+        const locType = document.getElementById('locType')?.value?.trim();
+
+        if (!location) {
+            showToast('Location wajib diisi', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.locations);
+        const record = { location, category, zone, locType };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) {
+                record.id = editId;
+                record.createdAt = data[idx].createdAt;
+                data[idx] = record;
+            }
+        } else {
+            record.id = generateId();
+            record.createdAt = new Date().toISOString();
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.locations, data);
+        closeModal('modalLoc');
+        renderLocTable();
+        showToast(editId ? 'Location berhasil diupdate' : 'Location berhasil ditambahkan', 'success');
+    });
+
+    // Export (includes auto-calc columns)
+    document.getElementById('btnExportLoc')?.addEventListener('click', () => {
+        const locs = getData(STORAGE_KEYS.locations);
+        const latestSoh = getLatestSohData();
+        const sohByLoc = buildSohByLoc(latestSoh);
+
+        const headers = ['Location', 'Location Category', 'Zone', 'Location Type', 'Occupancy', 'Stock Level', 'Brand On Location'];
+        const rows = locs.map(d => {
+            const info = sohByLoc[d.location] || { qty: 0, brand: '-' };
+            return [d.location || '', d.category || '', d.zone || '', d.locType || '',
+            info.qty > 0 ? 'Occupied' : 'Empty', info.qty, info.brand];
+        });
+
+        let csv = headers.join(',') + '\n';
+        rows.forEach(r => { csv += r.map(v => `"${v}"`).join(',') + '\n'; });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'master_location.csv';
+        a.click();
+        showToast('Export berhasil!', 'success');
+    });
+
+    // Import (only location base data)
+    document.getElementById('btnImportLoc')?.addEventListener('click', () => {
+        importFromCSV(
+            STORAGE_KEYS.locations,
+            ['Location', 'Location Category', 'Zone', 'Location Type'],
+            (vals) => {
+                if (vals.length < 1 || !vals[0]?.trim()) return null;
+                return {
+                    location: vals[0]?.trim() || '',
+                    category: vals[1]?.trim() || '',
+                    zone: vals[2]?.trim() || '',
+                    locType: vals[3]?.trim() || ''
+                };
+            },
+            () => renderLocTable()
+        );
+    });
+
+    // Refresh SOH button
+    document.getElementById('btnRefreshLoc')?.addEventListener('click', () => {
+        renderLocTable();
+        showToast('Data SOH terbaru berhasil di-refresh', 'success');
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchLoc');
+    searchInput?.addEventListener('input', () => { pageState.Loc.current = 1; renderLocTable(searchInput.value); });
+
+    renderLocTable();
+
+    // Bulk actions
+    initBulkActions('Loc', STORAGE_KEYS.locations,
+        ['Location', 'Location Category', 'Zone', 'Location Type'],
+        (d) => [d.location || '', d.category || '', d.zone || '', d.locType || ''],
+        renderLocTable
+    );
+
+    // Clear All
+    document.getElementById('btnClearLoc')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.locations);
+        if (items.length === 0) {
+            showToast('Tidak ada data untuk dihapus', 'info');
+            return;
+        }
+        if (confirm(`Hapus semua ${items.length} data location?`)) {
+            setData(STORAGE_KEYS.locations, []);
+            renderLocTable();
+            showToast('Semua data location berhasil dihapus', 'success');
+        }
+    });
+}
+
+// Build SOH lookup by location from latest SOH data
+function buildSohByLoc(latestSoh) {
+    const byLoc = {};
+    latestSoh.forEach(s => {
+        const loc = s.location || '';
+        if (!loc) return;
+        if (!byLoc[loc]) byLoc[loc] = { qty: 0, brands: {} };
+        byLoc[loc].qty += parseInt(s.qty) || 0;
+        const brand = s.skuBrand || 'Unknown';
+        byLoc[loc].brands[brand] = (byLoc[loc].brands[brand] || 0) + (parseInt(s.qty) || 0);
+    });
+    // Determine dominant brand per location
+    Object.keys(byLoc).forEach(loc => {
+        const brands = byLoc[loc].brands;
+        let topBrand = '-', topQty = 0;
+        Object.entries(brands).forEach(([b, q]) => {
+            if (q > topQty) { topBrand = b; topQty = q; }
+        });
+        byLoc[loc].brand = topBrand;
+    });
+    return byLoc;
+}
+
+function openLocModal(editId = null) {
+    const modal = document.getElementById('modalLoc');
+    const title = document.getElementById('modalLocTitle');
+    const idEl = document.getElementById('locEditId');
+
+    document.getElementById('locLocation').value = '';
+    document.getElementById('locCategory').value = '';
+    document.getElementById('locZone').value = '';
+    document.getElementById('locType').value = '';
+    idEl.value = '';
+
+    if (editId) {
+        const data = getData(STORAGE_KEYS.locations);
+        const item = data.find(d => d.id === editId);
+        if (item) {
+            title.textContent = 'Edit Location';
+            idEl.value = editId;
+            document.getElementById('locLocation').value = item.location || '';
+            document.getElementById('locCategory').value = item.category || '';
+            document.getElementById('locZone').value = item.zone || '';
+            document.getElementById('locType').value = item.locType || '';
+        }
+    } else {
+        title.textContent = 'Tambah Location';
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteLoc(id) {
+    if (!confirm('Hapus location ini?')) return;
+    const data = getData(STORAGE_KEYS.locations).filter(d => d.id !== id);
+    setData(STORAGE_KEYS.locations, data);
+    renderLocTable();
+    showToast('Location berhasil dihapus', 'success');
+}
+
+function renderLocTable(search = '') {
+    const tbody = document.getElementById('locTableBody');
+    const emptyEl = document.getElementById('locEmpty');
+    const table = document.getElementById('locTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.locations);
+    const latestSoh = getLatestSohData();
+    const sohByLoc = buildSohByLoc(latestSoh);
+
+    const q = (search || document.getElementById('searchLoc')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d => {
+            const info = sohByLoc[d.location] || { qty: 0, brand: '-' };
+            return (d.location || '').toLowerCase().includes(q) ||
+                (d.category || '').toLowerCase().includes(q) ||
+                (d.zone || '').toLowerCase().includes(q) ||
+                (d.locType || '').toLowerCase().includes(q) ||
+                (info.brand || '').toLowerCase().includes(q);
+        });
+    }
+
+    updateLocStats(items, sohByLoc);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Loc', 0, renderLocTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Loc', items.length, renderLocTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const info = sohByLoc[d.location] || { qty: 0, brand: '-' };
+        const occupied = info.qty > 0;
+        return `
+        <tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Loc')"></td>
+            <td>${start + i + 1}</td>
+            <td><strong>${escapeHtml(d.location || '-')}</strong></td>
+            <td>${escapeHtml(d.category || '-')}</td>
+            <td>${escapeHtml(d.zone || '-')}</td>
+            <td>${escapeHtml(d.locType || '-')}</td>
+            <td><span class="badge ${occupied ? 'badge--receive' : 'badge--discrepancy'}">${occupied ? 'Occupied' : 'Empty'}</span></td>
+            <td>${info.qty.toLocaleString()}</td>
+            <td>${escapeHtml(info.brand)}</td>
+            <td>
+                <div class="action-cell">
+                    <button class="btn btn--edit" onclick="openLocModal('${d.id}')" title="Edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn btn--danger" onclick="deleteLoc('${d.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateLocStats(items, sohByLoc) {
+    let occupied = 0, empty = 0;
+    const zones = new Set();
+    items.forEach(d => {
+        const info = sohByLoc[d.location] || { qty: 0 };
+        if (info.qty > 0) occupied++; else empty++;
+        if (d.zone) zones.add(d.zone.toLowerCase());
+    });
+
+    animateCounter('statLocTotal', items.length);
+    animateCounter('statLocOccupied', occupied);
+    animateCounter('statLocEmpty', empty);
+    animateCounter('statLocZone', zones.size);
 }

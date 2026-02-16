@@ -103,6 +103,12 @@
                                 <span>QC Return</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="master-location" id="nav-master-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Master Location</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
             </ul>
@@ -805,6 +811,24 @@
                         <div class="menu-card__body">
                             <h3>QC Return</h3>
                             <p>Pencatatan barang return dari quality control untuk proses pengembalian.</p>
+                        </div>
+                        <div class="menu-card__footer">
+                            <span class="menu-card__action">
+                                Buka Menu <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="menu-card" data-navigate="master-location" id="card-master-location">
+                        <div class="menu-card__header">
+                            <div class="menu-card__icon menu-card__icon--purple">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <span class="menu-card__badge">Master</span>
+                        </div>
+                        <div class="menu-card__body">
+                            <h3>Master Location</h3>
+                            <p>Data lokasi warehouse dengan occupancy & stock level dari SOH.</p>
                         </div>
                         <div class="menu-card__footer">
                             <span class="menu-card__action">
@@ -1667,6 +1691,150 @@
                     <div class="modal__footer">
                         <button class="btn btn--outline" onclick="closeModal('modalQcr')">Batal</button>
                         <button class="btn btn--primary" id="btnSaveQcr">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Location Page -->
+            <section class="page" id="page-master-location">
+                <div class="page-header">
+                    <div class="page-header__top">
+                        <button class="back-btn" data-navigate="dashboard" id="btn-back-master-location">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Kembali</span>
+                        </button>
+                    </div>
+                    <h2><i class="fas fa-map-marker-alt"></i> Master Location</h2>
+                    <p>Data lokasi warehouse — occupancy & stock level auto-calculated dari SOH terbaru</p>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="stats-grid stats-grid--compact">
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statLocTotal">0</span>
+                            <span class="stat-card__label">Total Location</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statLocOccupied">0</span>
+                            <span class="stat-card__label">Occupied</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statLocEmpty">0</span>
+                            <span class="stat-card__label">Empty</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statLocZone">0</span>
+                            <span class="stat-card__label">Unique Zone</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn--primary" id="btnAddLoc">
+                            <i class="fas fa-plus"></i> <span>Tambah Data</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnExportLoc">
+                            <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnImportLoc">
+                            <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnRefreshLoc" title="Refresh auto-calc dari SOH terbaru">
+                            <i class="fas fa-sync-alt"></i> <span>Refresh SOH</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnBulkDeleteLoc" style="display:none">
+                            <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnBulkExportLoc" style="display:none">
+                            <i class="fas fa-file-export"></i> <span>Export (0)</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnClearLoc">
+                            <i class="fas fa-broom"></i> <span>Clear All</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari location, zone, brand..." id="searchLoc">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table" id="locTable">
+                        <thead>
+                            <tr>
+                                <th class="th-checkbox"><input type="checkbox" id="selectAllLoc"
+                                        onchange="toggleSelectAll('Loc')"></th>
+                                <th>No</th>
+                                <th>Location</th>
+                                <th>Location Category</th>
+                                <th>Zone</th>
+                                <th>Location Type</th>
+                                <th>Occupancy</th>
+                                <th>Stock Level</th>
+                                <th>Brand On Location</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locTableBody"></tbody>
+                    </table>
+                    <div class="table-empty" id="locEmpty">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>Belum ada data location. Tambah manual atau import CSV.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationLoc">
+                    <div class="pagination__info" id="paginationLocInfo"></div>
+                    <div class="pagination__pages" id="paginationLocPages"></div>
+                </div>
+            </section>
+
+            <!-- Modal Master Location -->
+            <div class="modal-overlay" id="modalLoc">
+                <div class="modal">
+                    <div class="modal__header">
+                        <h3 id="modalLocTitle">Tambah Location</h3>
+                        <button class="modal__close" onclick="closeModal('modalLoc')">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <input type="hidden" id="locEditId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Location <span class="required">*</span></label>
+                                <input type="text" id="locLocation" placeholder="Nama lokasi">
+                            </div>
+                            <div class="form-group">
+                                <label>Location Category</label>
+                                <input type="text" id="locCategory" placeholder="Kategori lokasi">
+                            </div>
+                            <div class="form-group">
+                                <label>Zone</label>
+                                <input type="text" id="locZone" placeholder="Zone">
+                            </div>
+                            <div class="form-group">
+                                <label>Location Type</label>
+                                <input type="text" id="locType" placeholder="Tipe lokasi">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" onclick="closeModal('modalLoc')">Batal</button>
+                        <button class="btn btn--primary" id="btnSaveLoc">
                             <i class="fas fa-save"></i> Simpan
                         </button>
                     </div>
