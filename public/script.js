@@ -339,7 +339,7 @@ function updateInventoryDashboard() {
     // Group by unique SKU, sum sysQty and phyQty per SKU
     const skuMap = {};
     items.forEach(d => {
-        const sku = (d.sku || '').trim().toLowerCase();
+        const sku = (d.sku || '').trim();
         if (!sku) return;
         if (!skuMap[sku]) skuMap[sku] = { sys: 0, phy: 0 };
         skuMap[sku].sys += parseInt(d.sysQty) || 0;
