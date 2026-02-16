@@ -716,7 +716,7 @@ function renderCountingTable(dccItems) {
     });
 
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Belum ada data Master Location</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">Belum ada data Master Location</td></tr>';
         return;
     }
 
@@ -728,12 +728,13 @@ function renderCountingTable(dccItems) {
     rows.forEach((row, idx) => {
         // Subtotal row when type changes
         if (currentType && currentType !== row.type) {
-            const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(1) : '0.0';
-            const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(1) : '0.0';
+            const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(2) : '0.00';
+            const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(2) : '0.00';
             html += `<tr style="background:rgba(99,102,241,0.08);font-weight:600;">
                 <td colspan="2">Subtotal ${escapeHtml(currentType)}</td>
                 <td>${subTotalLoc.toLocaleString()}</td>
                 <td>${subDone.toLocaleString()}</td>
+                <td>${subMatch.toLocaleString()}</td>
                 <td>${subPct}%</td>
                 <td>${subAcc}%</td>
             </tr>`;
@@ -748,14 +749,13 @@ function renderCountingTable(dccItems) {
         row.locations.forEach(loc => {
             if (dccLocSet.has(loc)) {
                 doneCounting++;
-                // Accuracy: location is accurate if sys == phy
                 const d = dccLocMap[loc];
                 if (d && d.sys === d.phy) accurateCount++;
             }
         });
 
-        const pctCounting = totalLoc > 0 ? ((doneCounting / totalLoc) * 100).toFixed(1) : '0.0';
-        const accCounting = doneCounting > 0 ? ((accurateCount / doneCounting) * 100).toFixed(1) : '0.0';
+        const pctCounting = totalLoc > 0 ? ((doneCounting / totalLoc) * 100).toFixed(2) : '0.00';
+        const accCounting = doneCounting > 0 ? ((accurateCount / doneCounting) * 100).toFixed(2) : '0.00';
 
         subTotalLoc += totalLoc;
         subDone += doneCounting;
@@ -772,6 +772,7 @@ function renderCountingTable(dccItems) {
             <td>${escapeHtml(row.zone)}</td>
             <td>${totalLoc.toLocaleString()}</td>
             <td>${doneCounting.toLocaleString()}</td>
+            <td>${accurateCount.toLocaleString()}</td>
             <td><span class="badge ${pctColor}">${pctCounting}%</span></td>
             <td><span class="badge ${accColor}">${accCounting}%</span></td>
         </tr>`;
@@ -779,24 +780,26 @@ function renderCountingTable(dccItems) {
 
     // Final subtotal
     if (currentType) {
-        const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(1) : '0.0';
-        const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(1) : '0.0';
+        const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(2) : '0.00';
+        const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(2) : '0.00';
         html += `<tr style="background:rgba(99,102,241,0.08);font-weight:600;">
             <td colspan="2">Subtotal ${escapeHtml(currentType)}</td>
             <td>${subTotalLoc.toLocaleString()}</td>
             <td>${subDone.toLocaleString()}</td>
+            <td>${subMatch.toLocaleString()}</td>
             <td>${subPct}%</td>
             <td>${subAcc}%</td>
         </tr>`;
     }
 
     // Grand total
-    const grandPct = grandTotalLoc > 0 ? ((grandDone / grandTotalLoc) * 100).toFixed(1) : '0.0';
-    const grandAcc = grandDone > 0 ? ((grandMatch / grandDone) * 100).toFixed(1) : '0.0';
+    const grandPct = grandTotalLoc > 0 ? ((grandDone / grandTotalLoc) * 100).toFixed(2) : '0.00';
+    const grandAcc = grandDone > 0 ? ((grandMatch / grandDone) * 100).toFixed(2) : '0.00';
     html += `<tr style="background:rgba(52,211,153,0.1);font-weight:700;">
         <td colspan="2">Grand Total</td>
         <td>${grandTotalLoc.toLocaleString()}</td>
         <td>${grandDone.toLocaleString()}</td>
+        <td>${grandMatch.toLocaleString()}</td>
         <td>${grandPct}%</td>
         <td>${grandAcc}%</td>
     </tr>`;
