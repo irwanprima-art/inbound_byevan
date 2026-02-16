@@ -2,6 +2,212 @@
 // Inbound Management System - Script
 // ========================================
 
+// ========================================
+// AUTH MODULE — Login, Logout, Role Access
+// ========================================
+
+const AUTH_KEYS = {
+    users: 'auth_users',
+    session: 'auth_session'
+};
+
+// Role definitions: which pages and dashboard tabs each role can access
+const ROLE_ACCESS = {
+    supervisor: { pages: 'all', dashTabs: 'all' },
+    leader: { pages: 'all', dashTabs: 'all' },
+    admin_inbound: {
+        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas'],
+        dashTabs: ['inbound'],
+        navGroups: ['inbound']
+    },
+    admin_inventory: {
+        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location'],
+        dashTabs: ['inventory'],
+        navGroups: ['inventory']
+    }
+};
+
+// Role display names
+const ROLE_LABELS = {
+    supervisor: 'Supervisor',
+    leader: 'Leader',
+    admin_inbound: 'Admin Inbound',
+    admin_inventory: 'Admin Inventory'
+};
+
+// Simple hash for password (not crypto-secure, just basic obfuscation)
+async function hashPassword(pw) {
+    const data = new TextEncoder().encode(pw);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Seed default accounts if none exist
+async function seedDefaultAccounts() {
+    const existing = JSON.parse(localStorage.getItem(AUTH_KEYS.users) || '[]');
+    if (existing.length > 0) return;
+
+    const defaults = [
+        { username: 'supervisor', password: 'super123', role: 'supervisor' },
+        { username: 'leader', password: 'leader123', role: 'leader' },
+        { username: 'admin.inbound', password: 'inbound123', role: 'admin_inbound' },
+        { username: 'admin.inventory', password: 'inventory123', role: 'admin_inventory' }
+    ];
+
+    const users = [];
+    for (const d of defaults) {
+        users.push({ username: d.username, passwordHash: await hashPassword(d.password), role: d.role });
+    }
+    localStorage.setItem(AUTH_KEYS.users, JSON.stringify(users));
+}
+
+function getSession() {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEYS.session)); } catch { return null; }
+}
+
+function setSession(user) {
+    localStorage.setItem(AUTH_KEYS.session, JSON.stringify({ username: user.username, role: user.role }));
+}
+
+function clearSession() {
+    localStorage.removeItem(AUTH_KEYS.session);
+}
+
+// Apply role-based visibility
+function applyRoleAccess(role) {
+    const access = ROLE_ACCESS[role];
+    if (!access) return;
+
+    // Sidebar nav groups
+    document.querySelectorAll('.nav-group[data-access]').forEach(group => {
+        const groupAccess = group.getAttribute('data-access');
+        if (access.pages === 'all' || (access.navGroups && access.navGroups.includes(groupAccess))) {
+            group.style.display = '';
+        } else {
+            group.style.display = 'none';
+        }
+    });
+
+    // Dashboard tabs
+    const tabInbound = document.getElementById('tabInbound');
+    const tabInventory = document.getElementById('tabInventory');
+
+    if (access.dashTabs === 'all') {
+        if (tabInbound) tabInbound.style.display = '';
+        if (tabInventory) tabInventory.style.display = '';
+    } else {
+        if (tabInbound) tabInbound.style.display = access.dashTabs.includes('inbound') ? '' : 'none';
+        if (tabInventory) tabInventory.style.display = access.dashTabs.includes('inventory') ? '' : 'none';
+
+        // Auto-activate the visible tab
+        const visibleTab = access.dashTabs[0];
+        if (visibleTab) {
+            document.querySelectorAll('.dashboard-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.dashboard-panel').forEach(p => p.classList.remove('active'));
+
+            const tab = visibleTab === 'inbound' ? tabInbound : tabInventory;
+            const panel = document.getElementById(visibleTab === 'inbound' ? 'dashboardInbound' : 'dashboardInventory');
+            if (tab) { tab.classList.add('active'); tab.click(); }
+            if (panel) panel.classList.add('active');
+        }
+    }
+
+    // Show user info in sidebar
+    const session = getSession();
+    const userEl = document.getElementById('sidebarUser');
+    const nameEl = document.getElementById('sidebarUserName');
+    const roleEl = document.getElementById('sidebarUserRole');
+    if (userEl && session) {
+        userEl.style.display = '';
+        if (nameEl) nameEl.textContent = session.username;
+        if (roleEl) roleEl.textContent = ROLE_LABELS[session.role] || session.role;
+    }
+}
+
+// Show login screen
+function showLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    const appWrapper = document.getElementById('appWrapper');
+    if (loginScreen) loginScreen.style.display = '';
+    if (appWrapper) appWrapper.style.display = 'none';
+}
+
+// Show app (hide login)
+function showApp() {
+    const loginScreen = document.getElementById('loginScreen');
+    const appWrapper = document.getElementById('appWrapper');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (appWrapper) appWrapper.style.display = '';
+}
+
+// Handle login form submit
+function initLoginForm() {
+    const form = document.getElementById('loginForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('loginUsername')?.value?.trim().toLowerCase();
+        const password = document.getElementById('loginPassword')?.value;
+        const errorEl = document.getElementById('loginError');
+        const errorMsg = document.getElementById('loginErrorMsg');
+
+        if (!username || !password) {
+            if (errorEl) errorEl.style.display = '';
+            if (errorMsg) errorMsg.textContent = 'Username dan password wajib diisi';
+            return;
+        }
+
+        const users = JSON.parse(localStorage.getItem(AUTH_KEYS.users) || '[]');
+        const pwHash = await hashPassword(password);
+        const user = users.find(u => u.username === username && u.passwordHash === pwHash);
+
+        if (!user) {
+            if (errorEl) errorEl.style.display = '';
+            if (errorMsg) errorMsg.textContent = 'Username atau password salah';
+            return;
+        }
+
+        // Success
+        if (errorEl) errorEl.style.display = 'none';
+        setSession(user);
+        showApp();
+        applyRoleAccess(user.role);
+        // Re-trigger dashboard stats
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+    });
+}
+
+// Handle logout
+function initLogout() {
+    document.getElementById('btnLogout')?.addEventListener('click', () => {
+        if (confirm('Apakah Anda yakin ingin logout?')) {
+            clearSession();
+            showLogin();
+            // Clear form
+            const loginUsername = document.getElementById('loginUsername');
+            const loginPassword = document.getElementById('loginPassword');
+            if (loginUsername) loginUsername.value = '';
+            if (loginPassword) loginPassword.value = '';
+        }
+    });
+}
+
+// Check auth: if session exists show app, else show login
+async function initAuth() {
+    await seedDefaultAccounts();
+    initLoginForm();
+    initLogout();
+
+    const session = getSession();
+    if (session && ROLE_ACCESS[session.role]) {
+        showApp();
+        applyRoleAccess(session.role);
+    } else {
+        showLogin();
+    }
+}
+
 // --- Data Store (localStorage + IndexedDB for large data) ---
 const STORAGE_KEYS = {
     arrivals: 'inbound_arrivals',
@@ -105,6 +311,9 @@ function generateId() {
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Auth: seed accounts, check session, show login or app
+    await initAuth();
+
     // Preload large datasets from IndexedDB into memory cache
     await preloadLargeData();
 
@@ -133,6 +342,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     initInvFilter();
     initInboundFilter();
     updateDashboardStats();
+
+    // Re-apply role access after all pages init (in case session exists)
+    const session = getSession();
+    if (session) applyRoleAccess(session.role);
 });
 
 // Sync all data from API to localStorage
@@ -221,6 +434,16 @@ let openTabs = ['dashboard']; // track open tab IDs
 let activeTab = 'dashboard';
 
 function navigateTo(pageId) {
+    // Role-based navigation guard
+    const session = getSession();
+    if (session) {
+        const access = ROLE_ACCESS[session.role];
+        if (access && access.pages !== 'all' && !access.pages.includes(pageId)) {
+            showToast('Anda tidak memiliki akses ke halaman ini', 'error');
+            return;
+        }
+    }
+
     // Add tab if not already open
     if (!openTabs.includes(pageId)) {
         openTabs.push(pageId);
