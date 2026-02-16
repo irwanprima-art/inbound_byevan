@@ -415,170 +415,92 @@
                 <!-- ========== INVENTORY DASHBOARD ========== -->
                 <div class="dashboard-panel" id="dashboardInventory">
                     <div class="report-section">
-                        <h3 class="section-title"><i class="fas fa-boxes"></i> Inventory Report</h3>
-                        <div class="stats-grid stats-grid--report">
-                            <div class="stat-card stat-card--gradient-blue">
-                                <div class="stat-card__icon"><i class="fas fa-clipboard-list"></i></div>
-                                <div class="stat-card__info">
-                                    <span class="stat-card__value" id="statInvTotal">0</span>
-                                    <span class="stat-card__label">Total Cycle Count</span>
-                                    <span class="stat-card__sub">Total data DCC</span>
-                                </div>
-                                <div class="stat-card__bg-icon"><i class="fas fa-clipboard-list"></i></div>
-                            </div>
-                            <div class="stat-card stat-card--gradient-green">
-                                <div class="stat-card__icon"><i class="fas fa-check-circle"></i></div>
-                                <div class="stat-card__info">
-                                    <span class="stat-card__value" id="statInvMatch">0</span>
-                                    <span class="stat-card__label">Match</span>
-                                    <span class="stat-card__sub">Variance = 0</span>
-                                </div>
-                                <div class="stat-card__bg-icon"><i class="fas fa-check-circle"></i></div>
-                            </div>
-                            <div class="stat-card stat-card--gradient-red">
-                                <div class="stat-card__icon"><i class="fas fa-arrow-down"></i></div>
-                                <div class="stat-card__info">
-                                    <span class="stat-card__value" id="statInvShortage">0</span>
-                                    <span class="stat-card__label">Shortage</span>
-                                    <span class="stat-card__sub">Phy. Qty &lt; Sys. Qty</span>
-                                </div>
-                                <div class="stat-card__bg-icon"><i class="fas fa-arrow-down"></i></div>
-                            </div>
-                            <div class="stat-card stat-card--gradient-orange">
-                                <div class="stat-card__icon"><i class="fas fa-arrow-up"></i></div>
-                                <div class="stat-card__info">
-                                    <span class="stat-card__value" id="statInvGain">0</span>
-                                    <span class="stat-card__label">Gain</span>
-                                    <span class="stat-card__sub">Phy. Qty &gt; Sys. Qty</span>
-                                </div>
-                                <div class="stat-card__bg-icon"><i class="fas fa-arrow-up"></i></div>
-                            </div>
-                        </div>
+                        <h3 class="section-title"><i class="fas fa-clipboard-check"></i> Daily Cycle Count — Accuracy
+                            Summary</h3>
                     </div>
 
-                    <!-- Inventory Charts -->
-                    <div class="charts-section">
+                    <div class="accuracy-grid">
+                        <!-- QTY ACCURACY -->
                         <div class="chart-card">
                             <div class="chart-card__header">
-                                <h3><i class="fas fa-chart-pie"></i> Stock Accuracy</h3>
+                                <h3><i class="fas fa-cubes"></i> Qty Accuracy</h3>
                             </div>
                             <div class="chart-card__body">
-                                <div class="donut-wrapper">
-                                    <div class="donut-chart" id="donutInvAccuracy">
-                                        <div class="donut-center">
-                                            <span class="donut-percent" id="donutInvPct">0%</span>
-                                            <span class="donut-label">Accuracy</span>
-                                        </div>
+                                <div class="accuracy-list">
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total Sys. Qty</span>
+                                        <span class="accuracy-value" id="accQtySys">0</span>
                                     </div>
-                                    <div class="donut-legend">
-                                        <div class="legend-item">
-                                            <span class="legend-dot legend-dot--green"></span>
-                                            <span class="legend-text">Match</span>
-                                            <strong class="legend-value" id="legendInvMatch">0</strong>
-                                        </div>
-                                        <div class="legend-item">
-                                            <span class="legend-dot legend-dot--red"></span>
-                                            <span class="legend-text">Variance</span>
-                                            <strong class="legend-value" id="legendInvVariance">0</strong>
-                                        </div>
-                                        <div class="legend-item legend-item--total">
-                                            <span class="legend-dot legend-dot--blue"></span>
-                                            <span class="legend-text">Total SKU</span>
-                                            <strong class="legend-value" id="legendInvTotal">0</strong>
-                                        </div>
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total Phy. Qty</span>
+                                        <span class="accuracy-value" id="accQtyPhy">0</span>
                                     </div>
+                                    <div class="accuracy-row accuracy-row--shortage">
+                                        <span class="accuracy-label">Shortage Qty</span>
+                                        <span class="accuracy-value" id="accQtyShortage">0</span>
+                                    </div>
+                                    <div class="accuracy-row accuracy-row--gain">
+                                        <span class="accuracy-label">Gain Qty</span>
+                                        <span class="accuracy-value" id="accQtyGain">0</span>
+                                    </div>
+                                </div>
+                                <div class="accuracy-result">
+                                    <span class="accuracy-result__label">Accuracy Qty</span>
+                                    <span class="accuracy-result__value" id="accQtyPct">0%</span>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- SKU ACCURACY -->
                         <div class="chart-card">
                             <div class="chart-card__header">
-                                <h3><i class="fas fa-chart-bar"></i> Variance Summary</h3>
+                                <h3><i class="fas fa-barcode"></i> SKU Accuracy</h3>
                             </div>
                             <div class="chart-card__body">
-                                <div class="bar-chart">
-                                    <div class="bar-row">
-                                        <div class="bar-label">
-                                            <i class="fas fa-check-circle" style="color: #34d399"></i>
-                                            <span>Match</span>
-                                        </div>
-                                        <div class="bar-track">
-                                            <div class="bar-fill bar-fill--green" id="barInvMatch" style="width: 0%">
-                                            </div>
-                                        </div>
-                                        <span class="bar-value" id="barInvMatchVal">0</span>
+                                <div class="accuracy-list">
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total SKU Count</span>
+                                        <span class="accuracy-value" id="accSkuTotal">0</span>
                                     </div>
-                                    <div class="bar-row">
-                                        <div class="bar-label">
-                                            <i class="fas fa-arrow-down" style="color: #f87171"></i>
-                                            <span>Shortage</span>
-                                        </div>
-                                        <div class="bar-track">
-                                            <div class="bar-fill bar-fill--red" id="barInvShortage" style="width: 0%">
-                                            </div>
-                                        </div>
-                                        <span class="bar-value" id="barInvShortageVal">0</span>
+                                    <div class="accuracy-row accuracy-row--match">
+                                        <span class="accuracy-label">Total SKU Match</span>
+                                        <span class="accuracy-value" id="accSkuMatch">0</span>
                                     </div>
-                                    <div class="bar-row">
-                                        <div class="bar-label">
-                                            <i class="fas fa-arrow-up" style="color: #60a5fa"></i>
-                                            <span>Gain</span>
-                                        </div>
-                                        <div class="bar-track">
-                                            <div class="bar-fill bar-fill--blue" id="barInvGain" style="width: 0%">
-                                            </div>
-                                        </div>
-                                        <span class="bar-value" id="barInvGainVal">0</span>
+                                    <div class="accuracy-row accuracy-row--unmatch">
+                                        <span class="accuracy-label">Total SKU Not Match</span>
+                                        <span class="accuracy-value" id="accSkuUnmatch">0</span>
                                     </div>
                                 </div>
-                                <div class="bar-summary">
-                                    <div class="bar-summary__item">
-                                        <span class="bar-summary__label">Accuracy Rate</span>
-                                        <span class="bar-summary__value bar-summary__value--green"
-                                            id="invAccuracyRate">0%</span>
-                                    </div>
-                                    <div class="bar-summary__item">
-                                        <span class="bar-summary__label">Shortage Rate</span>
-                                        <span class="bar-summary__value bar-summary__value--red"
-                                            id="invShortageRate">0%</span>
-                                    </div>
-                                    <div class="bar-summary__item">
-                                        <span class="bar-summary__label">Gain Rate</span>
-                                        <span class="bar-summary__value bar-summary__value--blue"
-                                            id="invGainRate">0%</span>
-                                    </div>
+                                <div class="accuracy-result">
+                                    <span class="accuracy-result__label">Accuracy SKU</span>
+                                    <span class="accuracy-result__value" id="accSkuPct">0%</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Top Variance SKUs -->
-                    <div class="dashboard-section">
+                        <!-- LOCATION ACCURACY -->
                         <div class="chart-card">
                             <div class="chart-card__header">
-                                <h3><i class="fas fa-exclamation-triangle" style="color: #fb923c"></i> Top Variance SKUs
-                                </h3>
+                                <h3><i class="fas fa-map-marker-alt"></i> Location Accuracy</h3>
                             </div>
                             <div class="chart-card__body">
-                                <div class="table-container" style="border: none;">
-                                    <table class="data-table" id="invVarianceTable">
-                                        <thead>
-                                            <tr>
-                                                <th>No</th>
-                                                <th>SKU</th>
-                                                <th>Zone</th>
-                                                <th>Sys. Qty</th>
-                                                <th>Phy. Qty</th>
-                                                <th>Variance</th>
-                                                <th>Remarks</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="invVarianceBody"></tbody>
-                                    </table>
-                                    <div class="table-empty" id="invVarianceEmpty">
-                                        <i class="fas fa-check-circle" style="color: #34d399"></i>
-                                        <p>Semua stock match. Tidak ada variance.</p>
+                                <div class="accuracy-list">
+                                    <div class="accuracy-row">
+                                        <span class="accuracy-label">Total Location Count</span>
+                                        <span class="accuracy-value" id="accLocTotal">0</span>
                                     </div>
+                                    <div class="accuracy-row accuracy-row--match">
+                                        <span class="accuracy-label">Total Location Match</span>
+                                        <span class="accuracy-value" id="accLocMatch">0</span>
+                                    </div>
+                                    <div class="accuracy-row accuracy-row--unmatch">
+                                        <span class="accuracy-label">Total Location Not Match</span>
+                                        <span class="accuracy-value" id="accLocUnmatch">0</span>
+                                    </div>
+                                </div>
+                                <div class="accuracy-result">
+                                    <span class="accuracy-result__label">Accuracy Location</span>
+                                    <span class="accuracy-result__value" id="accLocPct">0%</span>
                                 </div>
                             </div>
                         </div>

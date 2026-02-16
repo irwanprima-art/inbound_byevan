@@ -312,116 +312,82 @@ function initDashboardTabs() {
 // --- Inventory Dashboard Stats ---
 function updateInventoryDashboard() {
     const items = getData(STORAGE_KEYS.dcc);
-    const total = items.length;
-    let match = 0, shortage = 0, gain = 0;
+    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+    // ===== 1. QTY ACCURACY =====
+    let totalSysQty = 0, totalPhyQty = 0, shortageQty = 0, gainQty = 0;
 
     items.forEach(d => {
-        const variance = (parseInt(d.phyQty) || 0) - (parseInt(d.sysQty) || 0);
-        if (variance === 0) match++;
-        else if (variance < 0) shortage++;
-        else gain++;
+        const sys = parseInt(d.sysQty) || 0;
+        const phy = parseInt(d.phyQty) || 0;
+        totalSysQty += sys;
+        totalPhyQty += phy;
+        const diff = phy - sys;
+        if (diff < 0) shortageQty += Math.abs(diff);
+        else if (diff > 0) gainQty += diff;
     });
 
-    // Stat cards
-    animateCounter('statInvTotal', total);
-    animateCounter('statInvMatch', match);
-    animateCounter('statInvShortage', shortage);
-    animateCounter('statInvGain', gain);
+    const qtyAccuracy = totalSysQty > 0 ? ((totalPhyQty / totalSysQty) * 100).toFixed(2) : '0.00';
 
-    // Accuracy donut
-    const varianceCount = shortage + gain;
-    const accuracyPct = total > 0 ? Math.round((match / total) * 100) : 0;
+    setText('accQtySys', totalSysQty.toLocaleString());
+    setText('accQtyPhy', totalPhyQty.toLocaleString());
+    setText('accQtyShortage', shortageQty.toLocaleString());
+    setText('accQtyGain', gainQty.toLocaleString());
+    setText('accQtyPct', qtyAccuracy + '%');
 
-    const donut = document.getElementById('donutInvAccuracy');
-    if (donut) {
-        donut.style.background = `conic-gradient(
-            #34d399 0% ${accuracyPct}%,
-            #f87171 ${accuracyPct}% 100%
-        )`;
-        donut.style.boxShadow = accuracyPct > 50
-            ? '0 0 30px rgba(52, 211, 153, 0.15)'
-            : '0 0 30px rgba(248, 113, 113, 0.15)';
-    }
+    // ===== 2. SKU ACCURACY =====
+    // Group by unique SKU, sum sysQty and phyQty per SKU
+    const skuMap = {};
+    items.forEach(d => {
+        const sku = (d.sku || '').trim().toLowerCase();
+        if (!sku) return;
+        if (!skuMap[sku]) skuMap[sku] = { sys: 0, phy: 0 };
+        skuMap[sku].sys += parseInt(d.sysQty) || 0;
+        skuMap[sku].phy += parseInt(d.phyQty) || 0;
+    });
 
-    const donutPctEl = document.getElementById('donutInvPct');
-    if (donutPctEl) donutPctEl.textContent = accuracyPct + '%';
+    const skuKeys = Object.keys(skuMap);
+    const totalSkuCount = skuKeys.length;
+    let skuMatch = 0, skuUnmatch = 0;
 
-    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-    setText('legendInvMatch', match.toLocaleString());
-    setText('legendInvVariance', varianceCount.toLocaleString());
-    setText('legendInvTotal', total.toLocaleString());
+    skuKeys.forEach(sku => {
+        if (skuMap[sku].sys === skuMap[sku].phy) skuMatch++;
+        else skuUnmatch++;
+    });
 
-    // Bar chart
-    const maxCount = Math.max(match, shortage, gain, 1);
-    const setBar = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.style.width = Math.min((val / maxCount) * 100, 100) + '%';
-    };
+    const skuAccuracy = totalSkuCount > 0 ? ((skuMatch / totalSkuCount) * 100).toFixed(2) : '0.00';
 
-    setBar('barInvMatch', match);
-    setBar('barInvShortage', shortage);
-    setBar('barInvGain', gain);
+    setText('accSkuTotal', totalSkuCount.toLocaleString());
+    setText('accSkuMatch', skuMatch.toLocaleString());
+    setText('accSkuUnmatch', skuUnmatch.toLocaleString());
+    setText('accSkuPct', skuAccuracy + '%');
 
-    setText('barInvMatchVal', match.toLocaleString());
-    setText('barInvShortageVal', shortage.toLocaleString());
-    setText('barInvGainVal', gain.toLocaleString());
+    // ===== 3. LOCATION ACCURACY =====
+    // Group by unique Location, sum sysQty and phyQty per Location
+    const locMap = {};
+    items.forEach(d => {
+        const loc = (d.location || '').trim().toLowerCase();
+        if (!loc) return;
+        if (!locMap[loc]) locMap[loc] = { sys: 0, phy: 0 };
+        locMap[loc].sys += parseInt(d.sysQty) || 0;
+        locMap[loc].phy += parseInt(d.phyQty) || 0;
+    });
 
-    // Rate percentages
-    const accRate = total > 0 ? ((match / total) * 100).toFixed(1) : '0.0';
-    const shoRate = total > 0 ? ((shortage / total) * 100).toFixed(1) : '0.0';
-    const gaiRate = total > 0 ? ((gain / total) * 100).toFixed(1) : '0.0';
+    const locKeys = Object.keys(locMap);
+    const totalLocCount = locKeys.length;
+    let locMatch = 0, locUnmatch = 0;
 
-    setText('invAccuracyRate', accRate + '%');
-    setText('invShortageRate', shoRate + '%');
-    setText('invGainRate', gaiRate + '%');
+    locKeys.forEach(loc => {
+        if (locMap[loc].sys === locMap[loc].phy) locMatch++;
+        else locUnmatch++;
+    });
 
-    // Top Variance SKUs table
-    renderVarianceTable(items);
-}
+    const locAccuracy = totalLocCount > 0 ? ((locMatch / totalLocCount) * 100).toFixed(2) : '0.00';
 
-function renderVarianceTable(items) {
-    const tbody = document.getElementById('invVarianceBody');
-    const table = document.getElementById('invVarianceTable');
-    const emptyEl = document.getElementById('invVarianceEmpty');
-    if (!tbody) return;
-
-    // Filter only items with variance != 0, sort by abs(variance) descending
-    const varianceItems = items
-        .map(d => {
-            const sysQty = parseInt(d.sysQty) || 0;
-            const phyQty = parseInt(d.phyQty) || 0;
-            const variance = phyQty - sysQty;
-            return { ...d, sysQty, phyQty, variance, absVariance: Math.abs(variance) };
-        })
-        .filter(d => d.variance !== 0)
-        .sort((a, b) => b.absVariance - a.absVariance)
-        .slice(0, 10);
-
-    if (varianceItems.length === 0) {
-        tbody.innerHTML = '';
-        if (table) table.style.display = 'none';
-        if (emptyEl) emptyEl.classList.add('show');
-        return;
-    }
-
-    if (table) table.style.display = '';
-    if (emptyEl) emptyEl.classList.remove('show');
-
-    tbody.innerHTML = varianceItems.map((d, i) => {
-        const remarks = d.variance < 0 ? 'Shortage' : 'Gain';
-        const remarkClass = d.variance < 0 ? 'badge badge--shortage' : 'badge badge--gain';
-        const varianceClass = d.variance < 0 ? 'qty-negative' : 'qty-positive';
-        return `
-        <tr>
-            <td>${i + 1}</td>
-            <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
-            <td>${escapeHtml(d.zone || '-')}</td>
-            <td>${d.sysQty.toLocaleString()}</td>
-            <td>${d.phyQty.toLocaleString()}</td>
-            <td class="${varianceClass}">${d.variance > 0 ? '+' : ''}${d.variance.toLocaleString()}</td>
-            <td><span class="${remarkClass}">${remarks}</span></td>
-        </tr>`;
-    }).join('');
+    setText('accLocTotal', totalLocCount.toLocaleString());
+    setText('accLocMatch', locMatch.toLocaleString());
+    setText('accLocUnmatch', locUnmatch.toLocaleString());
+    setText('accLocPct', locAccuracy + '%');
 }
 
 function renderPendingTable() {
