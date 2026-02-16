@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
     vas: 'inbound_vas',
     dcc: 'inbound_dcc',
     damage: 'inbound_damage',
-    soh: 'inbound_soh'
+    soh: 'inbound_soh',
+    qcReturn: 'inbound_qc_return'
 };
 
 function getData(key) {
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDccPage();
     initDmgPage();
     initSohPage();
+    initQcrPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -151,6 +153,7 @@ function navigateTo(pageId) {
     if (pageId === 'daily-cycle-count') renderDccTable();
     if (pageId === 'project-damage') renderDmgTable();
     if (pageId === 'stock-on-hand') renderSohTable();
+    if (pageId === 'qc-return') renderQcrTable();
     if (pageId === 'dashboard') updateDashboardStats();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
@@ -1908,7 +1911,8 @@ const pageState = {
     Vas: { current: 1, perPage: 50 },
     Dcc: { current: 1, perPage: 50 },
     Dmg: { current: 1, perPage: 50 },
-    Soh: { current: 1, perPage: 50 }
+    Soh: { current: 1, perPage: 50 },
+    Qcr: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -2743,4 +2747,225 @@ function updateSohStats(items) {
     animateCounter('statSohQty', totalQty);
     animateCounter('statSohSku', skus.size);
     animateCounter('statSohLoc', locs.size);
+}
+
+// ========================================
+// QC RETURN
+// ========================================
+
+function initQcrPage() {
+    // Add button
+    document.getElementById('btnAddQcr')?.addEventListener('click', () => openQcrModal());
+
+    // Save button
+    document.getElementById('btnSaveQcr')?.addEventListener('click', () => {
+        const editId = document.getElementById('qcrEditId')?.value;
+        const date = document.getElementById('qcrDate')?.value;
+        const owner = document.getElementById('qcrOwner')?.value?.trim();
+        const sku = document.getElementById('qcrSku')?.value?.trim();
+        const qty = parseInt(document.getElementById('qcrQty')?.value) || 0;
+        const fromLoc = document.getElementById('qcrFromLoc')?.value?.trim();
+        const toLoc = document.getElementById('qcrToLoc')?.value?.trim();
+        const operator = document.getElementById('qcrOperator')?.value?.trim();
+
+        if (!date || !owner || !sku || qty <= 0 || !fromLoc || !toLoc) {
+            showToast('Harap isi semua field wajib (*)', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.qcReturn);
+        const record = { date, owner, sku, qty, fromLoc, toLoc, operator };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) {
+                record.id = editId;
+                record.createdAt = data[idx].createdAt;
+                data[idx] = record;
+            }
+        } else {
+            record.id = generateId();
+            record.createdAt = new Date().toISOString();
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.qcReturn, data);
+        closeModal('modalQcr');
+        renderQcrTable();
+        showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
+    });
+
+    // Export
+    document.getElementById('btnExportQcr')?.addEventListener('click', () => {
+        exportToCSV(
+            STORAGE_KEYS.qcReturn,
+            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
+            (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || ''],
+            'qc_return'
+        );
+    });
+
+    // Import
+    document.getElementById('btnImportQcr')?.addEventListener('click', () => {
+        importFromCSV(
+            STORAGE_KEYS.qcReturn,
+            ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
+            (vals) => {
+                if (vals.length < 4) return null;
+                return {
+                    date: vals[0]?.trim() || '',
+                    owner: vals[1]?.trim() || '',
+                    sku: vals[2]?.trim() || '',
+                    qty: parseInt(vals[3]) || 0,
+                    fromLoc: vals[4]?.trim() || '',
+                    toLoc: vals[5]?.trim() || '',
+                    operator: vals[6]?.trim() || ''
+                };
+            },
+            () => renderQcrTable()
+        );
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchQcr');
+    searchInput?.addEventListener('input', () => { pageState.Qcr.current = 1; renderQcrTable(searchInput.value); });
+
+    renderQcrTable();
+
+    // Bulk actions
+    initBulkActions('Qcr', STORAGE_KEYS.qcReturn,
+        ['Tanggal', 'Owner', 'SKU', 'Qty', 'From Loc', 'To Loc', 'Operator'],
+        (d) => [d.date || '', d.owner || '', d.sku || '', d.qty, d.fromLoc || '', d.toLoc || '', d.operator || ''],
+        renderQcrTable
+    );
+
+    // Clear All
+    document.getElementById('btnClearQcr')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.qcReturn);
+        if (items.length === 0) {
+            showToast('Tidak ada data untuk dihapus', 'info');
+            return;
+        }
+        if (confirm(`Hapus semua ${items.length} data QC Return?`)) {
+            setData(STORAGE_KEYS.qcReturn, []);
+            renderQcrTable();
+            showToast('Semua data QC Return berhasil dihapus', 'success');
+        }
+    });
+}
+
+function openQcrModal(editId = null) {
+    const modal = document.getElementById('modalQcr');
+    const title = document.getElementById('modalQcrTitle');
+    const idEl = document.getElementById('qcrEditId');
+
+    document.getElementById('qcrDate').value = '';
+    document.getElementById('qcrOwner').value = '';
+    document.getElementById('qcrSku').value = '';
+    document.getElementById('qcrQty').value = '';
+    document.getElementById('qcrFromLoc').value = '';
+    document.getElementById('qcrToLoc').value = '';
+    document.getElementById('qcrOperator').value = '';
+    idEl.value = '';
+
+    if (editId) {
+        const data = getData(STORAGE_KEYS.qcReturn);
+        const item = data.find(d => d.id === editId);
+        if (item) {
+            title.textContent = 'Edit Data QC Return';
+            idEl.value = editId;
+            document.getElementById('qcrDate').value = item.date || '';
+            document.getElementById('qcrOwner').value = item.owner || '';
+            document.getElementById('qcrSku').value = item.sku || '';
+            document.getElementById('qcrQty').value = item.qty || '';
+            document.getElementById('qcrFromLoc').value = item.fromLoc || '';
+            document.getElementById('qcrToLoc').value = item.toLoc || '';
+            document.getElementById('qcrOperator').value = item.operator || '';
+        }
+    } else {
+        title.textContent = 'Tambah Data QC Return';
+        const now = new Date();
+        document.getElementById('qcrDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteQcr(id) {
+    if (!confirm('Hapus data ini?')) return;
+    let data = getData(STORAGE_KEYS.qcReturn);
+    data = data.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.qcReturn, data);
+    renderQcrTable();
+    showToast('Data berhasil dihapus', 'success');
+}
+
+function renderQcrTable(search = '') {
+    const tbody = document.getElementById('qcrTableBody');
+    const emptyEl = document.getElementById('qcrEmpty');
+    const table = document.getElementById('qcrTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.qcReturn);
+    const q = (search || document.getElementById('searchQcr')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d =>
+            (d.sku || '').toLowerCase().includes(q) ||
+            (d.owner || '').toLowerCase().includes(q) ||
+            (d.operator || '').toLowerCase().includes(q) ||
+            (d.fromLoc || '').toLowerCase().includes(q) ||
+            (d.toLoc || '').toLowerCase().includes(q)
+        );
+    }
+
+    updateQcrStats(items);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Qcr', 0, renderQcrTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Qcr', items.length, renderQcrTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => `
+        <tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}" onchange="updateBulkButtons('Qcr')"></td>
+            <td>${start + i + 1}</td>
+            <td>${d.date ? formatDate(d.date) : '-'}</td>
+            <td>${escapeHtml(d.owner || '-')}</td>
+            <td><strong>${escapeHtml(d.sku || '-')}</strong></td>
+            <td>${(parseInt(d.qty) || 0).toLocaleString()}</td>
+            <td>${escapeHtml(d.fromLoc || '-')}</td>
+            <td>${escapeHtml(d.toLoc || '-')}</td>
+            <td>${escapeHtml(d.operator || '-')}</td>
+            <td>
+                <div class="action-cell">
+                    <button class="btn btn--edit" onclick="openQcrModal('${d.id}')" title="Edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn btn--danger" onclick="deleteQcr('${d.id}')" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`
+    ).join('');
+}
+
+function updateQcrStats(items) {
+    const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
+    const skus = new Set(items.map(d => d.sku).filter(Boolean));
+    const owners = new Set(items.map(d => (d.owner || '').toLowerCase()).filter(Boolean));
+
+    animateCounter('statQcrTotal', items.length);
+    animateCounter('statQcrQty', totalQty);
+    animateCounter('statQcrSku', skus.size);
+    animateCounter('statQcrOwner', owners.size);
 }

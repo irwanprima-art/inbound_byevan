@@ -1380,16 +1380,146 @@
                     <h2><i class="fas fa-undo-alt"></i> QC Return</h2>
                     <p>Pencatatan dan tracking barang QC return</p>
                 </div>
-                <div class="chart-card" style="max-width: 500px;">
-                    <div class="chart-card__body" style="text-align: center; padding: 60px 30px;">
-                        <i class="fas fa-hard-hat"
-                            style="font-size: 48px; color: var(--accent-orange); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-heading); margin-bottom: 8px;">Coming Soon</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px;">Halaman QC Return sedang dalam
-                            pengembangan.</p>
+
+                <!-- Stat Cards -->
+                <div class="stats-grid stats-grid--compact">
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statQcrTotal">0</span>
+                            <span class="stat-card__label">Total Record</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statQcrQty">0</span>
+                            <span class="stat-card__label">Total Qty</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statQcrSku">0</span>
+                            <span class="stat-card__label">Unique SKU</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--mini">
+                        <div class="stat-card__info">
+                            <span class="stat-card__value" id="statQcrOwner">0</span>
+                            <span class="stat-card__label">Unique Owner</span>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Toolbar -->
+                <div class="table-toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn--primary" id="btnAddQcr">
+                            <i class="fas fa-plus"></i> <span>Tambah Data</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnExportQcr">
+                            <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnImportQcr">
+                            <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnBulkDeleteQcr" style="display:none">
+                            <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                        </button>
+                        <button class="btn btn--outline" id="btnBulkExportQcr" style="display:none">
+                            <i class="fas fa-file-export"></i> <span>Export (0)</span>
+                        </button>
+                        <button class="btn btn--danger" id="btnClearQcr">
+                            <i class="fas fa-broom"></i> <span>Clear All</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari SKU, owner, operator..." id="searchQcr">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table" id="qcrTable">
+                        <thead>
+                            <tr>
+                                <th class="th-checkbox"><input type="checkbox" id="selectAllQcr"
+                                        onchange="toggleSelectAll('Qcr')"></th>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Owner</th>
+                                <th>SKU</th>
+                                <th>Qty</th>
+                                <th>From Loc</th>
+                                <th>To Loc</th>
+                                <th>Operator</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qcrTableBody"></tbody>
+                    </table>
+                    <div class="table-empty" id="qcrEmpty">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Belum ada data QC Return.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationQcr">
+                    <div class="pagination__info" id="paginationQcrInfo"></div>
+                    <div class="pagination__pages" id="paginationQcrPages"></div>
+                </div>
             </section>
+
+            <!-- Modal QC Return -->
+            <div class="modal-overlay" id="modalQcr">
+                <div class="modal">
+                    <div class="modal__header">
+                        <h3 id="modalQcrTitle">Tambah Data QC Return</h3>
+                        <button class="modal__close" onclick="closeModal('modalQcr')">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <input type="hidden" id="qcrEditId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tanggal <span class="required">*</span></label>
+                                <input type="date" id="qcrDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Owner <span class="required">*</span></label>
+                                <input type="text" id="qcrOwner" placeholder="Masukkan owner">
+                            </div>
+                            <div class="form-group">
+                                <label>SKU <span class="required">*</span></label>
+                                <input type="text" id="qcrSku" placeholder="Masukkan SKU">
+                            </div>
+                            <div class="form-group">
+                                <label>Qty <span class="required">*</span></label>
+                                <input type="number" id="qcrQty" placeholder="0" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>From Loc <span class="required">*</span></label>
+                                <input type="text" id="qcrFromLoc" placeholder="Lokasi asal">
+                            </div>
+                            <div class="form-group">
+                                <label>To Loc <span class="required">*</span></label>
+                                <input type="text" id="qcrToLoc" placeholder="Lokasi tujuan">
+                            </div>
+                            <div class="form-group">
+                                <label>Operator</label>
+                                <input type="text" id="qcrOperator" placeholder="Nama operator">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" onclick="closeModal('modalQcr')">Batal</button>
+                        <button class="btn btn--primary" id="btnSaveQcr">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Modal: Add Arrival -->
             <div class="modal-overlay" id="modalArrival">
