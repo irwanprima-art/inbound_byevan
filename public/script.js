@@ -2722,18 +2722,8 @@ function updateDmgStats(items) {
 // ========================================
 
 function initSohPage() {
-    // Import (Replace) — clears existing data first
+    // Import CSV (append)
     document.getElementById('btnImportSoh')?.addEventListener('click', () => {
-        const existingCount = getData(STORAGE_KEYS.soh).length;
-        const msg = existingCount > 0
-            ? `Ada ${existingCount} data Stock On Hand saat ini.\nImport akan MENGGANTI semua data lama.\nLanjutkan?`
-            : 'Import data Stock On Hand dari CSV?';
-
-        if (existingCount > 0 && !confirm(msg)) return;
-
-        // Clear existing data first, then import
-        setData(STORAGE_KEYS.soh, []);
-
         importFromCSV(
             STORAGE_KEYS.soh,
             ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#'],
@@ -2753,7 +2743,8 @@ function initSohPage() {
                     receiptNo: vals[10]?.trim() || '',
                     mfgDate: vals[11]?.trim() || '',
                     expDate: vals[12]?.trim() || '',
-                    batchNo: vals[13]?.trim() || ''
+                    batchNo: vals[13]?.trim() || '',
+                    updateDate: new Date().toISOString()
                 };
             },
             () => renderSohTable()
@@ -2764,8 +2755,8 @@ function initSohPage() {
     document.getElementById('btnExportSoh')?.addEventListener('click', () => {
         exportToCSV(
             STORAGE_KEYS.soh,
-            ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#'],
-            (d) => [d.location || '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || ''],
+            ['Location', 'SKU', 'SKU Category', 'SKU Brand', 'Zone', 'Location Type', 'Owner', 'Status', 'Qty', 'Warehouse Arrival Date', 'Receipt#', 'Mfg. Date', 'Exp. Date', 'Batch#', 'Update Date'],
+            (d) => [d.location || '', d.sku || '', d.skuCategory || '', d.skuBrand || '', d.zone || '', d.locationType || '', d.owner || '', d.status || '', d.qty, d.whArrivalDate || '', d.receiptNo || '', d.mfgDate || '', d.expDate || '', d.batchNo || '', d.updateDate || ''],
             'stock_on_hand'
         );
     });
@@ -2845,6 +2836,7 @@ function renderSohTable(search = '') {
             <td>${d.mfgDate ? formatDate(d.mfgDate) : '-'}</td>
             <td>${d.expDate ? formatDate(d.expDate) : '-'}</td>
             <td>${escapeHtml(d.batchNo || '-')}</td>
+            <td>${d.updateDate ? formatDate(d.updateDate) : '-'}</td>
         </tr>`
     ).join('');
 }
