@@ -115,6 +115,15 @@
         </nav>
 
         <div class="sidebar-footer">
+            <div style="display:flex; gap:6px; padding:0 16px 8px;">
+                <button class="btn btn--outline" id="btnBackupAll" style="flex:1; font-size:12px; padding:6px 8px;">
+                    <i class="fas fa-download"></i> Backup
+                </button>
+                <button class="btn btn--outline" id="btnRestoreAll" style="flex:1; font-size:12px; padding:6px 8px;">
+                    <i class="fas fa-upload"></i> Restore
+                </button>
+                <input type="file" id="restoreFileInput" accept=".json" style="display:none;">
+            </div>
             <div class="sidebar-info">
                 <i class="fas fa-clock"></i>
                 <span id="currentTime">--:--:--</span>

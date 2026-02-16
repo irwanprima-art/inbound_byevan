@@ -3581,3 +3581,64 @@ function updateLocStats(items, sohByLoc) {
     animateCounter('statLocEmpty', empty);
     animateCounter('statLocZone', zones.size);
 }
+
+// ========================================
+// Backup & Restore (all data)
+// ========================================
+
+document.getElementById('btnBackupAll')?.addEventListener('click', async () => {
+    try {
+        const backup = { _meta: { version: 1, date: new Date().toISOString() } };
+        // Collect all data from all storage keys
+        for (const [name, key] of Object.entries(STORAGE_KEYS)) {
+            backup[key] = getData(key);
+        }
+        const json = JSON.stringify(backup);
+        const blob = new Blob([json], { type: 'application/json' });
+        const a = document.createElement('a');
+        const d = new Date();
+        const ts = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `inbound_backup_${ts}.json`;
+        a.click();
+        showToast('Backup berhasil didownload!', 'success');
+    } catch (e) {
+        alert('Gagal membuat backup: ' + e.message);
+    }
+});
+
+document.getElementById('btnRestoreAll')?.addEventListener('click', () => {
+    document.getElementById('restoreFileInput')?.click();
+});
+
+document.getElementById('restoreFileInput')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!confirm('Restore akan MENGGANTI semua data yang ada. Lanjutkan?')) {
+        e.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        try {
+            const backup = JSON.parse(ev.target.result);
+            for (const [name, key] of Object.entries(STORAGE_KEYS)) {
+                if (backup[key] !== undefined) {
+                    if (IDB_KEYS.has(key)) {
+                        // Write to IndexedDB + update cache
+                        _idbCache[key] = backup[key];
+                        await setDataIDB(key, backup[key]);
+                    } else {
+                        localStorage.setItem(key, JSON.stringify(backup[key]));
+                    }
+                }
+            }
+            showToast('Restore berhasil! Halaman akan di-reload.', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } catch (err) {
+            alert('Gagal restore: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
