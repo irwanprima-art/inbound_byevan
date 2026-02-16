@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDccPage();
     initDashboardTabs();
     initInvFilter();
+    initInboundFilter();
     updateDashboardStats();
 });
 
@@ -194,9 +195,64 @@ function initMenuCards() {
     });
 }
 
+// --- Inbound Dashboard Filter ---
+function initInboundFilter() {
+    const typeEl = document.getElementById('inbFilterType');
+    const dailyGroup = document.getElementById('inbFilterDailyGroup');
+    const monthlyGroup = document.getElementById('inbFilterMonthlyGroup');
+    const dateEl = document.getElementById('inbFilterDate');
+    const monthEl = document.getElementById('inbFilterMonth');
+
+    if (!typeEl) return;
+
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+    if (monthEl) monthEl.value = `${yyyy}-${mm}`;
+
+    typeEl.addEventListener('change', () => {
+        const val = typeEl.value;
+        if (dailyGroup) dailyGroup.style.display = val === 'daily' ? '' : 'none';
+        if (monthlyGroup) monthlyGroup.style.display = val === 'monthly' ? '' : 'none';
+        updateDashboardStats();
+    });
+
+    dateEl?.addEventListener('change', () => updateDashboardStats());
+    monthEl?.addEventListener('change', () => updateDashboardStats());
+}
+
+function normalizeDate(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return null;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function filterByInboundDate(items) {
+    const filterType = document.getElementById('inbFilterType')?.value || 'all';
+    if (filterType === 'all') return items;
+
+    if (filterType === 'daily') {
+        const filterDate = document.getElementById('inbFilterDate')?.value || '';
+        if (!filterDate) return items;
+        return items.filter(d => normalizeDate(d.date) === filterDate);
+    }
+    if (filterType === 'monthly') {
+        const filterMonth = document.getElementById('inbFilterMonth')?.value || '';
+        if (!filterMonth) return items;
+        return items.filter(d => {
+            const norm = normalizeDate(d.date);
+            return norm && norm.startsWith(filterMonth);
+        });
+    }
+    return items;
+}
+
 // --- Dashboard Stats (Report) ---
 function updateDashboardStats() {
-    const arrivals = getData(STORAGE_KEYS.arrivals);
+    // Filter arrivals by date, but transactions are NOT date-filtered (H+1 scenario)
+    const arrivals = filterByInboundDate(getData(STORAGE_KEYS.arrivals));
 
     let poReceived = 0;
     let poPending = 0;
@@ -355,24 +411,13 @@ function updateInventoryDashboard() {
     const filterType = document.getElementById('invFilterType')?.value || 'all';
     if (filterType === 'daily') {
         const filterDate = document.getElementById('invFilterDate')?.value || '';
-        if (filterDate) {
-            items = items.filter(d => {
-                const parsed = new Date(d.date);
-                if (isNaN(parsed)) return false;
-                const norm = parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0') + '-' + String(parsed.getDate()).padStart(2, '0');
-                return norm === filterDate;
-            });
-        }
+        if (filterDate) items = items.filter(d => normalizeDate(d.date) === filterDate);
     } else if (filterType === 'monthly') {
         const filterMonth = document.getElementById('invFilterMonth')?.value || '';
-        if (filterMonth) {
-            items = items.filter(d => {
-                const parsed = new Date(d.date);
-                if (isNaN(parsed)) return false;
-                const norm = parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0');
-                return norm === filterMonth;
-            });
-        }
+        if (filterMonth) items = items.filter(d => {
+            const norm = normalizeDate(d.date);
+            return norm && norm.startsWith(filterMonth);
+        });
     }
 
     const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
@@ -461,7 +506,7 @@ function renderPendingTable() {
     const table = document.getElementById('pendingTable');
     if (!tbody) return;
 
-    const arrivals = getData(STORAGE_KEYS.arrivals);
+    const arrivals = filterByInboundDate(getData(STORAGE_KEYS.arrivals));
     const pendingList = [];
 
     arrivals.forEach(a => {
@@ -508,7 +553,7 @@ function renderVasSummary() {
     const emptyEl = document.getElementById('vasSummaryEmpty');
     if (!listEl) return;
 
-    const vasList = getData(STORAGE_KEYS.vas);
+    const vasList = filterByInboundDate(getData(STORAGE_KEYS.vas));
 
     // Parse duration string "HH:MM:SS" to seconds
     function parseDurationToSec(dur) {
@@ -1778,7 +1823,7 @@ function calcAvgLeadTime() {
     const el = document.getElementById('statAvgLeadTime');
     if (!el) return;
 
-    const arrivals = getData(STORAGE_KEYS.arrivals);
+    const arrivals = filterByInboundDate(getData(STORAGE_KEYS.arrivals));
     const transactions = getData(STORAGE_KEYS.transactions);
 
     // Build lookup: receiptNo -> latest putaway time

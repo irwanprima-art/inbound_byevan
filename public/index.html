@@ -156,6 +156,28 @@
                 <div class="dashboard-panel active" id="dashboardInbound">
                     <div class="report-section">
                         <h3 class="section-title"><i class="fas fa-chart-bar"></i> Inbound Report</h3>
+                    </div>
+
+                    <div class="inv-filter-bar">
+                        <div class="inv-filter-group">
+                            <label>Filter:</label>
+                            <select id="inbFilterType" class="inv-filter-select">
+                                <option value="all">All Data</option>
+                                <option value="daily">Per Hari</option>
+                                <option value="monthly">Per Bulan</option>
+                            </select>
+                        </div>
+                        <div class="inv-filter-group" id="inbFilterDailyGroup" style="display:none">
+                            <label>Tanggal:</label>
+                            <input type="date" id="inbFilterDate" class="inv-filter-input">
+                        </div>
+                        <div class="inv-filter-group" id="inbFilterMonthlyGroup" style="display:none">
+                            <label>Bulan:</label>
+                            <input type="month" id="inbFilterMonth" class="inv-filter-input">
+                        </div>
+                    </div>
+
+                    <div class="report-section">
                         <div class="stats-grid stats-grid--report">
                             <div class="stat-card stat-card--gradient-green">
                                 <div class="stat-card__icon">
