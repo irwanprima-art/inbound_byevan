@@ -63,7 +63,6 @@
 html {
     font-size: 16px;
     height: 100%;
-    overflow: hidden;
 }
 
 body {
@@ -568,6 +567,12 @@ body {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+}
+
+/* Dashboard page needs to scroll its content freely */
+.page.active#page-dashboard {
+    display: block;
+    overflow-y: auto;
 }
 
 @keyframes pageIn {
