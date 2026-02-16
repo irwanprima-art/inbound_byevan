@@ -878,11 +878,11 @@ function importFromCSV(storageKey, expectedHeaders, rowParser, onComplete) {
                 // Build index map: for each expected header, find its position in the CSV
                 const colMap = [];
                 expectedLower.forEach((eh, idx) => {
-                    const csvIdx = csvHeaders.findIndex(ch =>
-                        ch === eh ||
-                        ch.replace(/[_\-]/g, ' ') === eh.replace(/[_\-]/g, ' ') ||
-                        ch.includes(eh) || eh.includes(ch)
-                    );
+                    const normalizedEh = eh.replace(/[_\-#]/g, ' ').trim();
+                    const csvIdx = csvHeaders.findIndex(ch => {
+                        const normalizedCh = ch.replace(/[_\-#]/g, ' ').trim();
+                        return ch === eh || normalizedCh === normalizedEh;
+                    });
                     colMap.push(csvIdx);
                 });
 
