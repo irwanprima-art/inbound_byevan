@@ -2990,7 +2990,7 @@ function calcLeadTime(qcDate, returnDate) {
     const d1 = new Date(qcDate);
     const d2 = new Date(returnDate);
     if (isNaN(d1) || isNaN(d2)) return '-';
-    const diffMs = d2 - d1;
+    const diffMs = d1 - d2;
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
     return diffDays + ' hari';
 }
