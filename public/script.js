@@ -668,8 +668,141 @@ function updateInventoryDashboard() {
 
     // ===== 5. QC RETURN REPORT =====
     renderQcrDashboard();
+
+    // ===== 6. % COUNTING TABLE =====
+    renderCountingTable(items);
 }
 
+// --- % Counting Table on Dashboard ---
+function renderCountingTable(dccItems) {
+    const tbody = document.getElementById('countingTableBody');
+    if (!tbody) return;
+
+    const locations = getData(STORAGE_KEYS.locations);
+    if (!dccItems) dccItems = getData(STORAGE_KEYS.dcc);
+
+    // Only include Storage Area and Picking Area
+    const allowedTypes = ['storage area', 'picking area'];
+
+    // Group locations by (locationType, zone)
+    const locGroups = {};
+    locations.forEach(l => {
+        const type = (l.locationType || '').trim();
+        const typeKey = type.toLowerCase();
+        if (!allowedTypes.includes(typeKey)) return;
+        const zone = (l.zone || '').trim() || '-';
+        const key = type + '||' + zone;
+        if (!locGroups[key]) locGroups[key] = { type, zone, locations: new Set() };
+        const locName = (l.location || '').trim().toLowerCase();
+        if (locName) locGroups[key].locations.add(locName);
+    });
+
+    // Build DCC map: group by location (lowercase) to check counted + accuracy
+    const dccLocMap = {};
+    dccItems.forEach(d => {
+        const loc = (d.location || '').trim().toLowerCase();
+        if (!loc) return;
+        if (!dccLocMap[loc]) dccLocMap[loc] = { sys: 0, phy: 0 };
+        dccLocMap[loc].sys += parseInt(d.sysQty) || 0;
+        dccLocMap[loc].phy += parseInt(d.phyQty) || 0;
+    });
+    const dccLocSet = new Set(Object.keys(dccLocMap));
+
+    // Build sorted rows
+    const rows = Object.values(locGroups).sort((a, b) => {
+        const typeOrder = a.type.toLowerCase() < b.type.toLowerCase() ? -1 : 1;
+        if (a.type.toLowerCase() !== b.type.toLowerCase()) return typeOrder;
+        return a.zone.localeCompare(b.zone);
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Belum ada data Master Location</td></tr>';
+        return;
+    }
+
+    let html = '';
+    let currentType = '';
+    let subTotalLoc = 0, subDone = 0, subMatch = 0;
+    let grandTotalLoc = 0, grandDone = 0, grandMatch = 0;
+
+    rows.forEach((row, idx) => {
+        // Subtotal row when type changes
+        if (currentType && currentType !== row.type) {
+            const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(1) : '0.0';
+            const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(1) : '0.0';
+            html += `<tr style="background:rgba(99,102,241,0.08);font-weight:600;">
+                <td colspan="2">Subtotal ${escapeHtml(currentType)}</td>
+                <td>${subTotalLoc.toLocaleString()}</td>
+                <td>${subDone.toLocaleString()}</td>
+                <td>${subPct}%</td>
+                <td>${subAcc}%</td>
+            </tr>`;
+            subTotalLoc = 0; subDone = 0; subMatch = 0;
+        }
+        currentType = row.type;
+
+        const totalLoc = row.locations.size;
+        let doneCounting = 0;
+        let accurateCount = 0;
+
+        row.locations.forEach(loc => {
+            if (dccLocSet.has(loc)) {
+                doneCounting++;
+                // Accuracy: location is accurate if sys == phy
+                const d = dccLocMap[loc];
+                if (d && d.sys === d.phy) accurateCount++;
+            }
+        });
+
+        const pctCounting = totalLoc > 0 ? ((doneCounting / totalLoc) * 100).toFixed(1) : '0.0';
+        const accCounting = doneCounting > 0 ? ((accurateCount / doneCounting) * 100).toFixed(1) : '0.0';
+
+        subTotalLoc += totalLoc;
+        subDone += doneCounting;
+        subMatch += accurateCount;
+        grandTotalLoc += totalLoc;
+        grandDone += doneCounting;
+        grandMatch += accurateCount;
+
+        const pctColor = parseFloat(pctCounting) >= 80 ? 'badge--receive' : parseFloat(pctCounting) >= 50 ? 'badge--break' : 'badge--discrepancy';
+        const accColor = parseFloat(accCounting) >= 90 ? 'badge--receive' : parseFloat(accCounting) >= 70 ? 'badge--break' : 'badge--discrepancy';
+
+        html += `<tr>
+            <td>${escapeHtml(row.type)}</td>
+            <td>${escapeHtml(row.zone)}</td>
+            <td>${totalLoc.toLocaleString()}</td>
+            <td>${doneCounting.toLocaleString()}</td>
+            <td><span class="badge ${pctColor}">${pctCounting}%</span></td>
+            <td><span class="badge ${accColor}">${accCounting}%</span></td>
+        </tr>`;
+    });
+
+    // Final subtotal
+    if (currentType) {
+        const subPct = subTotalLoc > 0 ? ((subDone / subTotalLoc) * 100).toFixed(1) : '0.0';
+        const subAcc = subDone > 0 ? ((subMatch / subDone) * 100).toFixed(1) : '0.0';
+        html += `<tr style="background:rgba(99,102,241,0.08);font-weight:600;">
+            <td colspan="2">Subtotal ${escapeHtml(currentType)}</td>
+            <td>${subTotalLoc.toLocaleString()}</td>
+            <td>${subDone.toLocaleString()}</td>
+            <td>${subPct}%</td>
+            <td>${subAcc}%</td>
+        </tr>`;
+    }
+
+    // Grand total
+    const grandPct = grandTotalLoc > 0 ? ((grandDone / grandTotalLoc) * 100).toFixed(1) : '0.0';
+    const grandAcc = grandDone > 0 ? ((grandMatch / grandDone) * 100).toFixed(1) : '0.0';
+    html += `<tr style="background:rgba(52,211,153,0.1);font-weight:700;">
+        <td colspan="2">Grand Total</td>
+        <td>${grandTotalLoc.toLocaleString()}</td>
+        <td>${grandDone.toLocaleString()}</td>
+        <td>${grandPct}%</td>
+        <td>${grandAcc}%</td>
+    </tr>`;
+
+    tbody.innerHTML = html;
+}
 // --- Project Damage Dashboard Report ---
 function renderDmgDashboard() {
     const items = getData(STORAGE_KEYS.damage);
