@@ -193,16 +193,51 @@ function initNavigation() {
     });
 }
 
+const PAGE_NAMES = {
+    'dashboard': 'Dashboard',
+    'inbound-arrival': 'Inbound Arrival',
+    'inbound-transaction': 'Inbound Transaction',
+    'vas': 'VAS',
+    'daily-cycle-count': 'Daily Cycle Count',
+    'project-damage': 'Project Damage',
+    'stock-on-hand': 'Stock On Hand',
+    'qc-return': 'QC Return',
+    'master-location': 'Master Location'
+};
+
+const PAGE_ICONS = {
+    'dashboard': 'fas fa-home',
+    'inbound-arrival': 'fas fa-truck-loading',
+    'inbound-transaction': 'fas fa-exchange-alt',
+    'vas': 'fas fa-cogs',
+    'daily-cycle-count': 'fas fa-clipboard-check',
+    'project-damage': 'fas fa-exclamation-triangle',
+    'stock-on-hand': 'fas fa-warehouse',
+    'qc-return': 'fas fa-undo-alt',
+    'master-location': 'fas fa-map-marker-alt'
+};
+
+let openTabs = ['dashboard']; // track open tab IDs
+let activeTab = 'dashboard';
+
 function navigateTo(pageId) {
+    // Add tab if not already open
+    if (!openTabs.includes(pageId)) {
+        openTabs.push(pageId);
+    }
+    activeTab = pageId;
+    renderTabBar();
+
+    // Show the active page
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(`page-${pageId}`);
     if (target) target.classList.add('active');
 
+    // Highlight sidebar
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     const nav = document.querySelector(`.nav-link[data-page="${pageId}"]`);
     if (nav) nav.classList.add('active');
 
-    // Highlight active parent group & auto-expand it
     document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('active-group'));
     if (nav) {
         const parentGroup = nav.closest('.nav-group');
@@ -212,21 +247,11 @@ function navigateTo(pageId) {
         }
     }
 
+    // Update breadcrumb
     const breadcrumb = document.getElementById('breadcrumbPage');
-    if (breadcrumb) {
-        const names = {
-            'dashboard': 'Dashboard',
-            'inbound-arrival': 'Inbound Arrival',
-            'inbound-transaction': 'Inbound Transaction',
-            'vas': 'VAS',
-            'daily-cycle-count': 'Daily Cycle Count',
-            'project-damage': 'Project Damage',
-            'stock-on-hand': 'Stock On Hand',
-            'qc-return': 'QC Return'
-        };
-        breadcrumb.textContent = names[pageId] || pageId;
-    }
+    if (breadcrumb) breadcrumb.textContent = PAGE_NAMES[pageId] || pageId;
 
+    // Render page data
     if (pageId === 'inbound-arrival') renderArrivalTable();
     if (pageId === 'inbound-transaction') renderTransactionTable();
     if (pageId === 'vas') renderVasTable();
@@ -235,10 +260,57 @@ function navigateTo(pageId) {
     if (pageId === 'stock-on-hand') renderSohTable();
     if (pageId === 'qc-return') renderQcrTable();
     if (pageId === 'dashboard') updateDashboardStats();
+    if (pageId === 'master-location') renderLocationTable();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
     document.getElementById('sidebarOverlay')?.classList.remove('show');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderTabBar() {
+    const container = document.getElementById('tabBarTabs');
+    if (!container) return;
+    container.innerHTML = openTabs.map(id => {
+        const name = PAGE_NAMES[id] || id;
+        const icon = PAGE_ICONS[id] || 'fas fa-file';
+        const isActive = id === activeTab;
+        const closable = id !== 'dashboard';
+        return `<div class="tab-item ${isActive ? 'active' : ''}" data-tab="${id}">
+            <i class="${icon}"></i>
+            <span>${name}</span>
+            ${closable ? `<span class="tab-close" data-tab-close="${id}">&times;</span>` : ''}
+        </div>`;
+    }).join('');
+
+    // Tab click handlers
+    container.querySelectorAll('.tab-item').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            if (e.target.closest('.tab-close')) return;
+            navigateTo(tab.getAttribute('data-tab'));
+        });
+    });
+
+    // Close button handlers
+    container.querySelectorAll('.tab-close').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeTab(btn.getAttribute('data-tab-close'));
+        });
+    });
+}
+
+function closeTab(tabId) {
+    if (tabId === 'dashboard') return; // Can't close dashboard
+    const idx = openTabs.indexOf(tabId);
+    if (idx === -1) return;
+    openTabs.splice(idx, 1);
+    // If closing the active tab, switch to previous tab or dashboard
+    if (activeTab === tabId) {
+        const newActive = openTabs[Math.max(0, idx - 1)] || 'dashboard';
+        navigateTo(newActive);
+    } else {
+        renderTabBar();
+    }
 }
 
 // --- Sidebar Toggle ---
