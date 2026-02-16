@@ -2722,3 +2722,109 @@ body {
     color: #6ee7b7;
     font-variant-numeric: tabular-nums;
 }
+
+/* ===== DONUT CHART ===== */
+.donut-chart-container {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 8px 0;
+}
+
+.donut-chart {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    min-width: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent-green) 0% 100%, var(--accent-red) 100% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+    transition: background 0.5s ease;
+}
+
+.donut-chart::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--card-bg);
+}
+
+.donut-chart__center {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.donut-chart__pct {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent-green);
+    font-variant-numeric: tabular-nums;
+}
+
+.donut-chart__label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.donut-chart__legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.donut-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.donut-legend-row:last-child {
+    border-bottom: none;
+}
+
+.donut-legend-dot {
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    border-radius: 50%;
+}
+
+.donut-legend-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.donut-legend-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+    .donut-chart-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .donut-chart__legend {
+        width: 100%;
+    }
+}

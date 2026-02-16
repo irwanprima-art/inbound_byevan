@@ -601,11 +601,26 @@ function renderQcrDashboard() {
     const damageCount = items.filter(d => (d.status || '').toLowerCase() === 'damage').length;
     const goodCount = items.filter(d => (d.status || 'Good').toLowerCase() === 'good').length;
     const goodRate = total > 0 ? ((goodCount / total) * 100).toFixed(2) : '0.00';
+    const goodPct = total > 0 ? (goodCount / total) * 100 : 100;
 
     setText('rptQcrTotal', total.toLocaleString());
     setText('rptQcrDamage', damageCount.toLocaleString());
     setText('rptQcrGood', goodCount.toLocaleString());
     setText('rptQcrGoodPct', goodRate + '%');
+
+    // Update donut chart conic-gradient
+    const donut = document.getElementById('qcrDonutChart');
+    if (donut) {
+        donut.style.background = `conic-gradient(var(--accent-green) 0% ${goodPct}%, var(--accent-red) ${goodPct}% 100%)`;
+        // Update glow color based on Good Rate
+        if (goodPct >= 80) {
+            donut.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.3)';
+        } else if (goodPct >= 50) {
+            donut.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.3)';
+        } else {
+            donut.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.3)';
+        }
+    }
 }
 
 function renderPendingTable() {

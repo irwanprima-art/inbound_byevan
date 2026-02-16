@@ -640,23 +640,33 @@
                                 <h3><i class="fas fa-clipboard-check"></i> Status Breakdown</h3>
                             </div>
                             <div class="chart-card__body">
-                                <div class="accuracy-list">
-                                    <div class="accuracy-row">
-                                        <span class="accuracy-label">Total QC Return</span>
-                                        <span class="accuracy-value" id="rptQcrTotal">0</span>
+                                <div class="donut-chart-container">
+                                    <div class="donut-chart" id="qcrDonutChart">
+                                        <div class="donut-chart__center">
+                                            <span class="donut-chart__pct" id="rptQcrGoodPct">0%</span>
+                                            <span class="donut-chart__label">Good</span>
+                                        </div>
                                     </div>
-                                    <div class="accuracy-row accuracy-row--shortage">
-                                        <span class="accuracy-label">Damage</span>
-                                        <span class="accuracy-value" id="rptQcrDamage">0</span>
+                                    <div class="donut-chart__legend">
+                                        <div class="donut-legend-row">
+                                            <span class="donut-legend-dot"
+                                                style="background: var(--accent-green);"></span>
+                                            <span class="donut-legend-label">Good</span>
+                                            <span class="donut-legend-value" id="rptQcrGood">0</span>
+                                        </div>
+                                        <div class="donut-legend-row">
+                                            <span class="donut-legend-dot"
+                                                style="background: var(--accent-red);"></span>
+                                            <span class="donut-legend-label">Damage</span>
+                                            <span class="donut-legend-value" id="rptQcrDamage">0</span>
+                                        </div>
+                                        <div class="donut-legend-row">
+                                            <span class="donut-legend-dot"
+                                                style="background: var(--accent-blue);"></span>
+                                            <span class="donut-legend-label">Total QC Return</span>
+                                            <span class="donut-legend-value" id="rptQcrTotal">0</span>
+                                        </div>
                                     </div>
-                                    <div class="accuracy-row accuracy-row--match">
-                                        <span class="accuracy-label">Good</span>
-                                        <span class="accuracy-value" id="rptQcrGood">0</span>
-                                    </div>
-                                </div>
-                                <div class="accuracy-result">
-                                    <span class="accuracy-result__label">Good Rate</span>
-                                    <span class="accuracy-result__value" id="rptQcrGoodPct">0%</span>
                                 </div>
                             </div>
                         </div>
