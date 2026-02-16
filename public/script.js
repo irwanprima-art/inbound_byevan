@@ -355,10 +355,24 @@ function updateInventoryDashboard() {
     const filterType = document.getElementById('invFilterType')?.value || 'all';
     if (filterType === 'daily') {
         const filterDate = document.getElementById('invFilterDate')?.value || '';
-        if (filterDate) items = items.filter(d => (d.date || '') === filterDate);
+        if (filterDate) {
+            items = items.filter(d => {
+                const parsed = new Date(d.date);
+                if (isNaN(parsed)) return false;
+                const norm = parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0') + '-' + String(parsed.getDate()).padStart(2, '0');
+                return norm === filterDate;
+            });
+        }
     } else if (filterType === 'monthly') {
         const filterMonth = document.getElementById('invFilterMonth')?.value || '';
-        if (filterMonth) items = items.filter(d => (d.date || '').startsWith(filterMonth));
+        if (filterMonth) {
+            items = items.filter(d => {
+                const parsed = new Date(d.date);
+                if (isNaN(parsed)) return false;
+                const norm = parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0');
+                return norm === filterMonth;
+            });
+        }
     }
 
     const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
