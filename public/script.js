@@ -100,6 +100,49 @@ function showClockInPopup(empName, note) {
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
 }
 
+// Special centered popup for Clock Out success
+function showClockOutPopup(empName) {
+    const existing = document.getElementById('clockOutPopup');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'clockOutPopup';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 99999;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        background: linear-gradient(145deg, #0f172a, #1e293b);
+        border: 1px solid rgba(234,179,8,0.3); border-radius: 20px;
+        padding: 40px 48px; max-width: 500px; width: 90%; text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(234,179,8,0.15);
+        animation: scaleIn 0.4s cubic-bezier(0.22,1,0.36,1);
+        font-family: 'Inter', sans-serif;
+    `;
+
+    card.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 16px;">🙏</div>
+        <div style="font-size: 22px; font-weight: 700; color: #fbbf24; margin-bottom: 12px;">Clock Out Berhasil!</div>
+        <div style="font-size: 16px; color: #e2e8f0; line-height: 1.6;">Terima kasih atas kinerjanya, ${empName}!<br>Selamat istirahat 😊</div>
+        <button onclick="document.getElementById('clockOutPopup')?.remove()" style="
+            margin-top: 24px; padding: 10px 32px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 16px rgba(234,179,8,0.4)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">OK</button>
+    `;
+
+    overlay.appendChild(card);
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
+}
+
 // ========================================
 // AUTH MODULE — Login, Logout, Role Access
 // ========================================
@@ -5540,7 +5583,7 @@ function initClockPage() {
         setData(STORAGE_KEYS.attendance, data);
 
         showClockStatus(`✅ Clock Out berhasil! ${emp.name} — ${clockOut}`, 'success');
-        showToast(`Terima kasih atas kinerjanya, ${emp.name}! Selamat istirahat 🙏`, 'success');
+        showClockOutPopup(emp.name);
 
         // Reset form
         document.getElementById('clockNik').value = '';
