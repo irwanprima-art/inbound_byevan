@@ -383,6 +383,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
 }
 
 .sidebar.collapsed~.main-content {
@@ -553,6 +555,7 @@ body {
     flex-direction: column;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Page Sections */
@@ -565,6 +568,7 @@ body {
     display: block;
     flex: 1;
     min-height: 0;
+    min-width: 0;
 }
 
 @keyframes pageIn {
