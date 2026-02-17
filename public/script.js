@@ -5296,7 +5296,7 @@ function initClockPage() {
         const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
         if (emp) {
             if (nameDisplay) {
-                nameDisplay.textContent = `${emp.name} (${emp.status})`;
+                nameDisplay.textContent = emp.name;
                 nameDisplay.className = 'clock-info-display found';
             }
         } else {
