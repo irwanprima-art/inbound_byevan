@@ -16,14 +16,14 @@ const ROLE_ACCESS = {
     supervisor: { pages: 'all', dashTabs: 'all' },
     leader: { pages: 'all', dashTabs: 'all' },
     admin_inbound: {
-        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas'],
+        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas', 'attendance', 'productivity'],
         dashTabs: ['inbound'],
-        navGroups: ['inbound']
+        navGroups: ['inbound', 'manpower']
     },
     admin_inventory: {
-        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location'],
+        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'attendance', 'productivity'],
         dashTabs: ['inventory'],
-        navGroups: ['inventory']
+        navGroups: ['inventory', 'manpower']
     }
 };
 
@@ -140,10 +140,26 @@ function applyRoleAccess(role) {
         if (el) el.style.display = deleteDisplay;
     });
 
+    // Attendance: only supervisor can delete
+    const attDeleteAllowed = role === 'supervisor';
+    const btnClearAtt = document.getElementById('btnClearAtt');
+    if (btnClearAtt) btnClearAtt.style.display = attDeleteAllowed ? '' : 'none';
+
+    // Attendance: only supervisor/leader can edit (add/import)
+    const attEditAllowed = ['supervisor', 'leader'].includes(role);
+    ['btnAddAtt', 'btnImportAtt'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = attEditAllowed ? '' : 'none';
+    });
+
+    // Add body class for CSS-based hiding of edit/delete in attendance rows
+    document.body.classList.toggle('role-no-edit-att', !attEditAllowed);
+    document.body.classList.toggle('role-no-delete-att', !attDeleteAllowed);
+
     // Bulk Delete buttons (hidden by default, but ensure they stay hidden)
     if (!deleteAllowed) {
         ['btnBulkDeleteArrival', 'btnBulkDeleteTransaction', 'btnBulkDeleteVas',
-            'btnBulkDeleteDcc', 'btnBulkDeleteDmg', 'btnBulkDeleteQcr', 'btnBulkDeleteLoc'].forEach(id => {
+            'btnBulkDeleteDcc', 'btnBulkDeleteDmg', 'btnBulkDeleteQcr', 'btnBulkDeleteLoc', 'btnBulkDeleteAtt'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
@@ -246,7 +262,8 @@ const STORAGE_KEYS = {
     damage: 'inbound_damage',
     soh: 'inbound_soh',
     qcReturn: 'inbound_qc_return',
-    locations: 'master_locations'
+    locations: 'master_locations',
+    attendance: 'manpower_attendance'
 };
 
 // Keys that use IndexedDB (large datasets)
@@ -367,6 +384,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSohPage();
     initQcrPage();
     initLocPage();
+    initAttendancePage();
+    initProductivityPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -444,7 +463,9 @@ const PAGE_NAMES = {
     'project-damage': 'Project Damage',
     'stock-on-hand': 'Stock On Hand',
     'qc-return': 'QC Return',
-    'master-location': 'Master Location'
+    'master-location': 'Master Location',
+    'attendance': 'Attendance',
+    'productivity': 'Productivity'
 };
 
 const PAGE_ICONS = {
@@ -456,7 +477,9 @@ const PAGE_ICONS = {
     'project-damage': 'fas fa-exclamation-triangle',
     'stock-on-hand': 'fas fa-warehouse',
     'qc-return': 'fas fa-undo-alt',
-    'master-location': 'fas fa-map-marker-alt'
+    'master-location': 'fas fa-map-marker-alt',
+    'attendance': 'fas fa-user-clock',
+    'productivity': 'fas fa-chart-line'
 };
 
 let openTabs = ['dashboard']; // track open tab IDs
@@ -522,6 +545,8 @@ function navigateTo(pageId) {
     if (pageId === 'qc-return') renderQcrTable();
     if (pageId === 'dashboard') updateDashboardStats();
     if (pageId === 'master-location') renderLocationTable();
+    if (pageId === 'attendance') renderAttendanceTable();
+    if (pageId === 'productivity') renderProductivityTable();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
     document.getElementById('sidebarOverlay')?.classList.remove('show');
@@ -2727,7 +2752,9 @@ const pageState = {
     Dmg: { current: 1, perPage: 50 },
     Soh: { current: 1, perPage: 50 },
     Qcr: { current: 1, perPage: 50 },
-    Loc: { current: 1, perPage: 50 }
+    Loc: { current: 1, perPage: 50 },
+    Att: { current: 1, perPage: 50 },
+    Prod: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -4292,3 +4319,479 @@ document.getElementById('restoreFileInput')?.addEventListener('change', async (e
     reader.readAsText(file);
     e.target.value = '';
 });
+
+// ======================= ATTENDANCE PAGE =======================
+
+// Manpower role helpers
+function canEditAttendance() {
+    const session = getSession();
+    if (!session) return false;
+    return ['supervisor', 'leader'].includes(session.role);
+}
+function canDeleteAttendance() {
+    const session = getSession();
+    if (!session) return false;
+    return session.role === 'supervisor';
+}
+
+// Time calculation helpers
+function calcShift(clockIn) {
+    if (!clockIn) return '-';
+    const [h] = clockIn.split(':').map(Number);
+    return h < 12 ? 'Shift 1' : 'Shift 2';
+}
+
+function calcTotalJam(clockIn, clockOut) {
+    if (!clockIn || !clockOut) return '00:00';
+    const [ih, im] = clockIn.split(':').map(Number);
+    const [oh, om] = clockOut.split(':').map(Number);
+    let diffMin = (oh * 60 + om) - (ih * 60 + im);
+    if (diffMin < 0) diffMin += 24 * 60; // overnight
+    const hh = Math.floor(diffMin / 60);
+    const mm = diffMin % 60;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function calcOvertime(totalJam) {
+    if (!totalJam || totalJam === '00:00') return '00:00';
+    const [hh, mm] = totalJam.split(':').map(Number);
+    const totalMin = hh * 60 + mm;
+    const threshold = 9 * 60 + 30; // 09:30
+    const normalMin = 9 * 60; // 09:00
+    if (totalMin >= threshold) {
+        const otMin = totalMin - normalMin;
+        return `${String(Math.floor(otMin / 60)).padStart(2, '0')}:${String(otMin % 60).padStart(2, '0')}`;
+    }
+    return '00:00';
+}
+
+function initAttendancePage() {
+    // Add button
+    document.getElementById('btnAddAtt')?.addEventListener('click', () => {
+        if (!canEditAttendance()) { showToast('Anda tidak memiliki akses untuk menambah data', 'error'); return; }
+        openAttModal();
+    });
+
+    // Close modal
+    document.getElementById('closeModalAtt')?.addEventListener('click', () => closeModal('modalAtt'));
+    document.getElementById('cancelAtt')?.addEventListener('click', () => closeModal('modalAtt'));
+
+    // Save
+    document.getElementById('formAtt')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!canEditAttendance()) { showToast('Anda tidak memiliki akses untuk menyimpan data', 'error'); return; }
+
+        const editId = document.getElementById('attEditId')?.value;
+        const nik = document.getElementById('attNik')?.value?.trim();
+        const name = document.getElementById('attName')?.value?.trim();
+        const status = document.getElementById('attStatus')?.value;
+        const jobdesc = document.getElementById('attJobdesc')?.value?.trim();
+        const divisi = document.getElementById('attDivisi')?.value;
+        const date = document.getElementById('attDate')?.value;
+        const clockIn = document.getElementById('attClockIn')?.value;
+        const clockOut = document.getElementById('attClockOut')?.value;
+
+        if (!nik || !name || !date || !clockIn || !clockOut) {
+            showToast('Harap isi semua field wajib (*)', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.attendance);
+        const record = { nik, name, status, jobdesc, divisi, date, clockIn, clockOut };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) {
+                record.id = editId;
+                record.createdAt = data[idx].createdAt;
+                data[idx] = record;
+            }
+        } else {
+            record.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            record.createdAt = new Date().toISOString();
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.attendance, data);
+        closeModal('modalAtt');
+        renderAttendanceTable();
+        showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
+    });
+
+    // Export
+    document.getElementById('btnExportAtt')?.addEventListener('click', () => {
+        const headers = ['NIK', 'Nama Karyawan', 'Status', 'Jobdesc', 'Divisi', 'Tanggal', 'Clock In', 'Clock Out', 'Shift', 'Total Jam Kerja', 'Overtime'];
+        const mapper = (d) => {
+            const totalJam = calcTotalJam(d.clockIn, d.clockOut);
+            return [d.nik || '', d.name || '', d.status || '', d.jobdesc || '', d.divisi || '', d.date || '', d.clockIn || '', d.clockOut || '', calcShift(d.clockIn), totalJam, calcOvertime(totalJam)];
+        };
+        exportToCSV(STORAGE_KEYS.attendance, `attendance_${new Date().toISOString().slice(0, 10)}.csv`, headers, mapper);
+    });
+
+    // Import
+    document.getElementById('btnImportAtt')?.addEventListener('click', () => {
+        if (!canEditAttendance()) { showToast('Anda tidak memiliki akses untuk import data', 'error'); return; }
+        importFromCSV(
+            STORAGE_KEYS.attendance,
+            ['NIK', 'Nama Karyawan', 'Status', 'Jobdesc', 'Divisi', 'Tanggal', 'Clock In', 'Clock Out'],
+            (vals) => {
+                if (vals.length < 6) return null;
+                return {
+                    nik: vals[0]?.trim() || '',
+                    name: vals[1]?.trim() || '',
+                    status: vals[2]?.trim() || 'Reguler',
+                    jobdesc: vals[3]?.trim() || '',
+                    divisi: vals[4]?.trim() || '',
+                    date: vals[5]?.trim() || '',
+                    clockIn: vals[6]?.trim() || '',
+                    clockOut: vals[7]?.trim() || ''
+                };
+            },
+            () => renderAttendanceTable()
+        );
+    });
+
+    // Clear All
+    document.getElementById('btnClearAtt')?.addEventListener('click', () => {
+        if (!canDeleteAttendance()) { showToast('Hanya Supervisor yang bisa menghapus data attendance', 'error'); return; }
+        const items = getData(STORAGE_KEYS.attendance);
+        if (items.length === 0) { showToast('Tidak ada data untuk dihapus', 'info'); return; }
+        if (!confirm(`Hapus semua ${items.length} data attendance?`)) return;
+        setData(STORAGE_KEYS.attendance, []);
+        renderAttendanceTable();
+        showToast('Semua data attendance berhasil dihapus', 'success');
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchAtt');
+    searchInput?.addEventListener('input', () => { pageState.Att.current = 1; renderAttendanceTable(searchInput.value); });
+
+    // Bulk delete + select
+    const attExpHeaders = ['NIK', 'Nama Karyawan', 'Status', 'Jobdesc', 'Divisi', 'Tanggal', 'Clock In', 'Clock Out'];
+    const attExpMapper = (d) => [d.nik || '', d.name || '', d.status || '', d.jobdesc || '', d.divisi || '', d.date || '', d.clockIn || '', d.clockOut || ''];
+    initBulkActions('Att', STORAGE_KEYS.attendance, attExpHeaders, attExpMapper, renderAttendanceTable);
+}
+
+function openAttModal(editId = null) {
+    const modal = document.getElementById('modalAtt');
+    const title = document.getElementById('modalAttTitle');
+
+    document.getElementById('attEditId').value = '';
+    document.getElementById('attNik').value = '';
+    document.getElementById('attName').value = '';
+    document.getElementById('attStatus').value = 'Reguler';
+    document.getElementById('attJobdesc').value = '';
+    document.getElementById('attDivisi').value = 'Inbound';
+    document.getElementById('attDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('attClockIn').value = '';
+    document.getElementById('attClockOut').value = '';
+
+    if (editId) {
+        const data = getData(STORAGE_KEYS.attendance);
+        const item = data.find(d => d.id === editId);
+        if (item) {
+            title.innerHTML = '<i class="fas fa-edit"></i> Edit Attendance';
+            document.getElementById('attEditId').value = editId;
+            document.getElementById('attNik').value = item.nik || '';
+            document.getElementById('attName').value = item.name || '';
+            document.getElementById('attStatus').value = item.status || 'Reguler';
+            document.getElementById('attJobdesc').value = item.jobdesc || '';
+            document.getElementById('attDivisi').value = item.divisi || 'Inbound';
+            document.getElementById('attDate').value = item.date || '';
+            document.getElementById('attClockIn').value = item.clockIn || '';
+            document.getElementById('attClockOut').value = item.clockOut || '';
+        }
+    } else {
+        title.innerHTML = '<i class="fas fa-user-clock"></i> Tambah Attendance';
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteAttendance(id) {
+    if (!canDeleteAttendance()) { showToast('Hanya Supervisor yang bisa menghapus data attendance', 'error'); return; }
+    if (!confirm('Hapus data attendance ini?')) return;
+    let data = getData(STORAGE_KEYS.attendance);
+    data = data.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.attendance, data);
+    renderAttendanceTable();
+    showToast('Data attendance berhasil dihapus', 'success');
+}
+
+function renderAttendanceTable(search = '') {
+    const tbody = document.getElementById('attTableBody');
+    const emptyEl = document.getElementById('attEmpty');
+    const table = document.getElementById('attTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.attendance);
+
+    const q = (search || document.getElementById('searchAtt')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d =>
+            (d.nik || '').toLowerCase().includes(q) ||
+            (d.name || '').toLowerCase().includes(q) ||
+            (d.jobdesc || '').toLowerCase().includes(q) ||
+            (d.divisi || '').toLowerCase().includes(q) ||
+            (d.status || '').toLowerCase().includes(q) ||
+            (d.date || '').includes(q)
+        );
+    }
+
+    // Sort by date desc, then name
+    items.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.name || '').localeCompare(b.name || ''));
+
+    // Stats
+    updateAttStats(items);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Att', 0, renderAttendanceTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Att', items.length, renderAttendanceTable);
+    const pageData = items.slice(start, end);
+
+    const showEdit = canEditAttendance();
+    const showDelete = canDeleteAttendance();
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const totalJam = calcTotalJam(d.clockIn, d.clockOut);
+        const overtime = calcOvertime(totalJam);
+        const shift = calcShift(d.clockIn);
+        const statusBadge = d.status === 'Tambahan'
+            ? '<span class="badge badge--warning">Tambahan</span>'
+            : '<span class="badge badge--info">Reguler</span>';
+        const shiftBadge = shift === 'Shift 1'
+            ? '<span class="badge badge--success">Shift 1</span>'
+            : '<span class="badge badge--purple">Shift 2</span>';
+        const otClass = overtime !== '00:00' ? 'color: var(--accent-green); font-weight: 600;' : 'color: var(--text-muted);';
+
+        let actions = '';
+        if (showEdit) {
+            actions += `<button class="btn btn--outline btn--sm" onclick="openAttModal('${d.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+        }
+        if (showDelete) {
+            actions += ` <button class="btn btn--danger btn--sm" onclick="deleteAttendance('${d.id}')" title="Hapus"><i class="fas fa-trash"></i></button>`;
+        }
+
+        return `<tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}"></td>
+            <td>${start + i + 1}</td>
+            <td>${escapeHtml(d.nik || '-')}</td>
+            <td>${escapeHtml(d.name || '-')}</td>
+            <td>${statusBadge}</td>
+            <td>${escapeHtml(d.jobdesc || '-')}</td>
+            <td>${escapeHtml(d.divisi || '-')}</td>
+            <td>${d.date || '-'}</td>
+            <td>${d.clockIn || '-'}</td>
+            <td>${d.clockOut || '-'}</td>
+            <td>${shiftBadge}</td>
+            <td style="font-weight:600;">${totalJam}</td>
+            <td style="${otClass}">${overtime}</td>
+            <td>${actions || '-'}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateAttStats(items) {
+    const shift1 = items.filter(d => calcShift(d.clockIn) === 'Shift 1').length;
+    const shift2 = items.filter(d => calcShift(d.clockIn) === 'Shift 2').length;
+    const otCount = items.filter(d => {
+        const totalJam = calcTotalJam(d.clockIn, d.clockOut);
+        return calcOvertime(totalJam) !== '00:00';
+    }).length;
+
+    animateCounter('statAttTotal', items.length);
+    animateCounter('statAttShift1', shift1);
+    animateCounter('statAttShift2', shift2);
+    animateCounter('statAttOvertime', otCount);
+}
+
+// ======================= PRODUCTIVITY PAGE =======================
+
+function initProductivityPage() {
+    // Search
+    const searchInput = document.getElementById('searchProd');
+    searchInput?.addEventListener('input', () => { pageState.Prod.current = 1; renderProductivityTable(searchInput.value); });
+
+    // Export
+    document.getElementById('btnExportProd')?.addEventListener('click', () => {
+        const prodData = buildProductivityData();
+        const filtered = applyProdSearch(prodData, document.getElementById('searchProd')?.value || '');
+
+        const headers = ['Nama Karyawan', 'Divisi', 'Job Desc', 'Inbound Arrival', 'Inbound Transaction', 'VAS', 'Daily Cycle Count', 'Project Damage', 'QC Return', 'Total Qty'];
+        const rows = filtered.map(d => [
+            d.name, d.divisi, d.jobdesc,
+            d.arrival || 0, d.transaction || 0, d.vas || 0,
+            d.dccLabel, d.damage || 0, d.qcReturn || 0, d.totalQty
+        ]);
+
+        // Manual CSV build
+        let csv = '\uFEFF' + headers.join(',') + '\n';
+        rows.forEach(r => { csv += r.map(v => `"${v}"`).join(',') + '\n'; });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `productivity_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Export CSV berhasil', 'success');
+    });
+}
+
+function buildProductivityData() {
+    // Get all attendance data for employee list
+    const attendance = getData(STORAGE_KEYS.attendance);
+
+    // Build unique employee list from attendance
+    const empMap = {};
+    attendance.forEach(a => {
+        const key = (a.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!empMap[key]) {
+            empMap[key] = { name: a.name || '', divisi: a.divisi || '', jobdesc: a.jobdesc || '' };
+        }
+    });
+
+    // Aggregate data from all sources
+    const arrivals = getData(STORAGE_KEYS.arrivals);
+    const transactions = getData(STORAGE_KEYS.transactions);
+    const vasData = getData(STORAGE_KEYS.vas);
+    const dccData = getData(STORAGE_KEYS.dcc);
+    const damageData = getData(STORAGE_KEYS.damage);
+    const qcrData = getData(STORAGE_KEYS.qcReturn);
+
+    // Build productivity for each employee
+    const results = [];
+    for (const [key, emp] of Object.entries(empMap)) {
+        // Inbound Arrival: operator → qty
+        let arrivalQty = 0;
+        arrivals.forEach(d => {
+            if ((d.operator || '').trim().toLowerCase() === key) arrivalQty += (parseInt(d.actualQty) || parseInt(d.qty) || 0);
+        });
+
+        // Inbound Transaction: operator → qty
+        let transQty = 0;
+        transactions.forEach(d => {
+            if ((d.operator || '').trim().toLowerCase() === key) transQty += (parseInt(d.qty) || 0);
+        });
+
+        // VAS: operator → qty
+        let vasQty = 0;
+        vasData.forEach(d => {
+            if ((d.operator || '').trim().toLowerCase() === key) vasQty += (parseInt(d.qty) || 0);
+        });
+
+        // DCC: operator → qty + count locations
+        let dccQty = 0;
+        const dccLocSet = new Set();
+        dccData.forEach(d => {
+            if ((d.operator || '').trim().toLowerCase() === key) {
+                dccQty += (parseInt(d.sysQty) || 0) + (parseInt(d.phyQty) || 0);
+                if (d.location) dccLocSet.add(d.location);
+            }
+        });
+
+        // Project Damage: qcBy (not operator) → qty
+        let dmgQty = 0;
+        damageData.forEach(d => {
+            if ((d.qcBy || '').trim().toLowerCase() === key) dmgQty += (parseInt(d.qty) || 0);
+        });
+
+        // QC Return: operator → qty
+        let qcrQty = 0;
+        qcrData.forEach(d => {
+            if ((d.operator || '').trim().toLowerCase() === key) qcrQty += (parseInt(d.qty) || 0);
+        });
+
+        const totalQty = arrivalQty + transQty + vasQty + dccQty + dmgQty + qcrQty;
+        const dccLabel = dccQty > 0 ? `${dccQty.toLocaleString()} pcs / ${dccLocSet.size} loc` : '0';
+
+        results.push({
+            name: emp.name,
+            divisi: emp.divisi,
+            jobdesc: emp.jobdesc,
+            arrival: arrivalQty,
+            transaction: transQty,
+            vas: vasQty,
+            dcc: dccQty,
+            dccLoc: dccLocSet.size,
+            dccLabel,
+            damage: dmgQty,
+            qcReturn: qcrQty,
+            totalQty
+        });
+    }
+
+    // Sort by total qty desc
+    results.sort((a, b) => b.totalQty - a.totalQty);
+    return results;
+}
+
+function applyProdSearch(data, search) {
+    const q = (search || '').toLowerCase();
+    if (!q) return data;
+    return data.filter(d =>
+        d.name.toLowerCase().includes(q) ||
+        d.divisi.toLowerCase().includes(q) ||
+        d.jobdesc.toLowerCase().includes(q)
+    );
+}
+
+function renderProductivityTable(search = '') {
+    const tbody = document.getElementById('prodTableBody');
+    const emptyEl = document.getElementById('prodEmpty');
+    const table = document.getElementById('prodTable');
+    if (!tbody) return;
+
+    const allData = buildProductivityData();
+    const q = search || document.getElementById('searchProd')?.value || '';
+    const items = applyProdSearch(allData, q);
+
+    // Stats
+    const totalEmployees = items.length;
+    const totalQty = items.reduce((sum, d) => sum + d.totalQty, 0);
+    animateCounter('statProdTotal', totalEmployees);
+    animateCounter('statProdTotalQty', totalQty);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Prod', 0, renderProductivityTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Prod', items.length, renderProductivityTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const fmtQty = (v) => v > 0 ? `<span style="color:var(--accent-green);font-weight:600;">${v.toLocaleString()}</span>` : '<span style="color:var(--text-muted);">0</span>';
+        const fmtDcc = d.dcc > 0 ? `<span style="color:var(--accent-green);font-weight:600;">${d.dccLabel}</span>` : '<span style="color:var(--text-muted);">0</span>';
+
+        return `<tr>
+            <td>${start + i + 1}</td>
+            <td>${escapeHtml(d.name)}</td>
+            <td>${escapeHtml(d.divisi)}</td>
+            <td>${escapeHtml(d.jobdesc)}</td>
+            <td>${fmtQty(d.arrival)}</td>
+            <td>${fmtQty(d.transaction)}</td>
+            <td>${fmtQty(d.vas)}</td>
+            <td>${fmtDcc}</td>
+            <td>${fmtQty(d.damage)}</td>
+            <td>${fmtQty(d.qcReturn)}</td>
+            <td style="font-weight:700;color:var(--accent-blue);">${d.totalQty.toLocaleString()}</td>
+        </tr>`;
+    }).join('');
+}

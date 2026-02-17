@@ -144,6 +144,29 @@
                             </li>
                         </ul>
                     </li>
+
+                    <!-- Manpower Group -->
+                    <li class="nav-group" id="navGroupManpower" data-access="manpower">
+                        <div class="nav-group__header">
+                            <i class="fas fa-users nav-group__icon"></i>
+                            <span>Manpower</span>
+                            <i class="fas fa-chevron-down nav-group__arrow"></i>
+                        </div>
+                        <ul class="nav-group__items">
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-page="attendance" id="nav-attendance">
+                                    <i class="fas fa-user-clock"></i>
+                                    <span>Attendance</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-page="productivity" id="nav-productivity">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Productivity</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </nav>
 
@@ -1779,6 +1802,188 @@
                     </div>
                 </section>
 
+                <!-- ======================= ATTENDANCE PAGE ======================= -->
+                <section class="page" id="page-attendance">
+                    <div class="page-header">
+                        <div class="page-header__top">
+                            <button class="back-btn" data-navigate="dashboard" id="btn-back-attendance">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Kembali</span>
+                            </button>
+                        </div>
+                        <h2><i class="fas fa-user-clock"></i> Attendance</h2>
+                        <p>Data kehadiran karyawan — shift, jam kerja & overtime auto-calculated</p>
+                    </div>
+
+                    <!-- Stat Cards -->
+                    <div class="stats-grid stats-grid--compact">
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statAttTotal">0</span>
+                                <span class="stat-card__label">Total Record</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statAttShift1">0</span>
+                                <span class="stat-card__label">Shift 1</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statAttShift2">0</span>
+                                <span class="stat-card__label">Shift 2</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statAttOvertime">0</span>
+                                <span class="stat-card__label">Overtime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="toolbar-left">
+                            <button class="btn btn--primary" id="btnAddAtt">
+                                <i class="fas fa-plus"></i> <span>Tambah Data</span>
+                            </button>
+                            <button class="btn btn--outline" id="btnExportAtt">
+                                <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                            </button>
+                            <button class="btn btn--outline" id="btnImportAtt">
+                                <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                            </button>
+                            <button class="btn btn--danger" id="btnBulkDeleteAtt" style="display:none">
+                                <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                            </button>
+                            <button class="btn btn--danger" id="btnClearAtt">
+                                <i class="fas fa-broom"></i> <span>Clear All</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Cari nama, NIK, divisi..." id="searchAtt">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-container">
+                        <table class="data-table" id="attTable">
+                            <thead>
+                                <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllAtt"
+                                            onchange="toggleSelectAll('Att')"></th>
+                                    <th>No</th>
+                                    <th>NIK</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Status</th>
+                                    <th>Jobdesc</th>
+                                    <th>Divisi</th>
+                                    <th>Tanggal</th>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Shift</th>
+                                    <th>Total Jam Kerja</th>
+                                    <th>Overtime</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attTableBody"></tbody>
+                        </table>
+                        <div class="table-empty" id="attEmpty">
+                            <i class="fas fa-user-clock"></i>
+                            <p>Belum ada data attendance. Tambah manual atau import CSV.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination" id="paginationAtt">
+                        <div class="pagination__info" id="paginationAttInfo"></div>
+                        <div class="pagination__pages" id="paginationAttPages"></div>
+                    </div>
+                </section>
+
+                <!-- ======================= PRODUCTIVITY PAGE ======================= -->
+                <section class="page" id="page-productivity">
+                    <div class="page-header">
+                        <div class="page-header__top">
+                            <button class="back-btn" data-navigate="dashboard" id="btn-back-productivity">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Kembali</span>
+                            </button>
+                        </div>
+                        <h2><i class="fas fa-chart-line"></i> Productivity</h2>
+                        <p>Ringkasan produktivitas karyawan — auto-aggregated dari semua halaman</p>
+                    </div>
+
+                    <!-- Stat Cards -->
+                    <div class="stats-grid stats-grid--compact">
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statProdTotal">0</span>
+                                <span class="stat-card__label">Total Karyawan</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statProdTotalQty">0</span>
+                                <span class="stat-card__label">Total Qty</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="toolbar-left">
+                            <button class="btn btn--outline" id="btnExportProd">
+                                <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Cari nama, divisi, job desc..." id="searchProd">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-container">
+                        <table class="data-table" id="prodTable">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Divisi</th>
+                                    <th>Job Desc</th>
+                                    <th>Inbound Arrival</th>
+                                    <th>Inbound Transaction</th>
+                                    <th>VAS</th>
+                                    <th>Daily Cycle Count</th>
+                                    <th>Project Damage</th>
+                                    <th>QC Return</th>
+                                    <th>Total Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prodTableBody"></tbody>
+                        </table>
+                        <div class="table-empty" id="prodEmpty">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Belum ada data attendance untuk dihitung produktivitasnya.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination" id="paginationProd">
+                        <div class="pagination__info" id="paginationProdInfo"></div>
+                        <div class="pagination__pages" id="paginationProdPages"></div>
+                    </div>
+                </section>
+
                 <!-- Modal Master Location -->
                 <div class="modal-overlay" id="modalLoc">
                     <div class="modal">
@@ -2028,6 +2233,65 @@
                         </div>
                         <div class="form-actions">
                             <button type="button" class="btn btn--ghost" id="cancelDcc">Batal</button>
+                            <button type="submit" class="btn btn--primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal: Attendance -->
+            <div class="modal-overlay" id="modalAtt">
+                <div class="modal">
+                    <div class="modal__header">
+                        <h3 id="modalAttTitle"><i class="fas fa-user-clock"></i> Tambah Attendance</h3>
+                        <button class="modal__close" id="closeModalAtt">&times;</button>
+                    </div>
+                    <form id="formAtt" class="modal__form">
+                        <input type="hidden" id="attEditId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="attNik">NIK *</label>
+                                <input type="text" id="attNik" placeholder="E000XXX" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="attName">Nama Karyawan *</label>
+                                <input type="text" id="attName" placeholder="Nama lengkap" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="attStatus">Status *</label>
+                                <select id="attStatus" required>
+                                    <option value="Reguler">Reguler</option>
+                                    <option value="Tambahan">Tambahan</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="attJobdesc">Jobdesc *</label>
+                                <input type="text" id="attJobdesc" placeholder="Cycle Count, Putaway, dll" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="attDivisi">Divisi *</label>
+                                <select id="attDivisi" required>
+                                    <option value="Inbound">Inbound</option>
+                                    <option value="Inventory">Inventory</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="attDate">Tanggal *</label>
+                                <input type="date" id="attDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="attClockIn">Clock In *</label>
+                                <input type="time" id="attClockIn" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="attClockOut">Clock Out *</label>
+                                <input type="time" id="attClockOut" required>
+                            </div>
+                        </div>
+                        <div class="modal__actions">
+                            <button type="button" class="btn btn--ghost" id="cancelAtt">Batal</button>
                             <button type="submit" class="btn btn--primary">
                                 <i class="fas fa-save"></i> Simpan
                             </button>
