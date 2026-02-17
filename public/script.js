@@ -1159,7 +1159,7 @@ function renderDmgDashboard() {
         const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].qty - a[1].qty);
         noteBody.innerHTML = sortedNotes.map(([note, data]) => `
             <tr>
-                <td>${escapeHtml(note)}</td>
+                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(note)}">${escapeHtml(note)}</td>
                 <td style="text-align:center;">${data.skus.size}</td>
                 <td style="text-align:center;">${data.qty.toLocaleString()}</td>
             </tr>`
@@ -1180,7 +1180,7 @@ function renderDmgDashboard() {
         const sortedBrands = Object.entries(brandMap).sort((a, b) => b[1].qty - a[1].qty);
         brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
             <tr>
-                <td>${escapeHtml(brand)}</td>
+                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(brand)}">${escapeHtml(brand)}</td>
                 <td style="text-align:center;">${data.skus.size}</td>
                 <td style="text-align:center;">${data.qty.toLocaleString()}</td>
             </tr>`
@@ -1250,7 +1250,7 @@ function renderQcrDashboard() {
         const sortedBrands = Object.entries(brandMap).sort((a, b) => (b[1].good + b[1].damage) - (a[1].good + a[1].damage));
         brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
             <tr>
-                <td>${escapeHtml(brand)}</td>
+                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(brand)}">${escapeHtml(brand)}</td>
                 <td style="text-align:center;color: var(--accent-green); font-weight: 600;">${data.good.toLocaleString()}</td>
                 <td style="text-align:center;color: var(--accent-red); font-weight: 600;">${data.damage.toLocaleString()}</td>
             </tr>`
