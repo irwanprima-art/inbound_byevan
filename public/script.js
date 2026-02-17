@@ -1260,10 +1260,17 @@ function renderDmgDashboard() {
 function renderQcrDashboard() {
     const items = getData(STORAGE_KEYS.qcReturn);
 
+    // Build SKU→Brand lookup from latest SOH
+    const latestSoh = getLatestSohData();
+    const skuBrandMap = {};
+    latestSoh.forEach(s => {
+        if (s.sku && s.skuBrand) skuBrandMap[s.sku.toLowerCase()] = s.skuBrand;
+    });
+
     // --- 1. Brand Table (Good / Damage) ---
     const brandMap = {};
     items.forEach(d => {
-        const brand = d.brand || 'Unknown';
+        const brand = d.brand || skuBrandMap[(d.sku || '').toLowerCase()] || 'Unknown';
         if (!brandMap[brand]) brandMap[brand] = { good: 0, damage: 0 };
         const status = (d.status || 'Good').toLowerCase();
         const qty = parseInt(d.qty) || 0;
