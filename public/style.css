@@ -2082,6 +2082,7 @@ body {
     overflow-y: auto;
     flex: 1;
     min-height: 0;
+    max-width: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(99, 102, 241, 0.5) rgba(255, 255, 255, 0.05);
@@ -2258,7 +2259,8 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .data-table {
