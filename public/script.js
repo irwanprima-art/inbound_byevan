@@ -277,7 +277,8 @@ const STORAGE_KEYS = {
     qcReturn: 'inbound_qc_return',
     locations: 'master_locations',
     attendance: 'manpower_attendance',
-    employees: 'manpower_employees'
+    employees: 'manpower_employees',
+    projectProd: 'manpower_project_productivity'
 };
 
 // Keys that use IndexedDB (large datasets)
@@ -4682,13 +4683,14 @@ function initProductivityPage() {
 
     // Export
     document.getElementById('btnExportProd')?.addEventListener('click', () => {
-        const { inspection, receive, vas, dcc, qc } = buildProductivityData();
+        const { inspection, receive, vas, dcc, qc, project } = buildProductivityData();
         const q = document.getElementById('searchProd')?.value || '';
         const fInspection = applyProdSearch(inspection, q);
         const fReceive = applyProdSearch(receive, q);
         const fVas = applyProdSearch(vas, q);
         const fDcc = applyProdSearch(dcc, q);
         const fQc = applyProdSearch(qc, q);
+        const fProject = applyProdSearch(project, q);
 
         const headers = ['Kategori', 'Rank', 'Nama Karyawan', 'Divisi', 'Job Desc', 'Nilai'];
         const rows = [];
@@ -4697,6 +4699,7 @@ function initProductivityPage() {
         fVas.forEach((d, i) => rows.push(['Value Added Service', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
         fDcc.forEach((d, i) => rows.push(['Daily Cycle Count', i + 1, d.name, d.divisi, d.jobdesc, d.valueLabel || d.value]));
         fQc.forEach((d, i) => rows.push(['Damage & QC Return', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
+        fProject.forEach((d, i) => rows.push(['Project', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
 
         let csv = '\uFEFF' + headers.join(',') + '\n';
         rows.forEach(r => { csv += r.map(v => `"${v}"`).join(',') + '\n'; });
@@ -4708,6 +4711,41 @@ function initProductivityPage() {
         a.click();
         URL.revokeObjectURL(url);
         showToast('Export CSV berhasil', 'success');
+    });
+
+    // Project CRUD
+    document.getElementById('btnAddProject')?.addEventListener('click', () => openProjectModal());
+    document.getElementById('closeModalProject')?.addEventListener('click', () => closeModal('modalProject'));
+    document.getElementById('cancelProject')?.addEventListener('click', () => closeModal('modalProject'));
+
+    document.getElementById('formProject')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('projEditId')?.value;
+        const name = document.getElementById('projName')?.value?.trim();
+        const task = document.getElementById('projTask')?.value?.trim();
+        const qty = parseInt(document.getElementById('projQty')?.value) || 0;
+        const date = document.getElementById('projDate')?.value;
+
+        if (!name || !task || qty <= 0 || !date) {
+            showToast('Harap isi semua field', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.projectProd);
+        const record = { name, task, qty, date };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) { record.id = editId; data[idx] = record; }
+        } else {
+            record.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.projectProd, data);
+        closeModal('modalProject');
+        renderProductivityTable();
+        showToast(editId ? 'Data project diupdate' : 'Data project ditambahkan', 'success');
     });
 }
 
@@ -4772,6 +4810,7 @@ function buildProductivityData() {
     const vasList = [];
     const dccList = [];
     const qcList = [];
+    const projectList = [];
 
     for (const [key, emp] of Object.entries(empMap)) {
         // Inspection (Inbound Arrival)
@@ -4829,13 +4868,32 @@ function buildProductivityData() {
         }
     }
 
+    // Project (manual input)
+    let projData = getData(STORAGE_KEYS.projectProd);
+    if (filterDate || filterMonth) {
+        projData = projData.filter(d => matchDate(d.date || ''));
+    }
+    const projMap = {};
+    projData.forEach(d => {
+        const key = (d.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!projMap[key]) projMap[key] = { name: d.name, tasks: new Set(), qty: 0 };
+        projMap[key].qty += (parseInt(d.qty) || 0);
+        if (d.task) projMap[key].tasks.add(d.task);
+    });
+    for (const [, p] of Object.entries(projMap)) {
+        const taskList = [...p.tasks].join(', ');
+        projectList.push({ name: p.name, divisi: 'Project', jobdesc: taskList, value: p.qty, detail: taskList });
+    }
+
     inspectionList.sort((a, b) => b.value - a.value);
     receiveList.sort((a, b) => b.value - a.value);
     vasList.sort((a, b) => b.value - a.value);
     dccList.sort((a, b) => b.value - a.value);
     qcList.sort((a, b) => b.value - a.value);
+    projectList.sort((a, b) => b.value - a.value);
 
-    return { inspection: inspectionList, receive: receiveList, vas: vasList, dcc: dccList, qc: qcList };
+    return { inspection: inspectionList, receive: receiveList, vas: vasList, dcc: dccList, qc: qcList, project: projectList };
 }
 
 function applyProdSearch(data, search) {
@@ -4900,7 +4958,7 @@ function renderProductivityTable(search = '') {
     const emptyEl = document.getElementById('prodEmpty');
     const gridEl = document.querySelector('.leaderboard-grid');
 
-    const { inspection, receive, vas, dcc, qc } = buildProductivityData();
+    const { inspection, receive, vas, dcc, qc, project } = buildProductivityData();
     const q = search || document.getElementById('searchProd')?.value || '';
 
     const fInspection = applyProdSearch(inspection, q);
@@ -4908,8 +4966,9 @@ function renderProductivityTable(search = '') {
     const fVas = applyProdSearch(vas, q);
     const fDcc = applyProdSearch(dcc, q);
     const fQc = applyProdSearch(qc, q);
+    const fProject = applyProdSearch(project, q);
 
-    const hasData = fInspection.length > 0 || fReceive.length > 0 || fVas.length > 0 || fDcc.length > 0 || fQc.length > 0;
+    const hasData = fInspection.length > 0 || fReceive.length > 0 || fVas.length > 0 || fDcc.length > 0 || fQc.length > 0 || fProject.length > 0;
 
     if (!hasData) {
         if (gridEl) gridEl.style.display = 'none';
@@ -4934,6 +4993,30 @@ function renderProductivityTable(search = '') {
 
     renderPodium('podiumQc', fQc);
     renderRankList('listQc', fQc);
+
+    renderPodium('podiumProject', fProject);
+    renderRankList('listProject', fProject);
+}
+
+function openProjectModal(editData) {
+    document.getElementById('projEditId').value = editData?.id || '';
+    document.getElementById('projName').value = editData?.name || '';
+    document.getElementById('projTask').value = editData?.task || '';
+    document.getElementById('projQty').value = editData?.qty || '';
+    document.getElementById('projDate').value = editData?.date || new Date().toISOString().slice(0, 10);
+    document.getElementById('modalProjectTitle').innerHTML = editData
+        ? '<i class="fas fa-edit"></i> Edit Data Project'
+        : '<i class="fas fa-project-diagram"></i> Tambah Data Project';
+    openModal('modalProject');
+}
+
+function deleteProjectEntry(id) {
+    if (!confirm('Hapus data project ini?')) return;
+    let data = getData(STORAGE_KEYS.projectProd);
+    data = data.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.projectProd, data);
+    renderProductivityTable();
+    showToast('Data project dihapus', 'success');
 }
 
 // ======================= JOBDESC → DIVISI MAP =======================

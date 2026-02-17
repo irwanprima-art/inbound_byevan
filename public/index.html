@@ -2025,12 +2025,69 @@
                             <div class="leaderboard-card__podium" id="podiumQc"></div>
                             <div class="leaderboard-card__list" id="listQc"></div>
                         </div>
+
+                        <!-- Project Leaderboard (manual input) -->
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-card__header leaderboard-card__header--project">
+                                <i class="fas fa-project-diagram"></i>
+                                <h3>Project</h3>
+                                <span class="leaderboard-card__sub">Input Manual</span>
+                                <button class="btn btn--sm btn--outline" id="btnAddProject"
+                                    style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);color:#fff;"
+                                    title="Tambah Data Project">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="leaderboard-card__podium" id="podiumProject"></div>
+                            <div class="leaderboard-card__list" id="listProject"></div>
+                        </div>
                     </div>
 
                     <!-- Empty state -->
                     <div class="table-empty" id="prodEmpty">
                         <i class="fas fa-trophy"></i>
-                        <p>Belum ada data attendance untuk dihitung produktivitasnya.</p>
+                        <p>Belum ada data untuk dihitung produktivitasnya.</p>
+                    </div>
+
+                    <!-- Modal Project Productivity -->
+                    <div class="modal" id="modalProject">
+                        <div class="modal__overlay"></div>
+                        <div class="modal__content">
+                            <div class="modal__header">
+                                <h3 id="modalProjectTitle"><i class="fas fa-project-diagram"></i> Tambah Data Project
+                                </h3>
+                                <button class="modal__close" id="closeModalProject">&times;</button>
+                            </div>
+                            <form id="formProject">
+                                <input type="hidden" id="projEditId">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="projName">Nama Karyawan *</label>
+                                        <input type="text" id="projName" placeholder="Nama karyawan" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="projTask">Nama Project / Deskripsi *</label>
+                                        <input type="text" id="projTask" placeholder="Nama project atau jobdesc"
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="projQty">Qty / Nilai *</label>
+                                        <input type="number" id="projQty" placeholder="Jumlah" min="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="projDate">Tanggal *</label>
+                                        <input type="date" id="projDate" required>
+                                    </div>
+                                </div>
+                                <div class="modal__footer">
+                                    <button type="button" class="btn btn--ghost" id="cancelProject">Batal</button>
+                                    <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i>
+                                        Simpan</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </section>
 

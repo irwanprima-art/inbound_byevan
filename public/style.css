@@ -3911,3 +3911,8 @@ body.role-no-delete th:first-child:has(input[type="checkbox"]) {
 .leaderboard-card__header--vas {
     background: linear-gradient(135deg, #7c3aed, #a78bfa) !important;
 }
+
+.leaderboard-card__header--project {
+    background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+    position: relative;
+}
