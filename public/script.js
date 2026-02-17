@@ -5302,8 +5302,8 @@ function initEmployeesPage() {
 
     // Export
     document.getElementById('btnExportEmp')?.addEventListener('click', () => {
-        const headers = ['NIK', 'Nama Karyawan', 'Status'];
-        const mapper = (d) => [d.nik || '', d.name || '', d.status || ''];
+        const headers = ['NIK', 'Nama Karyawan', 'Status', 'Note Clock In'];
+        const mapper = (d) => [d.nik || '', d.name || '', d.status || '', d.clockInNote || ''];
         exportToCSV(STORAGE_KEYS.employees, `employees_${new Date().toISOString().slice(0, 10)}.csv`, headers, mapper);
     });
 
@@ -5311,13 +5311,14 @@ function initEmployeesPage() {
     document.getElementById('btnImportEmp')?.addEventListener('click', () => {
         importFromCSV(
             STORAGE_KEYS.employees,
-            ['NIK', 'Nama Karyawan', 'Status'],
+            ['NIK', 'Nama Karyawan', 'Status', 'Note Clock In'],
             (vals) => {
                 if (vals.length < 2) return null;
                 return {
                     nik: vals[0]?.trim() || '',
                     name: vals[1]?.trim() || '',
-                    status: vals[2]?.trim() || 'Reguler'
+                    status: vals[2]?.trim() || 'Reguler',
+                    clockInNote: vals[3]?.trim() || ''
                 };
             },
             () => renderEmployeesTable()
@@ -5339,8 +5340,8 @@ function initEmployeesPage() {
     searchInput?.addEventListener('input', () => { pageState.Emp.current = 1; renderEmployeesTable(searchInput.value); });
 
     // Bulk actions
-    const empHeaders = ['NIK', 'Nama Karyawan', 'Status'];
-    const empMapper = (d) => [d.nik || '', d.name || '', d.status || ''];
+    const empHeaders = ['NIK', 'Nama Karyawan', 'Status', 'Note Clock In'];
+    const empMapper = (d) => [d.nik || '', d.name || '', d.status || '', d.clockInNote || ''];
     initBulkActions('Emp', STORAGE_KEYS.employees, empHeaders, empMapper, renderEmployeesTable);
 }
 
@@ -5429,6 +5430,7 @@ function renderEmployeesTable(search = '') {
             <td>${escapeHtml(d.nik || '-')}</td>
             <td>${escapeHtml(d.name || '-')}</td>
             <td>${statusBadge}</td>
+            <td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:#94a3b8" title="${escapeHtml(d.clockInNote || '')}">${escapeHtml(d.clockInNote || '-')}</td>
             <td>
                 <button class="btn btn--outline btn--sm" onclick="openEmpModal('${d.id}')" title="Edit"><i class="fas fa-edit"></i></button>
                 <button class="btn btn--danger btn--sm" onclick="deleteEmployee('${d.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
