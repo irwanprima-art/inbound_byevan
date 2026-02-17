@@ -5273,6 +5273,19 @@ function renderClockPage() {
 
     const today = new Date().toISOString().slice(0, 10);
     const allData = getData(STORAGE_KEYS.attendance);
+
+    // Carry-over alert: previous days without clock out
+    const carryover = allData.filter(d => d.date && d.date < today && !d.clockOut);
+    const alertEl = document.getElementById('clockCarryoverAlert');
+    if (alertEl) {
+        if (carryover.length > 0) {
+            const names = carryover.map(d => `<li><strong>${escapeHtml(d.name)}</strong> (${d.date}, Clock In: ${d.clockIn})</li>`).join('');
+            alertEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>${carryover.length} karyawan belum Clock Out dari hari sebelumnya:</strong><ul>${names}</ul>`;
+            alertEl.style.display = '';
+        } else {
+            alertEl.style.display = 'none';
+        }
+    }
     // Show ALL today's records (both clocked-in and clocked-out)
     const todayData = allData.filter(d => d.date === today);
 
