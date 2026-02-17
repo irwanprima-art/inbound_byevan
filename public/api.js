@@ -10,7 +10,15 @@ const API_BASE = '/api';
 const API_ENDPOINTS = {
     'inbound_arrivals': 'arrivals',
     'inbound_transactions': 'transactions',
-    'inbound_vas': 'vas'
+    'inbound_vas': 'vas',
+    'inbound_dcc': 'dcc',
+    'inbound_damage': 'damages',
+    'inbound_qc_return': 'qc-returns',
+    'inbound_soh': 'soh',
+    'master_locations': 'locations',
+    'manpower_attendance': 'attendances',
+    'manpower_employees': 'employees',
+    'manpower_project_productivity': 'project-productivities'
 };
 
 // Map frontend camelCase fields to API snake_case (and vice versa)
@@ -26,6 +34,38 @@ const FIELD_MAP = {
     vas: {
         toApi: { startTime: 'start_time', endTime: 'end_time', vasType: 'vas_type' },
         fromApi: { start_time: 'startTime', end_time: 'endTime', vas_type: 'vasType' }
+    },
+    dcc: {
+        toApi: { phyInv: 'phy_inv', sysQty: 'sys_qty', phyQty: 'phy_qty' },
+        fromApi: { phy_inv: 'phyInv', sys_qty: 'sysQty', phy_qty: 'phyQty' }
+    },
+    damages: {
+        toApi: { qcBy: 'qc_by' },
+        fromApi: { qc_by: 'qcBy' }
+    },
+    'qc-returns': {
+        toApi: { returnDate: 'return_date', fromLoc: 'from_loc', toLoc: 'to_loc' },
+        fromApi: { return_date: 'returnDate', from_loc: 'fromLoc', to_loc: 'toLoc' }
+    },
+    soh: {
+        toApi: { skuCategory: 'sku_category', skuBrand: 'sku_brand', locationType: 'location_type', whArrivalDate: 'wh_arrival_date', receiptNo: 'receipt_no', mfgDate: 'mfg_date', expDate: 'exp_date', batchNo: 'batch_no', updateDate: 'update_date' },
+        fromApi: { sku_category: 'skuCategory', sku_brand: 'skuBrand', location_type: 'locationType', wh_arrival_date: 'whArrivalDate', receipt_no: 'receiptNo', mfg_date: 'mfgDate', exp_date: 'expDate', batch_no: 'batchNo', update_date: 'updateDate' }
+    },
+    locations: {
+        toApi: { locType: 'loc_type' },
+        fromApi: { loc_type: 'locType' }
+    },
+    attendances: {
+        toApi: { clockIn: 'clock_in', clockOut: 'clock_out' },
+        fromApi: { clock_in: 'clockIn', clock_out: 'clockOut' }
+    },
+    employees: {
+        toApi: {},
+        fromApi: {}
+    },
+    'project-productivities': {
+        toApi: {},
+        fromApi: {}
     }
 };
 

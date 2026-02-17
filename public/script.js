@@ -3090,7 +3090,7 @@ function openDccModal(editId = null) {
     modal.classList.add('show');
 }
 
-function saveDcc() {
+async function saveDcc() {
     const editId = document.getElementById('dccEditId').value;
     const data = {
         date: document.getElementById('dccDate').value,
@@ -3117,6 +3117,12 @@ function saveDcc() {
     }
     setData(STORAGE_KEYS.dcc, items);
 
+    // API sync
+    try {
+        if (editId) { await apiPut(STORAGE_KEYS.dcc, editId, data); }
+        else { await apiPost(STORAGE_KEYS.dcc, data); }
+    } catch (e) { console.warn('DCC API sync failed', e); }
+
     closeModal(document.getElementById('modalDcc'));
     renderDccTable();
 }
@@ -3127,6 +3133,7 @@ function deleteDcc(id) {
     let items = getData(STORAGE_KEYS.dcc);
     items = items.filter(d => d.id !== id);
     setData(STORAGE_KEYS.dcc, items);
+    apiDelete(STORAGE_KEYS.dcc, id).catch(() => { });
     renderDccTable();
 }
 
@@ -3294,7 +3301,7 @@ function initDmgPage() {
     document.getElementById('btnAddDmg')?.addEventListener('click', () => openDmgModal());
 
     // Save button
-    document.getElementById('btnSaveDmg')?.addEventListener('click', () => {
+    document.getElementById('btnSaveDmg')?.addEventListener('click', async () => {
         const editId = document.getElementById('dmgEditId')?.value;
         const date = document.getElementById('dmgDate')?.value;
         const brand = document.getElementById('dmgBrand')?.value?.trim();
@@ -3327,6 +3334,11 @@ function initDmgPage() {
         }
 
         setData(STORAGE_KEYS.damage, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.damage, editId, record); }
+            else { await apiPost(STORAGE_KEYS.damage, record); }
+        } catch (e) { console.warn('Damage API sync failed', e); }
         closeModal('modalDmg');
         renderDmgTable();
         showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
@@ -3438,6 +3450,7 @@ function deleteDmg(id) {
     let data = getData(STORAGE_KEYS.damage);
     data = data.filter(d => d.id !== id);
     setData(STORAGE_KEYS.damage, data);
+    apiDelete(STORAGE_KEYS.damage, id).catch(() => { });
     renderDmgTable();
     showToast('Data berhasil dihapus', 'success');
 }
@@ -3740,7 +3753,7 @@ function initQcrPage() {
     });
 
     // Save button
-    document.getElementById('btnSaveQcr')?.addEventListener('click', () => {
+    document.getElementById('btnSaveQcr')?.addEventListener('click', async () => {
         const editId = document.getElementById('qcrEditId')?.value;
         const date = document.getElementById('qcrDate')?.value;
         const receipt = document.getElementById('qcrReceipt')?.value?.trim();
@@ -3776,6 +3789,11 @@ function initQcrPage() {
         }
 
         setData(STORAGE_KEYS.qcReturn, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.qcReturn, editId, record); }
+            else { await apiPost(STORAGE_KEYS.qcReturn, record); }
+        } catch (e) { console.warn('QCR API sync failed', e); }
         closeModal('modalQcr');
         renderQcrTable();
         showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
@@ -3916,6 +3934,7 @@ function deleteQcr(id) {
     let data = getData(STORAGE_KEYS.qcReturn);
     data = data.filter(d => d.id !== id);
     setData(STORAGE_KEYS.qcReturn, data);
+    apiDelete(STORAGE_KEYS.qcReturn, id).catch(() => { });
     renderQcrTable();
     showToast('Data berhasil dihapus', 'success');
 }
@@ -4033,7 +4052,7 @@ function initLocPage() {
     document.getElementById('btnAddLoc')?.addEventListener('click', () => openLocModal());
 
     // Save button
-    document.getElementById('btnSaveLoc')?.addEventListener('click', () => {
+    document.getElementById('btnSaveLoc')?.addEventListener('click', async () => {
         const editId = document.getElementById('locEditId')?.value;
         const location = document.getElementById('locLocation')?.value?.trim();
         const category = document.getElementById('locCategory')?.value?.trim();
@@ -4062,6 +4081,11 @@ function initLocPage() {
         }
 
         setData(STORAGE_KEYS.locations, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.locations, editId, record); }
+            else { await apiPost(STORAGE_KEYS.locations, record); }
+        } catch (e) { console.warn('Location API sync failed', e); }
         closeModal('modalLoc');
         renderLocTable();
         showToast(editId ? 'Location berhasil diupdate' : 'Location berhasil ditambahkan', 'success');
@@ -4199,6 +4223,7 @@ function deleteLoc(id) {
     if (!confirm('Hapus location ini?')) return;
     const data = getData(STORAGE_KEYS.locations).filter(d => d.id !== id);
     setData(STORAGE_KEYS.locations, data);
+    apiDelete(STORAGE_KEYS.locations, id).catch(() => { });
     renderLocTable();
     showToast('Location berhasil dihapus', 'success');
 }
@@ -4402,7 +4427,7 @@ function initAttendancePage() {
     document.getElementById('cancelAtt')?.addEventListener('click', () => closeModal('modalAtt'));
 
     // Save
-    document.getElementById('formAtt')?.addEventListener('submit', (e) => {
+    document.getElementById('formAtt')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!canEditAttendance()) { showToast('Anda tidak memiliki akses untuk menyimpan data', 'error'); return; }
 
@@ -4438,6 +4463,11 @@ function initAttendancePage() {
         }
 
         setData(STORAGE_KEYS.attendance, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.attendance, editId, record); }
+            else { await apiPost(STORAGE_KEYS.attendance, record); }
+        } catch (e2) { console.warn('Attendance API sync failed', e2); }
         closeModal('modalAtt');
         renderAttendanceTable();
         showToast(editId ? 'Data berhasil diupdate' : 'Data berhasil ditambahkan', 'success');
@@ -4556,6 +4586,7 @@ function deleteAttendance(id) {
     let data = getData(STORAGE_KEYS.attendance);
     data = data.filter(d => d.id !== id);
     setData(STORAGE_KEYS.attendance, data);
+    apiDelete(STORAGE_KEYS.attendance, id).catch(() => { });
     renderAttendanceTable();
     showToast('Data attendance berhasil dihapus', 'success');
 }
@@ -4718,7 +4749,7 @@ function initProductivityPage() {
     document.getElementById('closeModalProject')?.addEventListener('click', () => closeModal('modalProject'));
     document.getElementById('cancelProject')?.addEventListener('click', () => closeModal('modalProject'));
 
-    document.getElementById('formProject')?.addEventListener('submit', (e) => {
+    document.getElementById('formProject')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = document.getElementById('projEditId')?.value;
         const name = document.getElementById('projName')?.value?.trim();
@@ -4743,6 +4774,11 @@ function initProductivityPage() {
         }
 
         setData(STORAGE_KEYS.projectProd, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.projectProd, editId, record); }
+            else { await apiPost(STORAGE_KEYS.projectProd, record); }
+        } catch (e2) { console.warn('ProjectProd API sync failed', e2); }
         closeModal('modalProject');
         renderProductivityTable();
         showToast(editId ? 'Data project diupdate' : 'Data project ditambahkan', 'success');
@@ -5015,6 +5051,7 @@ function deleteProjectEntry(id) {
     let data = getData(STORAGE_KEYS.projectProd);
     data = data.filter(d => d.id !== id);
     setData(STORAGE_KEYS.projectProd, data);
+    apiDelete(STORAGE_KEYS.projectProd, id).catch(() => { });
     renderProductivityTable();
     showToast('Data project dihapus', 'success');
 }
@@ -5045,7 +5082,7 @@ function initEmployeesPage() {
     document.getElementById('cancelEmp')?.addEventListener('click', () => closeModal('modalEmp'));
 
     // Save
-    document.getElementById('formEmp')?.addEventListener('submit', (e) => {
+    document.getElementById('formEmp')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = document.getElementById('empEditId')?.value;
         const nik = document.getElementById('empNik')?.value?.trim();
@@ -5082,6 +5119,11 @@ function initEmployeesPage() {
         }
 
         setData(STORAGE_KEYS.employees, data);
+        // API sync
+        try {
+            if (editId) { await apiPut(STORAGE_KEYS.employees, editId, record); }
+            else { await apiPost(STORAGE_KEYS.employees, record); }
+        } catch (e2) { console.warn('Employee API sync failed', e2); }
         closeModal('modalEmp');
         renderEmployeesTable();
         showToast(editId ? 'Data berhasil diupdate' : 'Karyawan berhasil ditambahkan', 'success');
@@ -5162,6 +5204,7 @@ function deleteEmployee(id) {
     let data = getData(STORAGE_KEYS.employees);
     data = data.filter(d => d.id !== id);
     setData(STORAGE_KEYS.employees, data);
+    apiDelete(STORAGE_KEYS.employees, id).catch(() => { });
     renderEmployeesTable();
     showToast('Data karyawan berhasil dihapus', 'success');
 }
