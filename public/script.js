@@ -5335,7 +5335,7 @@ function initClockPage() {
         }
 
         const now = new Date();
-        const today = now.toISOString().slice(0, 10);
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const clockIn = now.toTimeString().slice(0, 5);
         const divisi = JOBDESC_DIVISI_MAP[jobdesc] || '';
 
@@ -5394,7 +5394,7 @@ function initClockPage() {
         }
 
         const now = new Date();
-        const today = now.toISOString().slice(0, 10);
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const clockOut = now.toTimeString().slice(0, 5);
 
         const data = getData(STORAGE_KEYS.attendance);
