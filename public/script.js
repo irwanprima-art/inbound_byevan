@@ -5365,6 +5365,7 @@ function initClockPage() {
         setData(STORAGE_KEYS.attendance, data);
 
         showClockStatus(`✅ Clock In berhasil! ${emp.name} — ${clockIn}`, 'success');
+        showToast(`Selamat bekerja, ${emp.name}! 💪`, 'success');
 
         // Reset form
         document.getElementById('clockNik').value = '';
@@ -5407,6 +5408,7 @@ function initClockPage() {
         setData(STORAGE_KEYS.attendance, data);
 
         showClockStatus(`✅ Clock Out berhasil! ${emp.name} — ${clockOut}`, 'success');
+        showToast(`Terima kasih atas kinerjanya, ${emp.name}! Selamat istirahat 🙏`, 'success');
 
         // Reset form
         document.getElementById('clockNik').value = '';
