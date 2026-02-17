@@ -1916,24 +1916,8 @@
                                 <span>Kembali</span>
                             </button>
                         </div>
-                        <h2><i class="fas fa-chart-line"></i> Productivity</h2>
-                        <p>Ringkasan produktivitas karyawan — auto-aggregated dari semua halaman</p>
-                    </div>
-
-                    <!-- Stat Cards -->
-                    <div class="stats-grid stats-grid--compact">
-                        <div class="stat-card stat-card--mini">
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statProdTotal">0</span>
-                                <span class="stat-card__label">Total Karyawan</span>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--mini">
-                            <div class="stat-card__info">
-                                <span class="stat-card__value" id="statProdTotalQty">0</span>
-                                <span class="stat-card__label">Total Qty</span>
-                            </div>
-                        </div>
+                        <h2><i class="fas fa-trophy"></i> Productivity Leaderboard</h2>
+                        <p>Peringkat produktivitas karyawan — auto-aggregated dari semua halaman</p>
                     </div>
 
                     <!-- Toolbar -->
@@ -1951,36 +1935,46 @@
                         </div>
                     </div>
 
-                    <!-- Table -->
-                    <div class="table-container">
-                        <table class="data-table" id="prodTable">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Nama Karyawan</th>
-                                    <th>Divisi</th>
-                                    <th>Job Desc</th>
-                                    <th>Inbound Arrival</th>
-                                    <th>Inbound Transaction</th>
-                                    <th>VAS</th>
-                                    <th>Daily Cycle Count</th>
-                                    <th>Project Damage</th>
-                                    <th>QC Return</th>
-                                    <th>Total Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody id="prodTableBody"></tbody>
-                        </table>
-                        <div class="table-empty" id="prodEmpty">
-                            <i class="fas fa-chart-line"></i>
-                            <p>Belum ada data attendance untuk dihitung produktivitasnya.</p>
+                    <!-- Leaderboard Grid -->
+                    <div class="leaderboard-grid">
+                        <!-- Inbound Leaderboard -->
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-card__header leaderboard-card__header--inbound">
+                                <i class="fas fa-truck-loading"></i>
+                                <h3>Inbound</h3>
+                                <span class="leaderboard-card__sub">Arrival + Transaction + VAS</span>
+                            </div>
+                            <div class="leaderboard-card__podium" id="podiumInbound"></div>
+                            <div class="leaderboard-card__list" id="listInbound"></div>
+                        </div>
+
+                        <!-- DCC Leaderboard -->
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-card__header leaderboard-card__header--dcc">
+                                <i class="fas fa-clipboard-check"></i>
+                                <h3>Daily Cycle Count</h3>
+                                <span class="leaderboard-card__sub">Qty &amp; Location</span>
+                            </div>
+                            <div class="leaderboard-card__podium" id="podiumDcc"></div>
+                            <div class="leaderboard-card__list" id="listDcc"></div>
+                        </div>
+
+                        <!-- Damage & QCR Leaderboard -->
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-card__header leaderboard-card__header--qc">
+                                <i class="fas fa-shield-alt"></i>
+                                <h3>Damage &amp; QC Return</h3>
+                                <span class="leaderboard-card__sub">Project Damage + QC Return</span>
+                            </div>
+                            <div class="leaderboard-card__podium" id="podiumQc"></div>
+                            <div class="leaderboard-card__list" id="listQc"></div>
                         </div>
                     </div>
 
-                    <!-- Pagination -->
-                    <div class="pagination" id="paginationProd">
-                        <div class="pagination__info" id="paginationProdInfo"></div>
-                        <div class="pagination__pages" id="paginationProdPages"></div>
+                    <!-- Empty state -->
+                    <div class="table-empty" id="prodEmpty">
+                        <i class="fas fa-trophy"></i>
+                        <p>Belum ada data attendance untuk dihitung produktivitasnya.</p>
                     </div>
                 </section>
 

@@ -2740,6 +2740,7 @@ function calcAvgLeadTime() {
 // UTILITIES
 // ========================================
 function closeModal(modal) {
+    if (typeof modal === 'string') modal = document.getElementById(modal);
     if (modal) modal.classList.remove('show');
 }
 
@@ -4619,28 +4620,29 @@ function updateAttStats(items) {
 function initProductivityPage() {
     // Search
     const searchInput = document.getElementById('searchProd');
-    searchInput?.addEventListener('input', () => { pageState.Prod.current = 1; renderProductivityTable(searchInput.value); });
+    searchInput?.addEventListener('input', () => renderProductivityTable(searchInput.value));
 
     // Export
     document.getElementById('btnExportProd')?.addEventListener('click', () => {
-        const prodData = buildProductivityData();
-        const filtered = applyProdSearch(prodData, document.getElementById('searchProd')?.value || '');
+        const { inbound, dcc, qc } = buildProductivityData();
+        const q = document.getElementById('searchProd')?.value || '';
+        const fInbound = applyProdSearch(inbound, q);
+        const fDcc = applyProdSearch(dcc, q);
+        const fQc = applyProdSearch(qc, q);
 
-        const headers = ['Nama Karyawan', 'Divisi', 'Job Desc', 'Inbound Arrival', 'Inbound Transaction', 'VAS', 'Daily Cycle Count', 'Project Damage', 'QC Return', 'Total Qty'];
-        const rows = filtered.map(d => [
-            d.name, d.divisi, d.jobdesc,
-            d.arrival || 0, d.transaction || 0, d.vas || 0,
-            d.dccLabel, d.damage || 0, d.qcReturn || 0, d.totalQty
-        ]);
+        const headers = ['Kategori', 'Rank', 'Nama Karyawan', 'Divisi', 'Job Desc', 'Nilai'];
+        const rows = [];
+        fInbound.forEach((d, i) => rows.push(['Inbound', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
+        fDcc.forEach((d, i) => rows.push(['Daily Cycle Count', i + 1, d.name, d.divisi, d.jobdesc, d.valueLabel || d.value]));
+        fQc.forEach((d, i) => rows.push(['Damage & QC Return', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
 
-        // Manual CSV build
         let csv = '\uFEFF' + headers.join(',') + '\n';
         rows.forEach(r => { csv += r.map(v => `"${v}"`).join(',') + '\n'; });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `productivity_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `productivity_leaderboard_${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
         showToast('Export CSV berhasil', 'success');
@@ -4648,10 +4650,7 @@ function initProductivityPage() {
 }
 
 function buildProductivityData() {
-    // Get all attendance data for employee list
     const attendance = getData(STORAGE_KEYS.attendance);
-
-    // Build unique employee list from attendance
     const empMap = {};
     attendance.forEach(a => {
         const key = (a.name || '').trim().toLowerCase();
@@ -4661,7 +4660,6 @@ function buildProductivityData() {
         }
     });
 
-    // Aggregate data from all sources
     const arrivals = getData(STORAGE_KEYS.arrivals);
     const transactions = getData(STORAGE_KEYS.transactions);
     const vasData = getData(STORAGE_KEYS.vas);
@@ -4669,28 +4667,30 @@ function buildProductivityData() {
     const damageData = getData(STORAGE_KEYS.damage);
     const qcrData = getData(STORAGE_KEYS.qcReturn);
 
-    // Build productivity for each employee
-    const results = [];
+    const inboundList = [];
+    const dccList = [];
+    const qcList = [];
+
     for (const [key, emp] of Object.entries(empMap)) {
-        // Inbound Arrival: operator → qty
+        // Inbound: Arrival + Transaction + VAS
         let arrivalQty = 0;
         arrivals.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) arrivalQty += (parseInt(d.actualQty) || parseInt(d.qty) || 0);
         });
-
-        // Inbound Transaction: operator → qty
         let transQty = 0;
         transactions.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) transQty += (parseInt(d.qty) || 0);
         });
-
-        // VAS: operator → qty
         let vasQty = 0;
         vasData.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) vasQty += (parseInt(d.qty) || 0);
         });
+        const inboundTotal = arrivalQty + transQty + vasQty;
+        if (inboundTotal > 0) {
+            inboundList.push({ ...emp, value: inboundTotal, detail: `Arrival: ${arrivalQty.toLocaleString()} | Trans: ${transQty.toLocaleString()} | VAS: ${vasQty.toLocaleString()}` });
+        }
 
-        // DCC: operator → qty + count locations
+        // DCC: qty + locations
         let dccQty = 0;
         const dccLocSet = new Set();
         dccData.forEach(d => {
@@ -4699,41 +4699,30 @@ function buildProductivityData() {
                 if (d.location) dccLocSet.add(d.location);
             }
         });
+        if (dccQty > 0 || dccLocSet.size > 0) {
+            dccList.push({ ...emp, value: dccQty, locCount: dccLocSet.size, valueLabel: `${dccQty.toLocaleString()} pcs / ${dccLocSet.size} loc`, detail: `${dccLocSet.size} lokasi dicek` });
+        }
 
-        // Project Damage: qcBy (not operator) → qty
+        // QC: Damage + QC Return
         let dmgQty = 0;
         damageData.forEach(d => {
             if ((d.qcBy || '').trim().toLowerCase() === key) dmgQty += (parseInt(d.qty) || 0);
         });
-
-        // QC Return: operator → qty
         let qcrQty = 0;
         qcrData.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) qcrQty += (parseInt(d.qty) || 0);
         });
-
-        const totalQty = arrivalQty + transQty + vasQty + dccQty + dmgQty + qcrQty;
-        const dccLabel = dccQty > 0 ? `${dccQty.toLocaleString()} pcs / ${dccLocSet.size} loc` : '0';
-
-        results.push({
-            name: emp.name,
-            divisi: emp.divisi,
-            jobdesc: emp.jobdesc,
-            arrival: arrivalQty,
-            transaction: transQty,
-            vas: vasQty,
-            dcc: dccQty,
-            dccLoc: dccLocSet.size,
-            dccLabel,
-            damage: dmgQty,
-            qcReturn: qcrQty,
-            totalQty
-        });
+        const qcTotal = dmgQty + qcrQty;
+        if (qcTotal > 0) {
+            qcList.push({ ...emp, value: qcTotal, detail: `Damage: ${dmgQty.toLocaleString()} | QC Return: ${qcrQty.toLocaleString()}` });
+        }
     }
 
-    // Sort by total qty desc
-    results.sort((a, b) => b.totalQty - a.totalQty);
-    return results;
+    inboundList.sort((a, b) => b.value - a.value);
+    dccList.sort((a, b) => b.value - a.value);
+    qcList.sort((a, b) => b.value - a.value);
+
+    return { inbound: inboundList, dcc: dccList, qc: qcList };
 }
 
 function applyProdSearch(data, search) {
@@ -4746,52 +4735,83 @@ function applyProdSearch(data, search) {
     );
 }
 
-function renderProductivityTable(search = '') {
-    const tbody = document.getElementById('prodTableBody');
-    const emptyEl = document.getElementById('prodEmpty');
-    const table = document.getElementById('prodTable');
-    if (!tbody) return;
-
-    const allData = buildProductivityData();
-    const q = search || document.getElementById('searchProd')?.value || '';
-    const items = applyProdSearch(allData, q);
-
-    // Stats
-    const totalEmployees = items.length;
-    const totalQty = items.reduce((sum, d) => sum + d.totalQty, 0);
-    animateCounter('statProdTotal', totalEmployees);
-    animateCounter('statProdTotalQty', totalQty);
+function renderPodium(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
 
     if (items.length === 0) {
-        tbody.innerHTML = '';
-        table.style.display = 'none';
-        emptyEl.classList.add('show');
-        renderPagination('Prod', 0, renderProductivityTable);
+        el.innerHTML = '<div class="podium-empty"><i class="fas fa-inbox"></i><p>Belum ada data</p></div>';
         return;
     }
 
-    table.style.display = '';
-    emptyEl.classList.remove('show');
+    const medals = ['🥇', '🥈', '🥉'];
+    const top3 = items.slice(0, 3);
 
-    const { start, end } = renderPagination('Prod', items.length, renderProductivityTable);
-    const pageData = items.slice(start, end);
-
-    tbody.innerHTML = pageData.map((d, i) => {
-        const fmtQty = (v) => v > 0 ? `<span style="color:var(--accent-green);font-weight:600;">${v.toLocaleString()}</span>` : '<span style="color:var(--text-muted);">0</span>';
-        const fmtDcc = d.dcc > 0 ? `<span style="color:var(--accent-green);font-weight:600;">${d.dccLabel}</span>` : '<span style="color:var(--text-muted);">0</span>';
-
-        return `<tr>
-            <td>${start + i + 1}</td>
-            <td>${escapeHtml(d.name)}</td>
-            <td>${escapeHtml(d.divisi)}</td>
-            <td>${escapeHtml(d.jobdesc)}</td>
-            <td>${fmtQty(d.arrival)}</td>
-            <td>${fmtQty(d.transaction)}</td>
-            <td>${fmtQty(d.vas)}</td>
-            <td>${fmtDcc}</td>
-            <td>${fmtQty(d.damage)}</td>
-            <td>${fmtQty(d.qcReturn)}</td>
-            <td style="font-weight:700;color:var(--accent-blue);">${d.totalQty.toLocaleString()}</td>
-        </tr>`;
+    el.innerHTML = top3.map((d, i) => {
+        const rank = i + 1;
+        const valDisplay = d.valueLabel || d.value.toLocaleString();
+        return `<div class="podium-item podium-item--${rank}">
+            <div class="podium-item__medal">${medals[i]}</div>
+            <div class="podium-item__name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</div>
+            <div class="podium-item__value">${valDisplay}</div>
+            <div class="podium-item__bar"></div>
+        </div>`;
     }).join('');
 }
+
+function renderRankList(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    const rest = items.slice(3);
+    if (rest.length === 0) {
+        el.innerHTML = '';
+        return;
+    }
+
+    el.innerHTML = rest.map((d, i) => {
+        const rank = i + 4;
+        const valDisplay = d.valueLabel || d.value.toLocaleString();
+        return `<div class="rank-row">
+            <div class="rank-row__position">${rank}</div>
+            <div class="rank-row__info">
+                <div class="rank-row__name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</div>
+                <div class="rank-row__detail">${escapeHtml(d.divisi)} · ${escapeHtml(d.jobdesc)}</div>
+            </div>
+            <div class="rank-row__value">${valDisplay}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderProductivityTable(search = '') {
+    const emptyEl = document.getElementById('prodEmpty');
+    const gridEl = document.querySelector('.leaderboard-grid');
+
+    const { inbound, dcc, qc } = buildProductivityData();
+    const q = search || document.getElementById('searchProd')?.value || '';
+
+    const fInbound = applyProdSearch(inbound, q);
+    const fDcc = applyProdSearch(dcc, q);
+    const fQc = applyProdSearch(qc, q);
+
+    const hasData = fInbound.length > 0 || fDcc.length > 0 || fQc.length > 0;
+
+    if (!hasData) {
+        if (gridEl) gridEl.style.display = 'none';
+        if (emptyEl) emptyEl.classList.add('show');
+        return;
+    }
+
+    if (gridEl) gridEl.style.display = '';
+    if (emptyEl) emptyEl.classList.remove('show');
+
+    renderPodium('podiumInbound', fInbound);
+    renderRankList('listInbound', fInbound);
+
+    renderPodium('podiumDcc', fDcc);
+    renderRankList('listDcc', fDcc);
+
+    renderPodium('podiumQc', fQc);
+    renderRankList('listQc', fQc);
+}
+
