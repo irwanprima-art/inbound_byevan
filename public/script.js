@@ -5007,7 +5007,7 @@ function openProjectModal(editData) {
     document.getElementById('modalProjectTitle').innerHTML = editData
         ? '<i class="fas fa-edit"></i> Edit Data Project'
         : '<i class="fas fa-project-diagram"></i> Tambah Data Project';
-    openModal('modalProject');
+    document.getElementById('modalProject')?.classList.add('show');
 }
 
 function deleteProjectEntry(id) {
