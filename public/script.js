@@ -1151,8 +1151,8 @@ function renderDmgDashboard() {
         noteBody.innerHTML = sortedNotes.map(([note, data]) => `
             <tr>
                 <td>${escapeHtml(note)}</td>
-                <td>${data.skus.size}</td>
-                <td>${data.qty.toLocaleString()}</td>
+                <td style="text-align:center;">${data.skus.size}</td>
+                <td style="text-align:center;">${data.qty.toLocaleString()}</td>
             </tr>`
         ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
@@ -1172,8 +1172,8 @@ function renderDmgDashboard() {
         brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
             <tr>
                 <td>${escapeHtml(brand)}</td>
-                <td>${data.skus.size}</td>
-                <td>${data.qty.toLocaleString()}</td>
+                <td style="text-align:center;">${data.skus.size}</td>
+                <td style="text-align:center;">${data.qty.toLocaleString()}</td>
             </tr>`
         ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
@@ -1242,8 +1242,8 @@ function renderQcrDashboard() {
         brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
             <tr>
                 <td>${escapeHtml(brand)}</td>
-                <td style="color: var(--accent-green); font-weight: 600;">${data.good.toLocaleString()}</td>
-                <td style="color: var(--accent-red); font-weight: 600;">${data.damage.toLocaleString()}</td>
+                <td style="text-align:center;color: var(--accent-green); font-weight: 600;">${data.good.toLocaleString()}</td>
+                <td style="text-align:center;color: var(--accent-red); font-weight: 600;">${data.damage.toLocaleString()}</td>
             </tr>`
         ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
