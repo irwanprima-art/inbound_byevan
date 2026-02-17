@@ -35,6 +35,13 @@ const ROLE_LABELS = {
     admin_inventory: 'Admin Inventory'
 };
 
+// Only supervisor and leader can delete data
+function canDelete() {
+    const session = getSession();
+    if (!session) return false;
+    return ['supervisor', 'leader'].includes(session.role);
+}
+
 // Simple hash for password (not crypto-secure, just basic obfuscation)
 async function hashPassword(pw) {
     const data = new TextEncoder().encode(pw);
@@ -122,6 +129,28 @@ function applyRoleAccess(role) {
         if (nameEl) nameEl.textContent = session.username;
         if (roleEl) roleEl.textContent = ROLE_LABELS[session.role] || session.role;
     }
+
+    // Hide delete buttons for non-supervisor/leader roles
+    const deleteAllowed = ['supervisor', 'leader'].includes(role);
+    const deleteDisplay = deleteAllowed ? '' : 'none';
+
+    // Clear All buttons
+    ['btnClearDcc', 'btnClearDmg', 'btnClearSoh', 'btnClearQcr', 'btnClearLoc'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = deleteDisplay;
+    });
+
+    // Bulk Delete buttons (hidden by default, but ensure they stay hidden)
+    if (!deleteAllowed) {
+        ['btnBulkDeleteArrival', 'btnBulkDeleteTransaction', 'btnBulkDeleteVas',
+            'btnBulkDeleteDcc', 'btnBulkDeleteDmg', 'btnBulkDeleteQcr', 'btnBulkDeleteLoc'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+    }
+
+    // Toggle body class for CSS-based hiding of inline delete buttons
+    document.body.classList.toggle('role-no-delete', !deleteAllowed);
 }
 
 // Show login screen
@@ -1693,6 +1722,7 @@ async function saveTransaction() {
 }
 
 async function deleteTransaction(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus transaksi ini?')) return;
 
     if (typeof isApiAvailable === 'function' && isApiAvailable()) {
@@ -1923,6 +1953,7 @@ async function saveArrival() {
 }
 
 async function deleteArrival(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus data arrival ini?')) return;
 
     if (typeof isApiAvailable === 'function' && isApiAvailable()) {
@@ -2153,6 +2184,7 @@ async function saveVas() {
 }
 
 async function deleteVas(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus data VAS ini?')) return;
 
     if (typeof isApiAvailable === 'function' && isApiAvailable()) {
@@ -3031,6 +3063,7 @@ function saveDcc() {
 }
 
 function deleteDcc(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus data cycle count ini?')) return;
     let items = getData(STORAGE_KEYS.dcc);
     items = items.filter(d => d.id !== id);
@@ -3341,6 +3374,7 @@ function openDmgModal(editId = null) {
 }
 
 function deleteDmg(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus data ini?')) return;
     let data = getData(STORAGE_KEYS.damage);
     data = data.filter(d => d.id !== id);
@@ -3818,6 +3852,7 @@ function openQcrModal(editId = null) {
 }
 
 function deleteQcr(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus data ini?')) return;
     let data = getData(STORAGE_KEYS.qcReturn);
     data = data.filter(d => d.id !== id);
@@ -4101,6 +4136,7 @@ function openLocModal(editId = null) {
 }
 
 function deleteLoc(id) {
+    if (!canDelete()) { showToast('Hanya Supervisor/Leader yang bisa menghapus data', 'error'); return; }
     if (!confirm('Hapus location ini?')) return;
     const data = getData(STORAGE_KEYS.locations).filter(d => d.id !== id);
     setData(STORAGE_KEYS.locations, data);

@@ -2120,6 +2120,16 @@ body {
     min-width: 0;
 }
 
+/* Hide delete buttons and checkboxes for non-supervisor/leader roles */
+body.role-no-delete .btn--danger {
+    display: none !important;
+}
+
+body.role-no-delete .td-checkbox,
+body.role-no-delete th:first-child:has(input[type="checkbox"]) {
+    display: none;
+}
+
 .data-table tbody tr.row-selected {
     background: rgba(99, 102, 241, 0.1) !important;
 }
