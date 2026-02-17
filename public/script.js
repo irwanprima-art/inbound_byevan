@@ -3,6 +3,46 @@
 // ========================================
 
 // ========================================
+// TOAST NOTIFICATION
+// ========================================
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existing = document.getElementById('toastNotif');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'toastNotif';
+
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    const bgColors = {
+        success: 'linear-gradient(135deg, #065f46, #047857)',
+        error: 'linear-gradient(135deg, #7f1d1d, #991b1b)',
+        info: 'linear-gradient(135deg, #1e3a5f, #1e40af)',
+        warning: 'linear-gradient(135deg, #78350f, #92400e)'
+    };
+
+    toast.style.cssText = `
+        position: fixed; top: 24px; right: 24px; z-index: 99999;
+        padding: 14px 24px; border-radius: 12px; font-size: 14px;
+        font-family: 'Inter', sans-serif; font-weight: 600;
+        color: #fff; display: flex; align-items: center; gap: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        background: ${bgColors[type] || bgColors.info};
+        transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.3s;
+        max-width: 420px; cursor: pointer;
+    `;
+    toast.innerHTML = `<span style="font-size:18px">${icons[type] || icons.info}</span> ${message}`;
+    toast.onclick = () => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); };
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+
+    setTimeout(() => {
+        if (toast.parentNode) { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 400); }
+    }, 4000);
+}
+
+// ========================================
 // AUTH MODULE — Login, Logout, Role Access
 // ========================================
 
