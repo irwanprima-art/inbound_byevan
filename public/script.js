@@ -646,28 +646,56 @@ function navigateTo(pageId) {
     if (breadcrumb) breadcrumb.textContent = PAGE_NAMES[pageId] || pageId;
 
     // Render page data
-    if (pageId === 'inbound-arrival') renderArrivalTable();
-    if (pageId === 'inbound-transaction') renderTransactionTable();
-    if (pageId === 'vas') renderVasTable();
+    const PAGE_RENDER_MAP = {
+        'inbound-arrival': renderArrivalTable,
+        'inbound-transaction': renderTransactionTable,
+        'vas': renderVasTable,
+        'daily-cycle-count': () => { renderDccTable(); },
+        'project-damage': renderDmgTable,
+        'stock-on-hand': renderSohTable,
+        'qc-return': renderQcrTable,
+        'dashboard': updateDashboardStats,
+        'master-location': renderLocationTable,
+        'attendance': renderAttendanceTable,
+        'productivity': renderProductivityTable,
+        'employees': renderEmployeesTable,
+        'clock-inout': renderClockPage
+    };
+
+    // Inject refresh button into toolbar if not already present
+    const pageEl = document.getElementById(`page-${pageId}`);
+    if (pageEl) {
+        const toolbar = pageEl.querySelector('.toolbar-left');
+        if (toolbar && !toolbar.querySelector('.btn-refresh-page')) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn--ghost btn-refresh-page';
+            btn.title = 'Refresh Data';
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Refresh</span>';
+            btn.style.cssText = 'margin-left: 4px;';
+            btn.addEventListener('click', () => {
+                const icon = btn.querySelector('i');
+                icon.style.animation = 'spin 0.6s linear';
+                setTimeout(() => icon.style.animation = '', 600);
+                const renderFn = PAGE_RENDER_MAP[pageId];
+                if (renderFn) renderFn();
+                showToast('Data berhasil di-refresh', 'success');
+            });
+            toolbar.appendChild(btn);
+        }
+    }
+
+    // DCC special filter handling
     if (pageId === 'daily-cycle-count') {
-        // Clear drill-down filter if navigating directly (not from drillDownToDcc)
         if (typeof dccVarianceFilter !== 'undefined' && !window._dccDrillDownActive) {
             dccVarianceFilter = '';
             const searchDcc = document.getElementById('searchDcc');
             if (searchDcc) searchDcc.value = '';
         }
         window._dccDrillDownActive = false;
-        renderDccTable();
     }
-    if (pageId === 'project-damage') renderDmgTable();
-    if (pageId === 'stock-on-hand') renderSohTable();
-    if (pageId === 'qc-return') renderQcrTable();
-    if (pageId === 'dashboard') updateDashboardStats();
-    if (pageId === 'master-location') renderLocationTable();
-    if (pageId === 'attendance') renderAttendanceTable();
-    if (pageId === 'productivity') renderProductivityTable();
-    if (pageId === 'employees') renderEmployeesTable();
-    if (pageId === 'clock-inout') renderClockPage();
+
+    const renderFn = PAGE_RENDER_MAP[pageId];
+    if (renderFn) renderFn();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
     document.getElementById('sidebarOverlay')?.classList.remove('show');

@@ -3916,3 +3916,14 @@ body.role-no-delete th:first-child:has(input[type="checkbox"]) {
     background: linear-gradient(135deg, #d97706, #f59e0b) !important;
     position: relative;
 }
+
+/* Refresh button spin animation */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
