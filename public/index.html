@@ -550,19 +550,23 @@
                                 </div>
                                 <div class="chart-card__body">
                                     <div class="accuracy-list">
-                                        <div class="accuracy-row">
+                                        <div class="accuracy-row accuracy-row--clickable"
+                                            onclick="drillDownToDcc('all')">
                                             <span class="accuracy-label">Total Sys. Qty</span>
                                             <span class="accuracy-value" id="accQtySys">0</span>
                                         </div>
-                                        <div class="accuracy-row">
+                                        <div class="accuracy-row accuracy-row--clickable"
+                                            onclick="drillDownToDcc('all')">
                                             <span class="accuracy-label">Total Phy. Qty</span>
                                             <span class="accuracy-value" id="accQtyPhy">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--shortage">
+                                        <div class="accuracy-row accuracy-row--shortage accuracy-row--clickable"
+                                            onclick="drillDownToDcc('shortage')">
                                             <span class="accuracy-label">Shortage Qty</span>
                                             <span class="accuracy-value" id="accQtyShortage">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--gain">
+                                        <div class="accuracy-row accuracy-row--gain accuracy-row--clickable"
+                                            onclick="drillDownToDcc('gain')">
                                             <span class="accuracy-label">Gain Qty</span>
                                             <span class="accuracy-value" id="accQtyGain">0</span>
                                         </div>
@@ -581,15 +585,18 @@
                                 </div>
                                 <div class="chart-card__body">
                                     <div class="accuracy-list">
-                                        <div class="accuracy-row">
+                                        <div class="accuracy-row accuracy-row--clickable"
+                                            onclick="drillDownToDcc('all')">
                                             <span class="accuracy-label">Total SKU Count</span>
                                             <span class="accuracy-value" id="accSkuTotal">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--match">
+                                        <div class="accuracy-row accuracy-row--match accuracy-row--clickable"
+                                            onclick="drillDownToDcc('match')">
                                             <span class="accuracy-label">Total SKU Match</span>
                                             <span class="accuracy-value" id="accSkuMatch">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--unmatch">
+                                        <div class="accuracy-row accuracy-row--unmatch accuracy-row--clickable"
+                                            onclick="drillDownToDcc('unmatch')">
                                             <span class="accuracy-label">Total SKU Not Match</span>
                                             <span class="accuracy-value" id="accSkuUnmatch">0</span>
                                         </div>
@@ -608,15 +615,18 @@
                                 </div>
                                 <div class="chart-card__body">
                                     <div class="accuracy-list">
-                                        <div class="accuracy-row">
+                                        <div class="accuracy-row accuracy-row--clickable"
+                                            onclick="drillDownToDcc('all')">
                                             <span class="accuracy-label">Total Location Count</span>
                                             <span class="accuracy-value" id="accLocTotal">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--match">
+                                        <div class="accuracy-row accuracy-row--match accuracy-row--clickable"
+                                            onclick="drillDownToDcc('match')">
                                             <span class="accuracy-label">Total Location Match</span>
                                             <span class="accuracy-value" id="accLocMatch">0</span>
                                         </div>
-                                        <div class="accuracy-row accuracy-row--unmatch">
+                                        <div class="accuracy-row accuracy-row--unmatch accuracy-row--clickable"
+                                            onclick="drillDownToDcc('unmatch')">
                                             <span class="accuracy-label">Total Location Not Match</span>
                                             <span class="accuracy-value" id="accLocUnmatch">0</span>
                                         </div>

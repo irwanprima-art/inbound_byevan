@@ -478,7 +478,16 @@ function navigateTo(pageId) {
     if (pageId === 'inbound-arrival') renderArrivalTable();
     if (pageId === 'inbound-transaction') renderTransactionTable();
     if (pageId === 'vas') renderVasTable();
-    if (pageId === 'daily-cycle-count') renderDccTable();
+    if (pageId === 'daily-cycle-count') {
+        // Clear drill-down filter if navigating directly (not from drillDownToDcc)
+        if (typeof dccVarianceFilter !== 'undefined' && !window._dccDrillDownActive) {
+            dccVarianceFilter = '';
+            const searchDcc = document.getElementById('searchDcc');
+            if (searchDcc) searchDcc.value = '';
+        }
+        window._dccDrillDownActive = false;
+        renderDccTable();
+    }
     if (pageId === 'project-damage') renderDmgTable();
     if (pageId === 'stock-on-hand') renderSohTable();
     if (pageId === 'qc-return') renderQcrTable();
@@ -2882,7 +2891,7 @@ function initDccPage() {
         saveDcc();
     });
 
-    searchInput?.addEventListener('input', () => { pageState.Dcc.current = 1; renderDccTable(searchInput.value); });
+    searchInput?.addEventListener('input', () => { dccVarianceFilter = ''; pageState.Dcc.current = 1; renderDccTable(searchInput.value); });
 
     // Export
     document.getElementById('btnExportDcc')?.addEventListener('click', () => {
@@ -3029,6 +3038,41 @@ function deleteDcc(id) {
     renderDccTable();
 }
 
+// --- Drill down from Accuracy Dashboard to DCC Table ---
+let dccVarianceFilter = ''; // global: '', 'shortage', 'gain', 'match', 'unmatch'
+
+function drillDownToDcc(filterType) {
+    // Store the filter type
+    dccVarianceFilter = filterType || '';
+
+    // Read current dashboard filter (date/month) and apply to DCC search
+    const filterTypeEl = document.getElementById('invFilterType');
+    const filterDateEl = document.getElementById('invFilterDate');
+    const filterMonthEl = document.getElementById('invFilterMonth');
+    const dashFilterType = filterTypeEl?.value || 'all';
+    let searchText = '';
+
+    if (dashFilterType === 'daily' && filterDateEl?.value) {
+        searchText = filterDateEl.value; // YYYY-MM-DD format for DCC search
+    } else if (dashFilterType === 'monthly' && filterMonthEl?.value) {
+        searchText = filterMonthEl.value; // YYYY-MM format
+    }
+
+    // Navigate to DCC page (flag so navigateTo doesn't clear our filter)
+    window._dccDrillDownActive = true;
+    navigateTo('daily-cycle-count');
+
+    // Set the search box value on DCC page
+    const searchInput = document.getElementById('searchDcc');
+    if (searchInput) {
+        searchInput.value = searchText;
+    }
+
+    // Reset pagination and render with filters
+    pageState.Dcc.current = 1;
+    renderDccTable(searchText);
+}
+
 function renderDccTable(search = '') {
     const tbody = document.getElementById('dccTableBody');
     const emptyEl = document.getElementById('dccEmpty');
@@ -3049,6 +3093,20 @@ function renderDccTable(search = '') {
             (d.phyInv || '').toLowerCase().includes(q) ||
             (d.description || '').toLowerCase().includes(q)
         );
+    }
+
+    // Apply variance filter from dashboard drill-down
+    if (dccVarianceFilter && dccVarianceFilter !== 'all') {
+        items = items.filter(d => {
+            const sysQty = parseInt(d.sysQty) || 0;
+            const phyQty = parseInt(d.phyQty) || 0;
+            const variance = phyQty - sysQty;
+            if (dccVarianceFilter === 'shortage') return variance < 0;
+            if (dccVarianceFilter === 'gain') return variance > 0;
+            if (dccVarianceFilter === 'match') return variance === 0;
+            if (dccVarianceFilter === 'unmatch') return variance !== 0;
+            return true;
+        });
     }
 
     // Update stat cards

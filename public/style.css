@@ -2837,6 +2837,18 @@ body {
     background: rgba(255, 255, 255, 0.03);
 }
 
+.accuracy-row--clickable {
+    cursor: pointer;
+}
+
+.accuracy-row--clickable:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.accuracy-row--clickable:hover .accuracy-value {
+    text-decoration: underline;
+}
+
 .accuracy-row:last-child {
     border-bottom: none;
 }
