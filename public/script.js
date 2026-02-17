@@ -4682,15 +4682,19 @@ function initProductivityPage() {
 
     // Export
     document.getElementById('btnExportProd')?.addEventListener('click', () => {
-        const { inbound, dcc, qc } = buildProductivityData();
+        const { inspection, receive, vas, dcc, qc } = buildProductivityData();
         const q = document.getElementById('searchProd')?.value || '';
-        const fInbound = applyProdSearch(inbound, q);
+        const fInspection = applyProdSearch(inspection, q);
+        const fReceive = applyProdSearch(receive, q);
+        const fVas = applyProdSearch(vas, q);
         const fDcc = applyProdSearch(dcc, q);
         const fQc = applyProdSearch(qc, q);
 
         const headers = ['Kategori', 'Rank', 'Nama Karyawan', 'Divisi', 'Job Desc', 'Nilai'];
         const rows = [];
-        fInbound.forEach((d, i) => rows.push(['Inbound', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
+        fInspection.forEach((d, i) => rows.push(['Inspection', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
+        fReceive.forEach((d, i) => rows.push(['Receive & Putaway', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
+        fVas.forEach((d, i) => rows.push(['Value Added Service', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
         fDcc.forEach((d, i) => rows.push(['Daily Cycle Count', i + 1, d.name, d.divisi, d.jobdesc, d.valueLabel || d.value]));
         fQc.forEach((d, i) => rows.push(['Damage & QC Return', i + 1, d.name, d.divisi, d.jobdesc, d.value]));
 
@@ -4763,27 +4767,38 @@ function buildProductivityData() {
     damageData.forEach(d => addEmp(d.qcBy, 'Inventory', 'Project Damage'));
     qcrData.forEach(d => addEmp(d.operator, 'Inventory', 'QC Return'));
 
-    const inboundList = [];
+    const inspectionList = [];
+    const receiveList = [];
+    const vasList = [];
     const dccList = [];
     const qcList = [];
 
     for (const [key, emp] of Object.entries(empMap)) {
-        // Inbound: Arrival + Transaction + VAS
+        // Inspection (Inbound Arrival)
         let arrivalQty = 0;
         arrivals.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) arrivalQty += (parseInt(d.actualQty) || parseInt(d.qty) || 0);
         });
+        if (arrivalQty > 0) {
+            inspectionList.push({ ...emp, value: arrivalQty, detail: `${arrivalQty.toLocaleString()} pcs inspected` });
+        }
+
+        // Receive & Putaway (Inbound Transaction)
         let transQty = 0;
         transactions.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) transQty += (parseInt(d.qty) || 0);
         });
+        if (transQty > 0) {
+            receiveList.push({ ...emp, value: transQty, detail: `${transQty.toLocaleString()} pcs received/putaway` });
+        }
+
+        // VAS (Value Added Service)
         let vasQty = 0;
         vasData.forEach(d => {
             if ((d.operator || '').trim().toLowerCase() === key) vasQty += (parseInt(d.qty) || 0);
         });
-        const inboundTotal = arrivalQty + transQty + vasQty;
-        if (inboundTotal > 0) {
-            inboundList.push({ ...emp, value: inboundTotal, detail: `Arrival: ${arrivalQty.toLocaleString()} | Trans: ${transQty.toLocaleString()} | VAS: ${vasQty.toLocaleString()}` });
+        if (vasQty > 0) {
+            vasList.push({ ...emp, value: vasQty, detail: `${vasQty.toLocaleString()} pcs VAS` });
         }
 
         // DCC: qty + locations
@@ -4814,11 +4829,13 @@ function buildProductivityData() {
         }
     }
 
-    inboundList.sort((a, b) => b.value - a.value);
+    inspectionList.sort((a, b) => b.value - a.value);
+    receiveList.sort((a, b) => b.value - a.value);
+    vasList.sort((a, b) => b.value - a.value);
     dccList.sort((a, b) => b.value - a.value);
     qcList.sort((a, b) => b.value - a.value);
 
-    return { inbound: inboundList, dcc: dccList, qc: qcList };
+    return { inspection: inspectionList, receive: receiveList, vas: vasList, dcc: dccList, qc: qcList };
 }
 
 function applyProdSearch(data, search) {
@@ -4883,14 +4900,16 @@ function renderProductivityTable(search = '') {
     const emptyEl = document.getElementById('prodEmpty');
     const gridEl = document.querySelector('.leaderboard-grid');
 
-    const { inbound, dcc, qc } = buildProductivityData();
+    const { inspection, receive, vas, dcc, qc } = buildProductivityData();
     const q = search || document.getElementById('searchProd')?.value || '';
 
-    const fInbound = applyProdSearch(inbound, q);
+    const fInspection = applyProdSearch(inspection, q);
+    const fReceive = applyProdSearch(receive, q);
+    const fVas = applyProdSearch(vas, q);
     const fDcc = applyProdSearch(dcc, q);
     const fQc = applyProdSearch(qc, q);
 
-    const hasData = fInbound.length > 0 || fDcc.length > 0 || fQc.length > 0;
+    const hasData = fInspection.length > 0 || fReceive.length > 0 || fVas.length > 0 || fDcc.length > 0 || fQc.length > 0;
 
     if (!hasData) {
         if (gridEl) gridEl.style.display = 'none';
@@ -4901,8 +4920,14 @@ function renderProductivityTable(search = '') {
     if (gridEl) gridEl.style.display = '';
     if (emptyEl) emptyEl.classList.remove('show');
 
-    renderPodium('podiumInbound', fInbound);
-    renderRankList('listInbound', fInbound);
+    renderPodium('podiumInspection', fInspection);
+    renderRankList('listInspection', fInspection);
+
+    renderPodium('podiumReceive', fReceive);
+    renderRankList('listReceive', fReceive);
+
+    renderPodium('podiumVas', fVas);
+    renderRankList('listVas', fVas);
 
     renderPodium('podiumDcc', fDcc);
     renderRankList('listDcc', fDcc);

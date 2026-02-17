@@ -3902,3 +3902,12 @@ body.role-no-delete th:first-child:has(input[type="checkbox"]) {
     margin: 4px 0;
     color: var(--text-secondary);
 }
+
+/* Leaderboard header color variants */
+.leaderboard-card__header--receive {
+    background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+}
+
+.leaderboard-card__header--vas {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa) !important;
+}
