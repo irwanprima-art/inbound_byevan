@@ -5122,7 +5122,7 @@ function initClockPage() {
             }
         } else {
             if (nameDisplay) {
-                nameDisplay.textContent = 'NIK tidak ditemukan';
+                nameDisplay.textContent = 'Karyawan Tidak Terdaftar';
                 nameDisplay.className = 'clock-info-display not-found';
             }
         }
@@ -5151,7 +5151,7 @@ function initClockPage() {
         const employees = getData(STORAGE_KEYS.employees);
         const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
         if (!emp) {
-            showClockStatus('NIK tidak ditemukan di Master Employees!', 'error');
+            showClockStatus('Karyawan Tidak Terdaftar!', 'error');
             return;
         }
 
@@ -5209,7 +5209,7 @@ function initClockPage() {
         const employees = getData(STORAGE_KEYS.employees);
         const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
         if (!emp) {
-            showClockStatus('NIK tidak ditemukan di Master Employees!', 'error');
+            showClockStatus('Karyawan Tidak Terdaftar!', 'error');
             return;
         }
 
