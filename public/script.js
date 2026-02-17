@@ -5101,6 +5101,9 @@ function initClockPage() {
     updateClock();
     _clockInterval = setInterval(updateClock, 1000);
 
+    // Start live log refresh
+    startClockLogRefresh();
+
     // NIK auto-lookup
     const nikInput = document.getElementById('clockNik');
     nikInput?.addEventListener('input', () => {
@@ -5270,6 +5273,7 @@ function renderClockPage() {
 
     const today = new Date().toISOString().slice(0, 10);
     const allData = getData(STORAGE_KEYS.attendance);
+    // Show ALL today's records (both clocked-in and clocked-out)
     const todayData = allData.filter(d => d.date === today);
 
     if (todayData.length === 0) {
@@ -5282,10 +5286,45 @@ function renderClockPage() {
     if (table) table.style.display = '';
     if (emptyEl) emptyEl.classList.remove('show');
 
+    const now = new Date();
+
     tbody.innerHTML = todayData.map((d, i) => {
-        const statusText = d.clockOut
-            ? '<span class="badge badge--success">Selesai</span>'
-            : '<span class="badge badge--warning">Belum Clock Out</span>';
+        let durationText = '-';
+        let durationClass = '';
+        let statusBadge = '';
+
+        if (d.clockIn) {
+            const [h, m] = d.clockIn.split(':').map(Number);
+            const clockInTime = new Date(now);
+            clockInTime.setHours(h, m, 0, 0);
+
+            let endTime;
+            if (d.clockOut) {
+                const [oh, om] = d.clockOut.split(':').map(Number);
+                endTime = new Date(now);
+                endTime.setHours(oh, om, 0, 0);
+                statusBadge = '<span class="badge badge--success">Selesai</span>';
+            } else {
+                endTime = now;
+                statusBadge = '<span class="badge badge--warning">Belum Clock Out</span>';
+            }
+
+            const diffMs = endTime - clockInTime;
+            if (diffMs > 0) {
+                const totalSec = Math.floor(diffMs / 1000);
+                const hrs = Math.floor(totalSec / 3600);
+                const mins = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+                durationText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+                if (hrs >= 10) {
+                    durationClass = 'duration-danger';
+                } else if (hrs >= 9) {
+                    durationClass = 'duration-warning';
+                }
+            }
+        }
+
         return `<tr>
             <td>${i + 1}</td>
             <td>${escapeHtml(d.nik || '-')}</td>
@@ -5294,7 +5333,23 @@ function renderClockPage() {
             <td>${escapeHtml(d.divisi || '-')}</td>
             <td>${d.clockIn || '-'}</td>
             <td>${d.clockOut || '-'}</td>
-            <td>${statusText}</td>
+            <td class="${durationClass}" style="font-weight:700; font-family: 'JetBrains Mono', monospace;">${durationText}</td>
+            <td>${statusBadge}</td>
         </tr>`;
     }).join('');
+}
+
+// Live refresh for clock log durations
+let _clockLogInterval = null;
+function startClockLogRefresh() {
+    if (_clockLogInterval) clearInterval(_clockLogInterval);
+    _clockLogInterval = setInterval(() => {
+        const page = document.getElementById('page-clock-inout');
+        if (page && page.classList.contains('active')) {
+            renderClockPage();
+        } else {
+            clearInterval(_clockLogInterval);
+            _clockLogInterval = null;
+        }
+    }, 1000);
 }
