@@ -4709,31 +4709,59 @@ function initProductivityPage() {
 
 function buildProductivityData() {
     let attendance = getData(STORAGE_KEYS.attendance);
+    let arrivals = getData(STORAGE_KEYS.arrivals);
+    let transactions = getData(STORAGE_KEYS.transactions);
+    let vasData = getData(STORAGE_KEYS.vas);
+    let dccData = getData(STORAGE_KEYS.dcc);
+    let damageData = getData(STORAGE_KEYS.damage);
+    let qcrData = getData(STORAGE_KEYS.qcReturn);
 
     // Apply date/month filter from productivity toolbar
     const filterDate = document.getElementById('filterProdDate')?.value || '';
     const filterMonth = document.getElementById('filterProdMonth')?.value || '';
-    if (filterDate) {
-        attendance = attendance.filter(a => (a.date || '') === filterDate);
-    } else if (filterMonth) {
-        attendance = attendance.filter(a => (a.date || '').startsWith(filterMonth));
+
+    function matchDate(dateStr) {
+        if (!dateStr) return false;
+        if (filterDate) return dateStr === filterDate;
+        if (filterMonth) return dateStr.startsWith(filterMonth);
+        return true; // no filter = all
     }
 
+    if (filterDate || filterMonth) {
+        attendance = attendance.filter(a => matchDate(a.date || ''));
+        arrivals = arrivals.filter(d => matchDate(d.date || d.arrivalDate || ''));
+        transactions = transactions.filter(d => matchDate(d.date || d.transDate || ''));
+        vasData = vasData.filter(d => matchDate(d.date || d.transDate || ''));
+        dccData = dccData.filter(d => matchDate(d.date || ''));
+        damageData = damageData.filter(d => matchDate(d.date || ''));
+        qcrData = qcrData.filter(d => matchDate(d.date || ''));
+    }
+
+    // Build empMap from ALL sources (not just attendance)
     const empMap = {};
-    attendance.forEach(a => {
-        const key = (a.name || '').trim().toLowerCase();
+
+    function addEmp(name, divisi, jobdesc) {
+        const key = (name || '').trim().toLowerCase();
         if (!key) return;
         if (!empMap[key]) {
-            empMap[key] = { name: a.name || '', divisi: a.divisi || '', jobdesc: a.jobdesc || '' };
+            empMap[key] = { name: name || '', divisi: divisi || '', jobdesc: jobdesc || '' };
         }
-    });
+    }
 
-    const arrivals = getData(STORAGE_KEYS.arrivals);
-    const transactions = getData(STORAGE_KEYS.transactions);
-    const vasData = getData(STORAGE_KEYS.vas);
-    const dccData = getData(STORAGE_KEYS.dcc);
-    const damageData = getData(STORAGE_KEYS.damage);
-    const qcrData = getData(STORAGE_KEYS.qcReturn);
+    // From attendance
+    attendance.forEach(a => addEmp(a.name, a.divisi, a.jobdesc));
+
+    // From arrivals, transactions, VAS (Inbound)
+    arrivals.forEach(d => addEmp(d.operator, 'Inbound', ''));
+    transactions.forEach(d => addEmp(d.operator, 'Inbound', d.operation || ''));
+    vasData.forEach(d => addEmp(d.operator, 'Inbound', 'VAS'));
+
+    // From DCC
+    dccData.forEach(d => addEmp(d.operator, 'Inventory', 'Cycle Count'));
+
+    // From Damage, QC Return
+    damageData.forEach(d => addEmp(d.qcBy, 'Inventory', 'Project Damage'));
+    qcrData.forEach(d => addEmp(d.operator, 'Inventory', 'QC Return'));
 
     const inboundList = [];
     const dccList = [];
