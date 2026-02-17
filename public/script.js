@@ -4852,7 +4852,7 @@ function buildProductivityData() {
         // Inspection (Inbound Arrival)
         let arrivalQty = 0;
         arrivals.forEach(d => {
-            if ((d.operator || '').trim().toLowerCase() === key) arrivalQty += (parseInt(d.actualQty) || parseInt(d.qty) || 0);
+            if ((d.operator || '').trim().toLowerCase() === key) arrivalQty += (parseInt(d.poQty) || 0);
         });
         if (arrivalQty > 0) {
             inspectionList.push({ ...emp, value: arrivalQty, detail: `${arrivalQty.toLocaleString()} pcs inspected` });
