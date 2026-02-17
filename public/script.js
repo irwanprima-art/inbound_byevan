@@ -6,7 +6,6 @@
 // TOAST NOTIFICATION
 // ========================================
 function showToast(message, type = 'info') {
-    // Remove existing toast
     const existing = document.getElementById('toastNotif');
     if (existing) existing.remove();
 
@@ -22,24 +21,83 @@ function showToast(message, type = 'info') {
     };
 
     toast.style.cssText = `
-        position: fixed; top: 24px; right: 24px; z-index: 99999;
-        padding: 14px 24px; border-radius: 12px; font-size: 14px;
+        position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-120%);
+        z-index: 99999; padding: 14px 24px; border-radius: 12px; font-size: 14px;
         font-family: 'Inter', sans-serif; font-weight: 600;
         color: #fff; display: flex; align-items: center; gap: 10px;
         box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         background: ${bgColors[type] || bgColors.info};
-        transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.3s;
-        max-width: 420px; cursor: pointer;
+        transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+        max-width: 480px; cursor: pointer; text-align: center;
     `;
     toast.innerHTML = `<span style="font-size:18px">${icons[type] || icons.info}</span> ${message}`;
-    toast.onclick = () => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); };
+    toast.onclick = () => { toast.style.transform = 'translateX(-50%) translateY(-120%)'; setTimeout(() => toast.remove(), 300); };
     document.body.appendChild(toast);
 
-    requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+    requestAnimationFrame(() => { toast.style.transform = 'translateX(-50%) translateY(0)'; });
 
     setTimeout(() => {
-        if (toast.parentNode) { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 400); }
+        if (toast.parentNode) { toast.style.transform = 'translateX(-50%) translateY(-120%)'; setTimeout(() => toast.remove(), 400); }
     }, 4000);
+}
+
+// Special centered popup for Clock In success
+function showClockInPopup(empName, note) {
+    const existing = document.getElementById('clockInPopup');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'clockInPopup';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 99999;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        background: linear-gradient(145deg, #0f172a, #1e293b);
+        border: 1px solid rgba(59,130,246,0.3); border-radius: 20px;
+        padding: 40px 48px; max-width: 500px; width: 90%; text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(59,130,246,0.15);
+        animation: scaleIn 0.4s cubic-bezier(0.22,1,0.36,1);
+        font-family: 'Inter', sans-serif;
+    `;
+
+    const displayNote = note
+        ? note.replace(/\[Nama\]/gi, empName)
+        : `Selamat bekerja, ${empName}! 💪`;
+
+    card.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+        <div style="font-size: 22px; font-weight: 700; color: #34d399; margin-bottom: 12px;">Clock In Berhasil!</div>
+        <div style="font-size: 16px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${displayNote}</div>
+        <button onclick="document.getElementById('clockInPopup')?.remove()" style="
+            margin-top: 24px; padding: 10px 32px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 16px rgba(59,130,246,0.4)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">OK</button>
+    `;
+
+    overlay.appendChild(card);
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+
+    // Add animations
+    if (!document.getElementById('clockInPopupStyles')) {
+        const style = document.createElement('style');
+        style.id = 'clockInPopupStyles';
+        style.textContent = `
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes scaleIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Auto close after 8 seconds
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
 }
 
 // ========================================
@@ -5129,6 +5187,8 @@ function initEmployeesPage() {
         const name = document.getElementById('empName')?.value?.trim();
         const status = document.getElementById('empStatus')?.value;
 
+        const clockInNote = document.getElementById('empClockInNote')?.value?.trim() || '';
+
         if (!nik || !name) {
             showToast('Harap isi NIK dan Nama Karyawan', 'error');
             return;
@@ -5143,7 +5203,7 @@ function initEmployeesPage() {
             return;
         }
 
-        const record = { nik, name, status };
+        const record = { nik, name, status, clockInNote };
 
         if (editId) {
             const idx = data.findIndex(d => d.id === editId);
@@ -5221,6 +5281,7 @@ function openEmpModal(editId = null) {
     document.getElementById('empNik').value = '';
     document.getElementById('empName').value = '';
     document.getElementById('empStatus').value = 'Reguler';
+    document.getElementById('empClockInNote').value = '';
 
     if (editId) {
         const data = getData(STORAGE_KEYS.employees);
@@ -5231,6 +5292,7 @@ function openEmpModal(editId = null) {
             document.getElementById('empNik').value = item.nik || '';
             document.getElementById('empName').value = item.name || '';
             document.getElementById('empStatus').value = item.status || 'Reguler';
+            document.getElementById('empClockInNote').value = item.clockInNote || '';
         }
     } else {
         title.innerHTML = '<i class="fas fa-id-card"></i> Tambah Karyawan';
@@ -5406,7 +5468,7 @@ function initClockPage() {
         setData(STORAGE_KEYS.attendance, data);
 
         showClockStatus(`✅ Clock In berhasil! ${emp.name} — ${clockIn}`, 'success');
-        showToast(`Selamat bekerja, ${emp.name}! 💪`, 'success');
+        showClockInPopup(emp.name, emp.clockInNote || '');
 
         // Reset form
         document.getElementById('clockNik').value = '';
