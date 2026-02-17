@@ -705,28 +705,7 @@ function navigateTo(pageId) {
         'clock-inout': renderClockPage
     };
 
-    // Inject refresh button into toolbar if not already present
-    const pageEl = document.getElementById(`page-${pageId}`);
-    if (pageEl) {
-        const toolbar = pageEl.querySelector('.toolbar-left');
-        if (toolbar && !toolbar.querySelector('.btn-refresh-page')) {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn--ghost btn-refresh-page';
-            btn.title = 'Refresh Data';
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Refresh</span>';
-            btn.style.cssText = 'margin-left: 4px;';
-            btn.addEventListener('click', () => {
-                const icon = btn.querySelector('i');
-                icon.style.animation = 'spin 0.6s linear';
-                setTimeout(() => icon.style.animation = '', 600);
-                const renderFn = PAGE_RENDER_MAP[pageId];
-                if (renderFn) renderFn();
-                showToast('Data berhasil di-refresh', 'success');
-            });
-            toolbar.appendChild(btn);
-        }
-    }
-
+    // Render page data via map
     // DCC special filter handling
     if (pageId === 'daily-cycle-count') {
         if (typeof dccVarianceFilter !== 'undefined' && !window._dccDrillDownActive) {
@@ -744,6 +723,33 @@ function navigateTo(pageId) {
     document.getElementById('sidebarOverlay')?.classList.remove('show');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// Global event delegation for all [data-refresh] buttons
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-refresh]');
+    if (!btn) return;
+    const pageId = btn.getAttribute('data-refresh');
+    const REFRESH_MAP = {
+        'inbound-arrival': () => renderArrivalTable(),
+        'inbound-transaction': () => renderTransactionTable(),
+        'vas': () => renderVasTable(),
+        'daily-cycle-count': () => renderDccTable(),
+        'project-damage': () => renderDmgTable(),
+        'stock-on-hand': () => renderSohTable(),
+        'qc-return': () => renderQcrTable(),
+        'dashboard': () => updateDashboardStats(),
+        'master-location': () => renderLocationTable(),
+        'attendance': () => renderAttendanceTable(),
+        'productivity': () => renderProductivityTable(),
+        'employees': () => renderEmployeesTable(),
+        'clock-inout': () => renderClockPage()
+    };
+    const icon = btn.querySelector('i');
+    if (icon) { icon.style.animation = 'spin 0.6s linear'; setTimeout(() => icon.style.animation = '', 600); }
+    const fn = REFRESH_MAP[pageId];
+    if (fn) fn();
+    showToast('Data berhasil di-refresh', 'success');
+});
 
 function renderTabBar() {
     const container = document.getElementById('tabBarTabs');
