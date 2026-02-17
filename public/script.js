@@ -1135,60 +1135,29 @@ function renderEdNoteTable() {
 // --- Project Damage Dashboard Report ---
 function renderDmgDashboard() {
     const items = getData(STORAGE_KEYS.damage);
-    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
 
-    const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
-    setText('rptDmgTotal', items.length.toLocaleString());
-    setText('rptDmgQty', totalQty.toLocaleString());
-
-    // Damage Note pie chart
+    // --- 1. Damage Note Table ---
     const noteMap = {};
     items.forEach(d => {
-        const note = d.damageNote || 'Unknown';
-        if (!noteMap[note]) noteMap[note] = { count: 0, qty: 0 };
-        noteMap[note].count++;
+        const note = d.note || 'Unknown';
+        if (!noteMap[note]) noteMap[note] = { skus: new Set(), qty: 0 };
+        if (d.sku) noteMap[note].skus.add(d.sku);
         noteMap[note].qty += parseInt(d.qty) || 0;
     });
 
-    const pieColors = ['#6366f1', '#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
-    const pieEl = document.getElementById('dmgPieChart');
-    const legendEl = document.getElementById('dmgPieLegend');
-
-    if (pieEl && legendEl) {
-        const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].count - a[1].count);
-        const total = items.length;
-
-        if (sortedNotes.length === 0) {
-            pieEl.style.background = 'var(--border)';
-            pieEl.style.boxShadow = 'none';
-            legendEl.innerHTML = '<div class="donut-legend-row"><span class="donut-legend-label" style="color:var(--text-secondary); text-align:center; width:100%;">Belum ada data</span></div>';
-        } else {
-            // Build conic-gradient
-            let gradientParts = [];
-            let cumPct = 0;
-            sortedNotes.forEach(([note, data], i) => {
-                const pct = (data.count / total) * 100;
-                const color = pieColors[i % pieColors.length];
-                gradientParts.push(`${color} ${cumPct}% ${cumPct + pct}%`);
-                cumPct += pct;
-            });
-            pieEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
-            pieEl.style.boxShadow = '0 0 20px rgba(99, 102, 241, 0.2)';
-
-            // Build legend
-            legendEl.innerHTML = sortedNotes.map(([note, data], i) => {
-                const color = pieColors[i % pieColors.length];
-                const pct = ((data.count / total) * 100).toFixed(1);
-                return `<div class="donut-legend-row">
-                    <span class="donut-legend-dot" style="background:${color};"></span>
-                    <span class="donut-legend-label">${escapeHtml(note)}</span>
-                    <span class="donut-legend-value">${data.count} <small style="color:var(--text-secondary);font-weight:400;">(${pct}%)</small></span>
-                </div>`;
-            }).join('');
-        }
+    const noteBody = document.getElementById('rptDmgNoteBody');
+    if (noteBody) {
+        const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].qty - a[1].qty);
+        noteBody.innerHTML = sortedNotes.map(([note, data]) => `
+            <tr>
+                <td>${escapeHtml(note)}</td>
+                <td>${data.skus.size}</td>
+                <td>${data.qty.toLocaleString()}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
 
-    // Brand breakdown
+    // --- 2. Brand Table ---
     const brandMap = {};
     items.forEach(d => {
         const brand = d.brand || 'Unknown';
@@ -1208,57 +1177,103 @@ function renderDmgDashboard() {
             </tr>`
         ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
+
+    // --- 3. Donut Chart (% per damage note) ---
+    const pieColors = ['#6366f1', '#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
+    const pieEl = document.getElementById('dmgPieChart');
+    const legendEl = document.getElementById('dmgPieLegend');
+
+    if (pieEl && legendEl) {
+        const totalQty = items.reduce((s, d) => s + (parseInt(d.qty) || 0), 0);
+        const sortedNotes = Object.entries(noteMap).sort((a, b) => b[1].qty - a[1].qty);
+
+        if (sortedNotes.length === 0 || totalQty === 0) {
+            pieEl.style.background = 'var(--border)';
+            pieEl.style.boxShadow = 'none';
+            legendEl.innerHTML = '<div class="donut-legend-row"><span class="donut-legend-label" style="color:var(--text-secondary); text-align:center; width:100%;">Belum ada data</span></div>';
+        } else {
+            // Build conic-gradient based on qty
+            let gradientParts = [];
+            let cumPct = 0;
+            sortedNotes.forEach(([note, data], i) => {
+                const pct = (data.qty / totalQty) * 100;
+                const color = pieColors[i % pieColors.length];
+                gradientParts.push(`${color} ${cumPct}% ${cumPct + pct}%`);
+                cumPct += pct;
+            });
+            pieEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+            pieEl.style.boxShadow = '0 0 20px rgba(99, 102, 241, 0.2)';
+
+            // Build legend with %
+            legendEl.innerHTML = sortedNotes.map(([note, data], i) => {
+                const color = pieColors[i % pieColors.length];
+                const pct = ((data.qty / totalQty) * 100).toFixed(1);
+                return `<div class="donut-legend-row">
+                    <span class="donut-legend-dot" style="background:${color};"></span>
+                    <span class="donut-legend-label">${escapeHtml(note)}</span>
+                    <span class="donut-legend-value">${pct}%</span>
+                </div>`;
+            }).join('');
+        }
+    }
 }
 
 // --- QC Return Dashboard Report ---
 function renderQcrDashboard() {
     const items = getData(STORAGE_KEYS.qcReturn);
-    const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
 
-    // Operator productivity
-    const opMap = {};
+    // --- 1. Brand Table (Good / Damage) ---
+    const brandMap = {};
     items.forEach(d => {
-        const op = d.operator || 'Unknown';
-        if (!opMap[op]) opMap[op] = { count: 0, qty: 0 };
-        opMap[op].count++;
-        opMap[op].qty += parseInt(d.qty) || 0;
+        const brand = d.brand || 'Unknown';
+        if (!brandMap[brand]) brandMap[brand] = { good: 0, damage: 0 };
+        const status = (d.status || 'Good').toLowerCase();
+        const qty = parseInt(d.qty) || 0;
+        if (status === 'damage') {
+            brandMap[brand].damage += qty;
+        } else {
+            brandMap[brand].good += qty;
+        }
     });
 
-    const opBody = document.getElementById('rptQcrOperatorBody');
-    if (opBody) {
-        const sortedOps = Object.entries(opMap).sort((a, b) => b[1].count - a[1].count);
-        opBody.innerHTML = sortedOps.map(([op, data]) => `
+    const brandBody = document.getElementById('rptQcrBrandBody');
+    if (brandBody) {
+        const sortedBrands = Object.entries(brandMap).sort((a, b) => (b[1].good + b[1].damage) - (a[1].good + a[1].damage));
+        brandBody.innerHTML = sortedBrands.map(([brand, data]) => `
             <tr>
-                <td>${escapeHtml(op)}</td>
-                <td>${data.count}</td>
-                <td>${data.qty.toLocaleString()}</td>
+                <td>${escapeHtml(brand)}</td>
+                <td style="color: var(--accent-green); font-weight: 600;">${data.good.toLocaleString()}</td>
+                <td style="color: var(--accent-red); font-weight: 600;">${data.damage.toLocaleString()}</td>
             </tr>`
         ).join('') || '<tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">Belum ada data</td></tr>';
     }
 
-    // Status breakdown
-    const total = items.length;
-    const damageCount = items.filter(d => (d.status || '').toLowerCase() === 'damage').length;
-    const goodCount = items.filter(d => (d.status || 'Good').toLowerCase() === 'good').length;
-    const goodRate = total > 0 ? ((goodCount / total) * 100).toFixed(2) : '0.00';
-    const goodPct = total > 0 ? (goodCount / total) * 100 : 100;
+    // --- 2. QC By Productivity Bar Chart ---
+    const opMap = {};
+    items.forEach(d => {
+        const op = d.operator || 'Unknown';
+        if (!opMap[op]) opMap[op] = 0;
+        opMap[op] += parseInt(d.qty) || 0;
+    });
 
-    setText('rptQcrTotal', total.toLocaleString());
-    setText('rptQcrDamage', damageCount.toLocaleString());
-    setText('rptQcrGood', goodCount.toLocaleString());
-    setText('rptQcrGoodPct', goodRate + '%');
+    const chartEl = document.getElementById('qcrProductivityChart');
+    if (chartEl) {
+        const sortedOps = Object.entries(opMap).sort((a, b) => b[1] - a[1]);
+        const maxVal = sortedOps.length > 0 ? sortedOps[0][1] : 1;
 
-    // Update donut chart conic-gradient
-    const donut = document.getElementById('qcrDonutChart');
-    if (donut) {
-        donut.style.background = `conic-gradient(var(--accent-green) 0% ${goodPct}%, var(--accent-red) ${goodPct}% 100%)`;
-        // Update glow color based on Good Rate
-        if (goodPct >= 80) {
-            donut.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.3)';
-        } else if (goodPct >= 50) {
-            donut.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.3)';
+        if (sortedOps.length === 0) {
+            chartEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:24px;">Belum ada data</div>';
         } else {
-            donut.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.3)';
+            chartEl.innerHTML = sortedOps.map(([op, qty]) => {
+                const pct = (qty / maxVal) * 100;
+                return `<div class="hbar-row">
+                    <span class="hbar-label" title="${escapeHtml(op)}">${escapeHtml(op)}</span>
+                    <div class="hbar-track">
+                        <div class="hbar-fill" style="width: ${pct}%;"></div>
+                    </div>
+                    <span class="hbar-value">${qty.toLocaleString()}</span>
+                </div>`;
+            }).join('');
         }
     }
 }
