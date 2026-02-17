@@ -40,6 +40,12 @@
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
             </form>
+            <div class="login-divider">
+                <span>atau</span>
+            </div>
+            <button class="login-absen-btn" id="btnLoginAbsen">
+                <i class="fas fa-stopwatch"></i> Absen / Clock In & Out
+            </button>
         </div>
     </div>
 
@@ -153,6 +159,18 @@
                             <i class="fas fa-chevron-down nav-group__arrow"></i>
                         </div>
                         <ul class="nav-group__items">
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-page="employees" id="nav-employees">
+                                    <i class="fas fa-id-card"></i>
+                                    <span>Employees</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-page="clock-inout" id="nav-clock-inout">
+                                    <i class="fas fa-stopwatch"></i>
+                                    <span>Clock In/Out</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="#" class="nav-link" data-page="attendance" id="nav-attendance">
                                     <i class="fas fa-user-clock"></i>
@@ -1863,6 +1881,14 @@
                             </button>
                         </div>
                         <div class="toolbar-right">
+                            <div class="filter-group">
+                                <input type="date" id="filterAttDate" class="inv-filter-input" title="Filter per hari">
+                                <input type="month" id="filterAttMonth" class="inv-filter-input"
+                                    title="Filter per bulan">
+                                <button class="btn btn--ghost btn--sm" id="btnClearAttFilter" title="Clear filter">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" placeholder="Cari nama, NIK, divisi..." id="searchAtt">
@@ -1928,6 +1954,14 @@
                             </button>
                         </div>
                         <div class="toolbar-right">
+                            <div class="filter-group">
+                                <input type="date" id="filterProdDate" class="inv-filter-input" title="Filter per hari">
+                                <input type="month" id="filterProdMonth" class="inv-filter-input"
+                                    title="Filter per bulan">
+                                <button class="btn btn--ghost btn--sm" id="btnClearProdFilter" title="Clear filter">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" placeholder="Cari nama, divisi, job desc..." id="searchProd">
@@ -1977,6 +2011,226 @@
                         <p>Belum ada data attendance untuk dihitung produktivitasnya.</p>
                     </div>
                 </section>
+
+                <!-- ======================= EMPLOYEES PAGE ======================= -->
+                <section class="page" id="page-employees">
+                    <div class="page-header">
+                        <div class="page-header__top">
+                            <button class="back-btn" data-navigate="dashboard" id="btn-back-employees">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Kembali</span>
+                            </button>
+                        </div>
+                        <h2><i class="fas fa-id-card"></i> Master Employees</h2>
+                        <p>Data karyawan warehouse — NIK, Nama, Status</p>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="stat-cards stat-cards--mini">
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statEmpTotal">0</span>
+                                <span class="stat-card__label">Total Karyawan</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statEmpReguler">0</span>
+                                <span class="stat-card__label">Reguler</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card--mini">
+                            <div class="stat-card__info">
+                                <span class="stat-card__value" id="statEmpTambahan">0</span>
+                                <span class="stat-card__label">Tambahan</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="toolbar-left">
+                            <button class="btn btn--primary" id="btnAddEmp">
+                                <i class="fas fa-plus"></i> <span>Tambah Karyawan</span>
+                            </button>
+                            <button class="btn btn--outline" id="btnExportEmp">
+                                <i class="fas fa-file-export"></i> <span>Export CSV</span>
+                            </button>
+                            <button class="btn btn--outline" id="btnImportEmp">
+                                <i class="fas fa-file-import"></i> <span>Import CSV</span>
+                            </button>
+                            <button class="btn btn--danger" id="btnBulkDeleteEmp" style="display:none">
+                                <i class="fas fa-trash"></i> <span>Hapus (0)</span>
+                            </button>
+                            <button class="btn btn--danger" id="btnClearEmp">
+                                <i class="fas fa-broom"></i> <span>Clear All</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Cari NIK, nama..." id="searchEmp">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-container">
+                        <table class="data-table" id="empTable">
+                            <thead>
+                                <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllEmp"
+                                            onchange="toggleSelectAll('Emp')"></th>
+                                    <th>No</th>
+                                    <th>NIK</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="empTableBody"></tbody>
+                        </table>
+                        <div class="table-empty" id="empEmpty">
+                            <i class="fas fa-id-card"></i>
+                            <p>Belum ada data karyawan. Tambah manual atau import CSV.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination" id="paginationEmp">
+                        <div class="pagination__info" id="paginationEmpInfo"></div>
+                        <div class="pagination__pages" id="paginationEmpPages"></div>
+                    </div>
+                </section>
+
+                <!-- ======================= CLOCK IN/OUT PAGE ======================= -->
+                <section class="page" id="page-clock-inout">
+                    <div class="page-header">
+                        <div class="page-header__top">
+                            <button class="back-btn" data-navigate="dashboard" id="btn-back-clock-inout">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Kembali</span>
+                            </button>
+                        </div>
+                        <h2><i class="fas fa-stopwatch"></i> Clock In / Out</h2>
+                        <p>Absensi otomatis — masukkan NIK dan Jobdesc, waktu tercatat otomatis</p>
+                    </div>
+
+                    <div class="clock-form-card">
+                        <div class="clock-form-card__time">
+                            <div class="clock-current-time" id="clockCurrentTime">--:--:--</div>
+                            <div class="clock-current-date" id="clockCurrentDate">--</div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="clockNik"><i class="fas fa-id-badge"></i> NIK *</label>
+                                <input type="text" id="clockNik" placeholder="Masukkan NIK karyawan (E000XXX)">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-user"></i> Nama Karyawan</label>
+                                <div class="clock-info-display" id="clockNameDisplay">-</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="clockJobdesc"><i class="fas fa-briefcase"></i> Jobdesc *</label>
+                                <select id="clockJobdesc">
+                                    <option value="">-- Pilih Jobdesc --</option>
+                                    <option value="Receive">Receive</option>
+                                    <option value="Putaway">Putaway</option>
+                                    <option value="Inspect">Inspect</option>
+                                    <option value="Bongkaran">Bongkaran</option>
+                                    <option value="VAS">VAS</option>
+                                    <option value="Troubleshoot">Troubleshoot</option>
+                                    <option value="Replenish">Replenish</option>
+                                    <option value="Project Inventory">Project Inventory</option>
+                                    <option value="Project Damage">Project Damage</option>
+                                    <option value="Rejection">Rejection</option>
+                                    <option value="Cycle Count">Cycle Count</option>
+                                    <option value="STO">STO</option>
+                                    <option value="Return">Return</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-building"></i> Divisi</label>
+                                <div class="clock-info-display" id="clockDivisiDisplay">-</div>
+                            </div>
+                        </div>
+
+                        <div class="clock-actions">
+                            <button class="btn btn--success btn--lg" id="btnClockIn">
+                                <i class="fas fa-sign-in-alt"></i> Clock In
+                            </button>
+                            <button class="btn btn--warning btn--lg" id="btnClockOut">
+                                <i class="fas fa-sign-out-alt"></i> Clock Out
+                            </button>
+                        </div>
+
+                        <div class="clock-status" id="clockStatus"></div>
+                    </div>
+
+                    <!-- Today's Log -->
+                    <div class="clock-log-section">
+                        <h3><i class="fas fa-list-alt"></i> Log Absensi Hari Ini</h3>
+                        <div class="table-container">
+                            <table class="data-table" id="clockLogTable">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>NIK</th>
+                                        <th>Nama</th>
+                                        <th>Jobdesc</th>
+                                        <th>Divisi</th>
+                                        <th>Clock In</th>
+                                        <th>Clock Out</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clockLogBody"></tbody>
+                            </table>
+                            <div class="table-empty" id="clockLogEmpty">
+                                <i class="fas fa-clipboard-list"></i>
+                                <p>Belum ada absensi hari ini.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Modal Employees -->
+                <div class="modal-overlay" id="modalEmp">
+                    <div class="modal">
+                        <div class="modal__header">
+                            <h3 id="modalEmpTitle"><i class="fas fa-id-card"></i> Tambah Karyawan</h3>
+                            <button class="modal__close" id="closeModalEmp">&times;</button>
+                        </div>
+                        <form id="formEmp" class="modal__form">
+                            <input type="hidden" id="empEditId">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="empNik">NIK *</label>
+                                    <input type="text" id="empNik" placeholder="E000XXX" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="empName">Nama Karyawan *</label>
+                                    <input type="text" id="empName" placeholder="Nama lengkap" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="empStatus">Status *</label>
+                                    <select id="empStatus" required>
+                                        <option value="Reguler">Reguler</option>
+                                        <option value="Tambahan">Tambahan</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal__actions">
+                                <button type="button" class="btn btn--ghost" id="cancelEmp">Batal</button>
+                                <button type="submit" class="btn btn--primary">
+                                    <i class="fas fa-save"></i> Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
                 <!-- Modal Master Location -->
                 <div class="modal-overlay" id="modalLoc">
@@ -2262,13 +2516,32 @@
                             </div>
                             <div class="form-group">
                                 <label for="attJobdesc">Jobdesc *</label>
-                                <input type="text" id="attJobdesc" placeholder="Cycle Count, Putaway, dll" required>
+                                <select id="attJobdesc" required>
+                                    <option value="">-- Pilih Jobdesc --</option>
+                                    <option value="Receive">Receive</option>
+                                    <option value="Putaway">Putaway</option>
+                                    <option value="Inspect">Inspect</option>
+                                    <option value="Bongkaran">Bongkaran</option>
+                                    <option value="VAS">VAS</option>
+                                    <option value="Troubleshoot">Troubleshoot</option>
+                                    <option value="Replenish">Replenish</option>
+                                    <option value="Project Inventory">Project Inventory</option>
+                                    <option value="Project Damage">Project Damage</option>
+                                    <option value="Rejection">Rejection</option>
+                                    <option value="Cycle Count">Cycle Count</option>
+                                    <option value="STO">STO</option>
+                                    <option value="Return">Return</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="attDivisi">Divisi *</label>
-                                <select id="attDivisi" required>
+                                <select id="attDivisi" required disabled>
+                                    <option value="">-- Auto dari Jobdesc --</option>
                                     <option value="Inbound">Inbound</option>
                                     <option value="Inventory">Inventory</option>
+                                    <option value="Return">Return</option>
+                                    <option value="Admin">Admin</option>
                                 </select>
                             </div>
                             <div class="form-group">

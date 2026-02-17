@@ -16,12 +16,12 @@ const ROLE_ACCESS = {
     supervisor: { pages: 'all', dashTabs: 'all' },
     leader: { pages: 'all', dashTabs: 'all' },
     admin_inbound: {
-        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas', 'attendance', 'productivity'],
+        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas', 'attendance', 'productivity', 'employees', 'clock-inout'],
         dashTabs: ['inbound'],
         navGroups: ['inbound', 'manpower']
     },
     admin_inventory: {
-        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'attendance', 'productivity'],
+        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'attendance', 'productivity', 'employees', 'clock-inout'],
         dashTabs: ['inventory'],
         navGroups: ['inventory', 'manpower']
     }
@@ -221,6 +221,19 @@ function initLoginForm() {
         // Re-trigger dashboard stats
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
     });
+
+    // Absen button (no login needed)
+    document.getElementById('btnLoginAbsen')?.addEventListener('click', () => {
+        window._standaloneClockMode = true;
+        showApp();
+        // Hide sidebar and header in standalone mode
+        document.getElementById('sidebar')?.style.setProperty('display', 'none');
+        document.getElementById('tabBar')?.style.setProperty('display', 'none');
+        document.querySelector('.header')?.style.setProperty('display', 'none');
+        document.querySelector('.main-content')?.style.setProperty('padding-left', '0');
+        navigateTo('clock-inout');
+        initClockPage();
+    });
 }
 
 // Handle logout
@@ -263,7 +276,8 @@ const STORAGE_KEYS = {
     soh: 'inbound_soh',
     qcReturn: 'inbound_qc_return',
     locations: 'master_locations',
-    attendance: 'manpower_attendance'
+    attendance: 'manpower_attendance',
+    employees: 'manpower_employees'
 };
 
 // Keys that use IndexedDB (large datasets)
@@ -386,6 +400,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLocPage();
     initAttendancePage();
     initProductivityPage();
+    initEmployeesPage();
+    initClockPage();
     initDashboardTabs();
     initInvFilter();
     initInboundFilter();
@@ -465,7 +481,9 @@ const PAGE_NAMES = {
     'qc-return': 'QC Return',
     'master-location': 'Master Location',
     'attendance': 'Attendance',
-    'productivity': 'Productivity'
+    'productivity': 'Productivity',
+    'employees': 'Employees',
+    'clock-inout': 'Clock In/Out'
 };
 
 const PAGE_ICONS = {
@@ -479,7 +497,9 @@ const PAGE_ICONS = {
     'qc-return': 'fas fa-undo-alt',
     'master-location': 'fas fa-map-marker-alt',
     'attendance': 'fas fa-user-clock',
-    'productivity': 'fas fa-chart-line'
+    'productivity': 'fas fa-chart-line',
+    'employees': 'fas fa-id-card',
+    'clock-inout': 'fas fa-stopwatch'
 };
 
 let openTabs = ['dashboard']; // track open tab IDs
@@ -547,6 +567,8 @@ function navigateTo(pageId) {
     if (pageId === 'master-location') renderLocationTable();
     if (pageId === 'attendance') renderAttendanceTable();
     if (pageId === 'productivity') renderProductivityTable();
+    if (pageId === 'employees') renderEmployeesTable();
+    if (pageId === 'clock-inout') renderClockPage();
 
     document.getElementById('sidebar')?.classList.remove('mobile-open');
     document.getElementById('sidebarOverlay')?.classList.remove('show');
@@ -2755,7 +2777,8 @@ const pageState = {
     Qcr: { current: 1, perPage: 50 },
     Loc: { current: 1, perPage: 50 },
     Att: { current: 1, perPage: 50 },
-    Prod: { current: 1, perPage: 50 }
+    Prod: { current: 1, perPage: 50 },
+    Emp: { current: 1, perPage: 50 }
 };
 
 function renderPagination(pageName, totalItems, renderFn) {
@@ -4467,6 +4490,22 @@ function initAttendancePage() {
     const searchInput = document.getElementById('searchAtt');
     searchInput?.addEventListener('input', () => { pageState.Att.current = 1; renderAttendanceTable(searchInput.value); });
 
+    // Date/month filter
+    document.getElementById('filterAttDate')?.addEventListener('change', () => { pageState.Att.current = 1; renderAttendanceTable(); });
+    document.getElementById('filterAttMonth')?.addEventListener('change', () => { pageState.Att.current = 1; renderAttendanceTable(); });
+    document.getElementById('btnClearAttFilter')?.addEventListener('click', () => {
+        const df = document.getElementById('filterAttDate'); if (df) df.value = '';
+        const mf = document.getElementById('filterAttMonth'); if (mf) mf.value = '';
+        pageState.Att.current = 1; renderAttendanceTable();
+    });
+
+    // Jobdesc → Divisi auto-fill
+    document.getElementById('attJobdesc')?.addEventListener('change', (e) => {
+        const divisi = JOBDESC_DIVISI_MAP[e.target.value] || '';
+        const divisiEl = document.getElementById('attDivisi');
+        if (divisiEl) divisiEl.value = divisi;
+    });
+
     // Bulk delete + select
     const attExpHeaders = ['NIK', 'Nama Karyawan', 'Status', 'Jobdesc', 'Divisi', 'Tanggal', 'Clock In', 'Clock Out'];
     const attExpMapper = (d) => [d.nik || '', d.name || '', d.status || '', d.jobdesc || '', d.divisi || '', d.date || '', d.clockIn || '', d.clockOut || ''];
@@ -4476,13 +4515,14 @@ function initAttendancePage() {
 function openAttModal(editId = null) {
     const modal = document.getElementById('modalAtt');
     const title = document.getElementById('modalAttTitle');
+    const divisiEl = document.getElementById('attDivisi');
 
     document.getElementById('attEditId').value = '';
     document.getElementById('attNik').value = '';
     document.getElementById('attName').value = '';
     document.getElementById('attStatus').value = 'Reguler';
     document.getElementById('attJobdesc').value = '';
-    document.getElementById('attDivisi').value = 'Inbound';
+    if (divisiEl) { divisiEl.value = ''; divisiEl.disabled = true; }
     document.getElementById('attDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('attClockIn').value = '';
     document.getElementById('attClockOut').value = '';
@@ -4497,7 +4537,7 @@ function openAttModal(editId = null) {
             document.getElementById('attName').value = item.name || '';
             document.getElementById('attStatus').value = item.status || 'Reguler';
             document.getElementById('attJobdesc').value = item.jobdesc || '';
-            document.getElementById('attDivisi').value = item.divisi || 'Inbound';
+            if (divisiEl) { divisiEl.value = item.divisi || 'Inbound'; }
             document.getElementById('attDate').value = item.date || '';
             document.getElementById('attClockIn').value = item.clockIn || '';
             document.getElementById('attClockOut').value = item.clockOut || '';
@@ -4526,6 +4566,15 @@ function renderAttendanceTable(search = '') {
     if (!tbody) return;
 
     let items = getData(STORAGE_KEYS.attendance);
+
+    // Date/month filter
+    const filterDate = document.getElementById('filterAttDate')?.value || '';
+    const filterMonth = document.getElementById('filterAttMonth')?.value || '';
+    if (filterDate) {
+        items = items.filter(d => (d.date || '') === filterDate);
+    } else if (filterMonth) {
+        items = items.filter(d => (d.date || '').startsWith(filterMonth));
+    }
 
     const q = (search || document.getElementById('searchAtt')?.value || '').toLowerCase();
     if (q) {
@@ -4622,6 +4671,15 @@ function initProductivityPage() {
     const searchInput = document.getElementById('searchProd');
     searchInput?.addEventListener('input', () => renderProductivityTable(searchInput.value));
 
+    // Date/month filter
+    document.getElementById('filterProdDate')?.addEventListener('change', () => renderProductivityTable());
+    document.getElementById('filterProdMonth')?.addEventListener('change', () => renderProductivityTable());
+    document.getElementById('btnClearProdFilter')?.addEventListener('click', () => {
+        const df = document.getElementById('filterProdDate'); if (df) df.value = '';
+        const mf = document.getElementById('filterProdMonth'); if (mf) mf.value = '';
+        renderProductivityTable();
+    });
+
     // Export
     document.getElementById('btnExportProd')?.addEventListener('click', () => {
         const { inbound, dcc, qc } = buildProductivityData();
@@ -4650,7 +4708,17 @@ function initProductivityPage() {
 }
 
 function buildProductivityData() {
-    const attendance = getData(STORAGE_KEYS.attendance);
+    let attendance = getData(STORAGE_KEYS.attendance);
+
+    // Apply date/month filter from productivity toolbar
+    const filterDate = document.getElementById('filterProdDate')?.value || '';
+    const filterMonth = document.getElementById('filterProdMonth')?.value || '';
+    if (filterDate) {
+        attendance = attendance.filter(a => (a.date || '') === filterDate);
+    } else if (filterMonth) {
+        attendance = attendance.filter(a => (a.date || '').startsWith(filterMonth));
+    }
+
     const empMap = {};
     attendance.forEach(a => {
         const key = (a.name || '').trim().toLowerCase();
@@ -4815,3 +4883,418 @@ function renderProductivityTable(search = '') {
     renderRankList('listQc', fQc);
 }
 
+// ======================= JOBDESC → DIVISI MAP =======================
+const JOBDESC_DIVISI_MAP = {
+    'Receive': 'Inbound',
+    'Putaway': 'Inbound',
+    'Inspect': 'Inbound',
+    'Bongkaran': 'Inbound',
+    'VAS': 'Inbound',
+    'Troubleshoot': 'Inventory',
+    'Replenish': 'Inventory',
+    'Project Inventory': 'Inventory',
+    'Project Damage': 'Inventory',
+    'Rejection': 'Inventory',
+    'Cycle Count': 'Inventory',
+    'STO': 'Inventory',
+    'Return': 'Return',
+    'Admin': 'Admin'
+};
+
+// ======================= EMPLOYEES PAGE =======================
+function initEmployeesPage() {
+    document.getElementById('btnAddEmp')?.addEventListener('click', () => openEmpModal());
+
+    document.getElementById('closeModalEmp')?.addEventListener('click', () => closeModal('modalEmp'));
+    document.getElementById('cancelEmp')?.addEventListener('click', () => closeModal('modalEmp'));
+
+    // Save
+    document.getElementById('formEmp')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('empEditId')?.value;
+        const nik = document.getElementById('empNik')?.value?.trim();
+        const name = document.getElementById('empName')?.value?.trim();
+        const status = document.getElementById('empStatus')?.value;
+
+        if (!nik || !name) {
+            showToast('Harap isi NIK dan Nama Karyawan', 'error');
+            return;
+        }
+
+        const data = getData(STORAGE_KEYS.employees);
+
+        // Check unique NIK
+        const dupIdx = data.findIndex(d => d.nik === nik && d.id !== editId);
+        if (dupIdx >= 0) {
+            showToast('NIK sudah terdaftar!', 'error');
+            return;
+        }
+
+        const record = { nik, name, status };
+
+        if (editId) {
+            const idx = data.findIndex(d => d.id === editId);
+            if (idx >= 0) {
+                record.id = editId;
+                record.createdAt = data[idx].createdAt;
+                data[idx] = record;
+            }
+        } else {
+            record.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            record.createdAt = new Date().toISOString();
+            data.push(record);
+        }
+
+        setData(STORAGE_KEYS.employees, data);
+        closeModal('modalEmp');
+        renderEmployeesTable();
+        showToast(editId ? 'Data berhasil diupdate' : 'Karyawan berhasil ditambahkan', 'success');
+    });
+
+    // Export
+    document.getElementById('btnExportEmp')?.addEventListener('click', () => {
+        const headers = ['NIK', 'Nama Karyawan', 'Status'];
+        const mapper = (d) => [d.nik || '', d.name || '', d.status || ''];
+        exportToCSV(STORAGE_KEYS.employees, `employees_${new Date().toISOString().slice(0, 10)}.csv`, headers, mapper);
+    });
+
+    // Import
+    document.getElementById('btnImportEmp')?.addEventListener('click', () => {
+        importFromCSV(
+            STORAGE_KEYS.employees,
+            ['NIK', 'Nama Karyawan', 'Status'],
+            (vals) => {
+                if (vals.length < 2) return null;
+                return {
+                    nik: vals[0]?.trim() || '',
+                    name: vals[1]?.trim() || '',
+                    status: vals[2]?.trim() || 'Reguler'
+                };
+            },
+            () => renderEmployeesTable()
+        );
+    });
+
+    // Clear All
+    document.getElementById('btnClearEmp')?.addEventListener('click', () => {
+        const items = getData(STORAGE_KEYS.employees);
+        if (items.length === 0) { showToast('Tidak ada data untuk dihapus', 'info'); return; }
+        if (!confirm(`Hapus semua ${items.length} data karyawan?`)) return;
+        setData(STORAGE_KEYS.employees, []);
+        renderEmployeesTable();
+        showToast('Semua data karyawan berhasil dihapus', 'success');
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchEmp');
+    searchInput?.addEventListener('input', () => { pageState.Emp.current = 1; renderEmployeesTable(searchInput.value); });
+
+    // Bulk actions
+    const empHeaders = ['NIK', 'Nama Karyawan', 'Status'];
+    const empMapper = (d) => [d.nik || '', d.name || '', d.status || ''];
+    initBulkActions('Emp', STORAGE_KEYS.employees, empHeaders, empMapper, renderEmployeesTable);
+}
+
+function openEmpModal(editId = null) {
+    const modal = document.getElementById('modalEmp');
+    const title = document.getElementById('modalEmpTitle');
+
+    document.getElementById('empEditId').value = '';
+    document.getElementById('empNik').value = '';
+    document.getElementById('empName').value = '';
+    document.getElementById('empStatus').value = 'Reguler';
+
+    if (editId) {
+        const data = getData(STORAGE_KEYS.employees);
+        const item = data.find(d => d.id === editId);
+        if (item) {
+            title.innerHTML = '<i class="fas fa-edit"></i> Edit Karyawan';
+            document.getElementById('empEditId').value = editId;
+            document.getElementById('empNik').value = item.nik || '';
+            document.getElementById('empName').value = item.name || '';
+            document.getElementById('empStatus').value = item.status || 'Reguler';
+        }
+    } else {
+        title.innerHTML = '<i class="fas fa-id-card"></i> Tambah Karyawan';
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteEmployee(id) {
+    if (!confirm('Hapus data karyawan ini?')) return;
+    let data = getData(STORAGE_KEYS.employees);
+    data = data.filter(d => d.id !== id);
+    setData(STORAGE_KEYS.employees, data);
+    renderEmployeesTable();
+    showToast('Data karyawan berhasil dihapus', 'success');
+}
+
+function renderEmployeesTable(search = '') {
+    const tbody = document.getElementById('empTableBody');
+    const emptyEl = document.getElementById('empEmpty');
+    const table = document.getElementById('empTable');
+    if (!tbody) return;
+
+    let items = getData(STORAGE_KEYS.employees);
+
+    const q = (search || document.getElementById('searchEmp')?.value || '').toLowerCase();
+    if (q) {
+        items = items.filter(d =>
+            (d.nik || '').toLowerCase().includes(q) ||
+            (d.name || '').toLowerCase().includes(q) ||
+            (d.status || '').toLowerCase().includes(q)
+        );
+    }
+
+    // Stats
+    const allEmps = getData(STORAGE_KEYS.employees);
+    animateCounter('statEmpTotal', allEmps.length);
+    animateCounter('statEmpReguler', allEmps.filter(d => d.status === 'Reguler').length);
+    animateCounter('statEmpTambahan', allEmps.filter(d => d.status === 'Tambahan').length);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        emptyEl.classList.add('show');
+        renderPagination('Emp', 0, renderEmployeesTable);
+        return;
+    }
+
+    table.style.display = '';
+    emptyEl.classList.remove('show');
+
+    const { start, end } = renderPagination('Emp', items.length, renderEmployeesTable);
+    const pageData = items.slice(start, end);
+
+    tbody.innerHTML = pageData.map((d, i) => {
+        const statusBadge = d.status === 'Tambahan'
+            ? '<span class="badge badge--warning">Tambahan</span>'
+            : '<span class="badge badge--info">Reguler</span>';
+        return `<tr>
+            <td class="td-checkbox"><input type="checkbox" class="row-check" data-id="${d.id}"></td>
+            <td>${start + i + 1}</td>
+            <td>${escapeHtml(d.nik || '-')}</td>
+            <td>${escapeHtml(d.name || '-')}</td>
+            <td>${statusBadge}</td>
+            <td>
+                <button class="btn btn--outline btn--sm" onclick="openEmpModal('${d.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="btn btn--danger btn--sm" onclick="deleteEmployee('${d.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ======================= CLOCK IN/OUT PAGE =======================
+let _clockInterval = null;
+
+function initClockPage() {
+    // Live clock
+    if (_clockInterval) clearInterval(_clockInterval);
+    function updateClock() {
+        const now = new Date();
+        const timeEl = document.getElementById('clockCurrentTime');
+        const dateEl = document.getElementById('clockCurrentDate');
+        if (timeEl) timeEl.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        if (dateEl) dateEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    updateClock();
+    _clockInterval = setInterval(updateClock, 1000);
+
+    // NIK auto-lookup
+    const nikInput = document.getElementById('clockNik');
+    nikInput?.addEventListener('input', () => {
+        const nik = nikInput.value.trim();
+        const nameDisplay = document.getElementById('clockNameDisplay');
+        if (!nik) {
+            if (nameDisplay) { nameDisplay.textContent = '-'; nameDisplay.className = 'clock-info-display'; }
+            return;
+        }
+        const employees = getData(STORAGE_KEYS.employees);
+        const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
+        if (emp) {
+            if (nameDisplay) {
+                nameDisplay.textContent = `${emp.name} (${emp.status})`;
+                nameDisplay.className = 'clock-info-display found';
+            }
+        } else {
+            if (nameDisplay) {
+                nameDisplay.textContent = 'NIK tidak ditemukan';
+                nameDisplay.className = 'clock-info-display not-found';
+            }
+        }
+    });
+
+    // Jobdesc → Divisi
+    const jobdescSelect = document.getElementById('clockJobdesc');
+    jobdescSelect?.addEventListener('change', () => {
+        const divisiDisplay = document.getElementById('clockDivisiDisplay');
+        const divisi = JOBDESC_DIVISI_MAP[jobdescSelect.value] || '-';
+        if (divisiDisplay) {
+            divisiDisplay.textContent = divisi;
+            divisiDisplay.className = divisi !== '-' ? 'clock-info-display found' : 'clock-info-display';
+        }
+    });
+
+    // Clock In
+    document.getElementById('btnClockIn')?.addEventListener('click', () => {
+        const nik = document.getElementById('clockNik')?.value?.trim();
+        const jobdesc = document.getElementById('clockJobdesc')?.value;
+        if (!nik || !jobdesc) {
+            showClockStatus('Harap isi NIK dan Jobdesc', 'error');
+            return;
+        }
+
+        const employees = getData(STORAGE_KEYS.employees);
+        const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
+        if (!emp) {
+            showClockStatus('NIK tidak ditemukan di Master Employees!', 'error');
+            return;
+        }
+
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        const clockIn = now.toTimeString().slice(0, 5);
+        const divisi = JOBDESC_DIVISI_MAP[jobdesc] || '';
+
+        const data = getData(STORAGE_KEYS.attendance);
+
+        // Check if already clocked in today
+        const existing = data.find(d => d.nik === emp.nik && d.date === today && !d.clockOut);
+        if (existing) {
+            showClockStatus(`${emp.name} sudah Clock In hari ini (${existing.clockIn}). Silakan Clock Out dulu.`, 'error');
+            return;
+        }
+
+        const record = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            nik: emp.nik,
+            name: emp.name,
+            status: emp.status,
+            jobdesc,
+            divisi,
+            date: today,
+            clockIn,
+            clockOut: '',
+            createdAt: now.toISOString()
+        };
+
+        data.push(record);
+        setData(STORAGE_KEYS.attendance, data);
+
+        showClockStatus(`✅ Clock In berhasil! ${emp.name} — ${clockIn}`, 'success');
+
+        // Reset form
+        document.getElementById('clockNik').value = '';
+        document.getElementById('clockJobdesc').value = '';
+        document.getElementById('clockNameDisplay').textContent = '-';
+        document.getElementById('clockNameDisplay').className = 'clock-info-display';
+        document.getElementById('clockDivisiDisplay').textContent = '-';
+        document.getElementById('clockDivisiDisplay').className = 'clock-info-display';
+
+        renderClockPage();
+    });
+
+    // Clock Out
+    document.getElementById('btnClockOut')?.addEventListener('click', () => {
+        const nik = document.getElementById('clockNik')?.value?.trim();
+        if (!nik) {
+            showClockStatus('Harap isi NIK untuk Clock Out', 'error');
+            return;
+        }
+
+        const employees = getData(STORAGE_KEYS.employees);
+        const emp = employees.find(e => (e.nik || '').toLowerCase() === nik.toLowerCase());
+        if (!emp) {
+            showClockStatus('NIK tidak ditemukan di Master Employees!', 'error');
+            return;
+        }
+
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        const clockOut = now.toTimeString().slice(0, 5);
+
+        const data = getData(STORAGE_KEYS.attendance);
+        const idx = data.findIndex(d => d.nik === emp.nik && d.date === today && !d.clockOut);
+        if (idx < 0) {
+            showClockStatus(`${emp.name} belum Clock In hari ini!`, 'error');
+            return;
+        }
+
+        data[idx].clockOut = clockOut;
+        setData(STORAGE_KEYS.attendance, data);
+
+        showClockStatus(`✅ Clock Out berhasil! ${emp.name} — ${clockOut}`, 'success');
+
+        // Reset form
+        document.getElementById('clockNik').value = '';
+        document.getElementById('clockJobdesc').value = '';
+        document.getElementById('clockNameDisplay').textContent = '-';
+        document.getElementById('clockNameDisplay').className = 'clock-info-display';
+        document.getElementById('clockDivisiDisplay').textContent = '-';
+        document.getElementById('clockDivisiDisplay').className = 'clock-info-display';
+
+        renderClockPage();
+    });
+
+    // Back button in standalone mode → return to login
+    if (window._standaloneClockMode) {
+        const backBtn = document.getElementById('btn-back-clock-inout');
+        if (backBtn) {
+            backBtn.onclick = (e) => {
+                e.preventDefault();
+                window._standaloneClockMode = false;
+                document.getElementById('sidebar')?.style.removeProperty('display');
+                document.getElementById('tabBar')?.style.removeProperty('display');
+                document.querySelector('.header')?.style.removeProperty('display');
+                document.querySelector('.main-content')?.style.removeProperty('padding-left');
+                showLogin();
+            };
+        }
+    }
+}
+
+function showClockStatus(msg, type) {
+    const el = document.getElementById('clockStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `clock-status show ${type}`;
+    setTimeout(() => { el.className = 'clock-status'; }, 5000);
+}
+
+function renderClockPage() {
+    const tbody = document.getElementById('clockLogBody');
+    const emptyEl = document.getElementById('clockLogEmpty');
+    const table = document.getElementById('clockLogTable');
+    if (!tbody) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const allData = getData(STORAGE_KEYS.attendance);
+    const todayData = allData.filter(d => d.date === today);
+
+    if (todayData.length === 0) {
+        tbody.innerHTML = '';
+        if (table) table.style.display = 'none';
+        if (emptyEl) emptyEl.classList.add('show');
+        return;
+    }
+
+    if (table) table.style.display = '';
+    if (emptyEl) emptyEl.classList.remove('show');
+
+    tbody.innerHTML = todayData.map((d, i) => {
+        const statusText = d.clockOut
+            ? '<span class="badge badge--success">Selesai</span>'
+            : '<span class="badge badge--warning">Belum Clock Out</span>';
+        return `<tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(d.nik || '-')}</td>
+            <td>${escapeHtml(d.name || '-')}</td>
+            <td>${escapeHtml(d.jobdesc || '-')}</td>
+            <td>${escapeHtml(d.divisi || '-')}</td>
+            <td>${d.clockIn || '-'}</td>
+            <td>${d.clockOut || '-'}</td>
+            <td>${statusText}</td>
+        </tr>`;
+    }).join('');
+}
