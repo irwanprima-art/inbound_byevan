@@ -5319,7 +5319,8 @@ function initClockPage() {
     });
 
     // Clock In
-    document.getElementById('btnClockIn')?.addEventListener('click', () => {
+    document.getElementById('btnClockIn')?.addEventListener('click', function () {
+        const btn = this; if (btn.disabled) return; btn.disabled = true; setTimeout(() => btn.disabled = false, 2000);
         const nik = document.getElementById('clockNik')?.value?.trim();
         const jobdesc = document.getElementById('clockJobdesc')?.value;
         if (!nik || !jobdesc) {
@@ -5379,7 +5380,8 @@ function initClockPage() {
     });
 
     // Clock Out
-    document.getElementById('btnClockOut')?.addEventListener('click', () => {
+    document.getElementById('btnClockOut')?.addEventListener('click', function () {
+        const btn = this; if (btn.disabled) return; btn.disabled = true; setTimeout(() => btn.disabled = false, 2000);
         const nik = document.getElementById('clockNik')?.value?.trim();
         if (!nik) {
             showClockStatus('Harap isi NIK untuk Clock Out', 'error');
