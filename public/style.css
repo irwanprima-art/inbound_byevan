@@ -2115,6 +2115,11 @@ body {
     min-width: 900px;
 }
 
+/* Override for compact summary tables inside dashboard cards */
+.chart-card .data-table {
+    min-width: 0;
+}
+
 .data-table tbody tr.row-selected {
     background: rgba(99, 102, 241, 0.1) !important;
 }
