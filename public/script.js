@@ -1052,15 +1052,19 @@ function renderEdNoteTable() {
         if (l.location) locCatMap[l.location.toLowerCase()] = (l.category || '').toLowerCase();
     });
 
-    // Find the latest updateDate
+    // Find the latest updateDate (compare by date portion YYYY-MM-DD)
     let latestDate = '';
     sohData.forEach(d => {
-        if (d.updateDate && d.updateDate > latestDate) latestDate = d.updateDate;
+        if (d.updateDate) {
+            const dateOnly = d.updateDate.substring(0, 10);
+            if (dateOnly > latestDate) latestDate = dateOnly;
+        }
     });
 
-    // Filter: only latest updateDate + sellable locations
+    // Filter: only latest updateDate (by date) + sellable locations
     const filtered = sohData.filter(d => {
-        if (d.updateDate !== latestDate) return false;
+        const dateOnly = (d.updateDate || '').substring(0, 10);
+        if (dateOnly !== latestDate) return false;
         const loc = (d.location || '').toLowerCase();
         const cat = locCatMap[loc] || '';
         return cat === 'sellable';
