@@ -3193,3 +3193,66 @@ body {
     width: 0;
     overflow: hidden;
 }
+
+/* ========================================
+   ED NOTE TABLE
+   ======================================== */
+.ed-note-table th.ed-col {
+    text-align: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ed-note-table th.ed-expired {
+    background: #dc2626;
+}
+
+.ed-note-table th.ed-ned1 {
+    background: #ea580c;
+}
+
+.ed-note-table th.ed-ned2 {
+    background: #f97316;
+}
+
+.ed-note-table th.ed-ned3 {
+    background: #fb923c;
+}
+
+.ed-note-table th.ed-36 {
+    background: #2563eb;
+}
+
+.ed-note-table th.ed-612 {
+    background: #1d4ed8;
+}
+
+.ed-note-table th.ed-1yr {
+    background: #16a34a;
+}
+
+.ed-note-table th.ed-none {
+    background: #6b7280;
+}
+
+.ed-note-table td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ed-note-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+.ed-note-table tr.ed-total-row {
+    background: rgba(37, 99, 235, 0.1);
+    font-weight: 700;
+}
+
+.ed-note-table tr.ed-total-row td {
+    border-top: 2px solid var(--accent-blue);
+}

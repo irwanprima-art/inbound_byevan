@@ -894,6 +894,9 @@ function updateInventoryDashboard() {
 
     // ===== 6. % COUNTING TABLE =====
     renderCountingTable(items);
+
+    // ===== 7. ED NOTE TABLE =====
+    renderEdNoteTable();
 }
 
 // --- % Counting Table on Dashboard ---
@@ -1025,6 +1028,102 @@ function renderCountingTable(dccItems) {
         <td>${grandMatch.toLocaleString()}</td>
         <td>${grandPct}%</td>
         <td>${grandAcc}%</td>
+    </tr>`;
+
+    tbody.innerHTML = html;
+}
+
+// --- ED Note Table (Sellable only, latest update date) ---
+function renderEdNoteTable() {
+    const tbody = document.getElementById('edNoteTableBody');
+    if (!tbody) return;
+
+    const sohData = getData(STORAGE_KEYS.soh);
+    const locData = getData(STORAGE_KEYS.locations);
+
+    if (sohData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px;">Belum ada data Stock On Hand</td></tr>';
+        return;
+    }
+
+    // Build location → category lookup
+    const locCatMap = {};
+    locData.forEach(l => {
+        if (l.location) locCatMap[l.location.toLowerCase()] = (l.category || '').toLowerCase();
+    });
+
+    // Find the latest updateDate
+    let latestDate = '';
+    sohData.forEach(d => {
+        if (d.updateDate && d.updateDate > latestDate) latestDate = d.updateDate;
+    });
+
+    // Filter: only latest updateDate + sellable locations
+    const filtered = sohData.filter(d => {
+        if (d.updateDate !== latestDate) return false;
+        const loc = (d.location || '').toLowerCase();
+        const cat = locCatMap[loc] || '';
+        return cat === 'sellable';
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px;">Tidak ada data sellable untuk tanggal terbaru</td></tr>';
+        return;
+    }
+
+    // ED categories mapping
+    const ED_CATS = ['Expired', '< 1 Month', '< 2 Month', '< 3 Month', '3 - 6 Month', '6 - 12 Month', '1yr++', '-'];
+
+    // Group by brand
+    const brandMap = {};
+    filtered.forEach(d => {
+        const brand = (d.skuBrand || '').trim().toUpperCase() || 'UNKNOWN';
+        if (!brandMap[brand]) {
+            brandMap[brand] = { 'Expired': 0, '< 1 Month': 0, '< 2 Month': 0, '< 3 Month': 0, '3 - 6 Month': 0, '6 - 12 Month': 0, '1yr++': 0, '-': 0 };
+        }
+        const edNote = calcEdNote(d.expDate, d.updateDate);
+        const qty = parseInt(d.qty) || 0;
+        if (brandMap[brand].hasOwnProperty(edNote)) {
+            brandMap[brand][edNote] += qty;
+        } else {
+            brandMap[brand]['-'] += qty;
+        }
+    });
+
+    // Sort brands alphabetically
+    const brands = Object.keys(brandMap).sort();
+
+    // Totals
+    const totals = { 'Expired': 0, '< 1 Month': 0, '< 2 Month': 0, '< 3 Month': 0, '3 - 6 Month': 0, '6 - 12 Month': 0, '1yr++': 0, '-': 0 };
+
+    let html = '';
+    brands.forEach(brand => {
+        const row = brandMap[brand];
+        ED_CATS.forEach(cat => totals[cat] += row[cat]);
+        html += `<tr>
+            <td>${escapeHtml(brand)}</td>
+            <td>${row['Expired'].toLocaleString()}</td>
+            <td>${row['< 1 Month'].toLocaleString()}</td>
+            <td>${row['< 2 Month'].toLocaleString()}</td>
+            <td>${row['< 3 Month'].toLocaleString()}</td>
+            <td>${row['3 - 6 Month'].toLocaleString()}</td>
+            <td>${row['6 - 12 Month'].toLocaleString()}</td>
+            <td>${row['1yr++'].toLocaleString()}</td>
+            <td>${row['-'].toLocaleString()}</td>
+        </tr>`;
+    });
+
+    // Total row
+    html += `<tr class="ed-total-row">
+        <td>Total</td>
+        <td>${totals['Expired'].toLocaleString()}</td>
+        <td>${totals['< 1 Month'].toLocaleString()}</td>
+        <td>${totals['< 2 Month'].toLocaleString()}</td>
+        <td>${totals['< 3 Month'].toLocaleString()}</td>
+        <td>${totals['3 - 6 Month'].toLocaleString()}</td>
+        <td>${totals['6 - 12 Month'].toLocaleString()}</td>
+        <td>${totals['1yr++'].toLocaleString()}</td>
+        <td>${totals['-'].toLocaleString()}</td>
     </tr>`;
 
     tbody.innerHTML = html;
