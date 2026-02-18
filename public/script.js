@@ -157,12 +157,12 @@ const ROLE_ACCESS = {
     supervisor: { pages: 'all', dashTabs: 'all' },
     leader: { pages: 'all', dashTabs: 'all' },
     admin_inbound: {
-        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas', 'attendance', 'productivity', 'employees', 'clock-inout'],
+        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'vas', 'attendance', 'productivity'],
         dashTabs: ['inbound'],
         navGroups: ['inbound', 'manpower']
     },
     admin_inventory: {
-        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'attendance', 'productivity', 'employees', 'clock-inout'],
+        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'attendance', 'productivity'],
         dashTabs: ['inventory'],
         navGroups: ['inventory', 'manpower']
     }
@@ -4695,6 +4695,14 @@ function initAttendancePage() {
     // Search
     const searchInput = document.getElementById('searchAtt');
     searchInput?.addEventListener('input', () => { pageState.Att.current = 1; renderAttendanceTable(searchInput.value); });
+
+    // Hide toolbar buttons for read-only users
+    if (!canEditAttendance()) {
+        ['btnAddAtt', 'btnExportAtt', 'btnImportAtt', 'btnClearAtt'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
 
     // Date/month filter
     document.getElementById('filterAttDate')?.addEventListener('change', () => { pageState.Att.current = 1; renderAttendanceTable(); });
