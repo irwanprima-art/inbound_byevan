@@ -645,14 +645,52 @@ function getData(key) {
         return JSON.parse(localStorage.getItem(key)) || [];
     } catch { return []; }
 }
+// Map STORAGE_KEYS to API resource names for sync endpoint
+const SYNC_RESOURCE_MAP = {
+    [STORAGE_KEYS.arrivals]: 'arrivals',
+    [STORAGE_KEYS.transactions]: 'transactions',
+    [STORAGE_KEYS.vas]: 'vas',
+    [STORAGE_KEYS.dcc]: 'dcc',
+    [STORAGE_KEYS.damage]: 'damages',
+    [STORAGE_KEYS.soh]: 'soh',
+    [STORAGE_KEYS.qcReturn]: 'qc-returns',
+    [STORAGE_KEYS.locations]: 'locations',
+    [STORAGE_KEYS.attendance]: 'attendances',
+    [STORAGE_KEYS.employees]: 'employees',
+    [STORAGE_KEYS.projectProd]: 'project-productivities'
+};
 
 function setData(key, data) {
     if (IDB_KEYS.has(key)) {
         _idbCache[key] = data;
-        setDataIDB(key, data); // async background write
-        return;
+        setDataIDB(key, data);
+    } else {
+        localStorage.setItem(key, JSON.stringify(data));
     }
-    localStorage.setItem(key, JSON.stringify(data));
+    // Auto-sync to API in background
+    if (_apiAvailable && SYNC_RESOURCE_MAP[key]) {
+        apiSyncData(key, data);
+    }
+}
+
+// Push entire dataset to API (replaces all records)
+async function apiSyncData(storageKey, data) {
+    const resource = SYNC_RESOURCE_MAP[storageKey];
+    if (!resource) return;
+    try {
+        const res = await fetch(`/api/${resource}/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ data: toSnakeCase(data) })
+        });
+        if (res.ok) {
+            console.log(`[Sync] ${resource}: ${data.length} records synced to DB`);
+        } else {
+            console.warn(`[Sync] ${resource}: sync failed (HTTP ${res.status})`);
+        }
+    } catch (e) {
+        console.warn(`[Sync] ${resource}: sync error:`, e.message);
+    }
 }
 
 function generateId() {

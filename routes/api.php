@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\ProjectProductivityController;
+use App\Http\Controllers\Api\SyncController;
 use Illuminate\Support\Facades\Route;
 
 // Arrivals
@@ -56,3 +57,7 @@ Route::post('employees/bulk-delete', [EmployeeController::class, 'bulkDelete']);
 // Project Productivity
 Route::apiResource('project-productivities', ProjectProductivityController::class);
 Route::post('project-productivities/bulk-delete', [ProjectProductivityController::class, 'bulkDelete']);
+
+// Universal sync (replace all data for a resource)
+Route::post('{resource}/sync', [SyncController::class, 'sync'])
+    ->where('resource', 'arrivals|transactions|vas|dcc|damages|qc-returns|soh|locations|attendances|employees|project-productivities');
