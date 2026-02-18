@@ -38,7 +38,7 @@ services:
     container_name: inbound-postgres
     restart: unless-stopped
     ports:
-      - "5433:5432"
+      - "5454:5432"
     env_file:
       - .env.docker
     volumes:
