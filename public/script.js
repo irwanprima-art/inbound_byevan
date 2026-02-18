@@ -472,6 +472,28 @@ async function initApiLayer() {
         _apiAvailable = false;
         console.warn('[API] Not available, using localStorage fallback');
     }
+    showApiStatus(_apiAvailable);
+}
+
+function showApiStatus(connected) {
+    let el = document.getElementById('apiStatusIndicator');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'apiStatusIndicator';
+        el.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9999;padding:8px 16px;border-radius:24px;font-size:12px;font-family:Inter,sans-serif;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);cursor:pointer;transition:opacity 0.3s';
+        el.onclick = () => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); };
+        document.body.appendChild(el);
+    }
+    if (connected) {
+        el.style.background = 'linear-gradient(135deg,#065f46,#047857)';
+        el.style.color = '#d1fae5';
+        el.innerHTML = '<span style="width:8px;height:8px;background:#34d399;border-radius:50%;display:inline-block"></span> API Connected';
+    } else {
+        el.style.background = 'linear-gradient(135deg,#7f1d1d,#991b1b)';
+        el.style.color = '#fecaca';
+        el.innerHTML = '<span style="width:8px;height:8px;background:#f87171;border-radius:50%;display:inline-block"></span> Offline Mode';
+    }
+    setTimeout(() => { if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); } }, 5000);
 }
 
 function isApiAvailable() { return _apiAvailable; }
