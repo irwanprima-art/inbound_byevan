@@ -184,16 +184,9 @@ function canDelete() {
 }
 
 // Simple hash for password (works on both HTTP and HTTPS)
-async function hashPassword(pw) {
-    // Try Web Crypto API first (available on HTTPS/localhost)
-    if (window.crypto && window.crypto.subtle) {
-        try {
-            const data = new TextEncoder().encode(pw);
-            const hash = await crypto.subtle.digest('SHA-256', data);
-            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-        } catch (e) { /* fallback below */ }
-    }
-    // Fallback: simple hash for HTTP environments (not crypto-secure, just obfuscation)
+function hashPassword(pw) {
+    // Always use the same hash function everywhere (HTTP or HTTPS)
+    // This ensures consistent hashes across all browsers/devices
     let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
     for (let i = 0; i < pw.length; i++) {
         const ch = pw.charCodeAt(i);
@@ -205,11 +198,8 @@ async function hashPassword(pw) {
     return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }
 
-// Seed default accounts if none exist
-async function seedDefaultAccounts() {
-    const existing = JSON.parse(localStorage.getItem(AUTH_KEYS.users) || '[]');
-    if (existing.length > 0) return;
-
+// Seed default accounts — always re-seed to ensure consistent hashes
+function seedDefaultAccounts() {
     const defaults = [
         { username: 'supervisor', password: 'super123', role: 'supervisor' },
         { username: 'leader', password: 'leader123', role: 'leader' },
@@ -217,10 +207,11 @@ async function seedDefaultAccounts() {
         { username: 'admin.inventory', password: 'inventory123', role: 'admin_inventory' }
     ];
 
-    const users = [];
-    for (const d of defaults) {
-        users.push({ username: d.username, passwordHash: await hashPassword(d.password), role: d.role });
-    }
+    const users = defaults.map(d => ({
+        username: d.username,
+        passwordHash: hashPassword(d.password),
+        role: d.role
+    }));
     localStorage.setItem(AUTH_KEYS.users, JSON.stringify(users));
 }
 
