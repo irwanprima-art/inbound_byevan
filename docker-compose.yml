@@ -11,7 +11,7 @@ services:
         condition: service_healthy
     volumes:
       - app-storage:/var/www/html/storage
-      - app-public:/var/www/html/public
+      - ./public:/var/www/html/public
     env_file:
       - .env.docker
     networks:
@@ -26,7 +26,7 @@ services:
       - "8070:80"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - app-public:/var/www/html/public:ro
+      - ./public:/var/www/html/public:ro
     depends_on:
       - app
     networks:
@@ -75,8 +75,6 @@ volumes:
   mysql-data:
     driver: local
   app-storage:
-    driver: local
-  app-public:
     driver: local
 
 networks:
