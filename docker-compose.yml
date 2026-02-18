@@ -44,10 +44,10 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-inbound_user}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-inbound_user} -d $${POSTGRES_DB:-inbound_db}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
     networks:
       - inbound-net
@@ -60,10 +60,11 @@ services:
     container_name: inbound-queue
     restart: unless-stopped
     depends_on:
+      app:
+        condition: service_started
       postgres:
         condition: service_healthy
-    command:
-      ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90"]
+    command: ["/var/www/html/docker/queue-start.sh"]
     volumes:
       - app-storage:/var/www/html/storage
     env_file:

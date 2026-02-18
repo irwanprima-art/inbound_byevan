@@ -86,9 +86,10 @@ RUN mkdir -p storage/framework/{cache,sessions,views} \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Copy startup script
+# Copy startup scripts
 COPY docker/start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
+COPY docker/queue-start.sh /var/www/html/docker/queue-start.sh
+RUN chmod +x /usr/local/bin/start.sh /var/www/html/docker/queue-start.sh
 
 EXPOSE 9000
 
