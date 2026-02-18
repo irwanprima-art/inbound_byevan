@@ -183,11 +183,26 @@ function canDelete() {
     return ['supervisor', 'leader'].includes(session.role);
 }
 
-// Simple hash for password (not crypto-secure, just basic obfuscation)
+// Simple hash for password (works on both HTTP and HTTPS)
 async function hashPassword(pw) {
-    const data = new TextEncoder().encode(pw);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Try Web Crypto API first (available on HTTPS/localhost)
+    if (window.crypto && window.crypto.subtle) {
+        try {
+            const data = new TextEncoder().encode(pw);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) { /* fallback below */ }
+    }
+    // Fallback: simple hash for HTTP environments (not crypto-secure, just obfuscation)
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < pw.length; i++) {
+        const ch = pw.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }
 
 // Seed default accounts if none exist
