@@ -15,9 +15,7 @@ class DamageController extends Controller
 
     public function store(Request $request)
     {
-        $item = Damage::create($request->only([
-            'date', 'brand', 'sku', 'qty', 'note', 'reason', 'operator', 'qc_by'
-        ]));
+        $item = Damage::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -28,9 +26,7 @@ class DamageController extends Controller
 
     public function update(Request $request, Damage $damage)
     {
-        $damage->update($request->only([
-            'date', 'brand', 'sku', 'qty', 'note', 'reason', 'operator', 'qc_by'
-        ]));
+        $damage->update($request->all());
         return response()->json($damage);
     }
 

@@ -15,10 +15,7 @@ class QcReturnController extends Controller
 
     public function store(Request $request)
     {
-        $item = QcReturn::create($request->only([
-            'date', 'receipt', 'return_date', 'brand', 'owner', 'sku',
-            'qty', 'from_loc', 'to_loc', 'operator', 'status'
-        ]));
+        $item = QcReturn::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -29,10 +26,7 @@ class QcReturnController extends Controller
 
     public function update(Request $request, QcReturn $qcReturn)
     {
-        $qcReturn->update($request->only([
-            'date', 'receipt', 'return_date', 'brand', 'owner', 'sku',
-            'qty', 'from_loc', 'to_loc', 'operator', 'status'
-        ]));
+        $qcReturn->update($request->all());
         return response()->json($qcReturn);
     }
 

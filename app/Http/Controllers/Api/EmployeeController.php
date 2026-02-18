@@ -15,7 +15,7 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        $item = Employee::create($request->only(['nik', 'name', 'status']));
+        $item = Employee::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -26,7 +26,7 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
-        $employee->update($request->only(['nik', 'name', 'status']));
+        $employee->update($request->all());
         return response()->json($employee);
     }
 

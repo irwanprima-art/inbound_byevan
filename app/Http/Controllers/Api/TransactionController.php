@@ -15,9 +15,7 @@ class TransactionController extends Controller
 
     public function store(Request $request)
     {
-        $transaction = Transaction::create($request->only([
-            'date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator'
-        ]));
+        $transaction = Transaction::create($request->all());
         return response()->json($transaction, 201);
     }
 
@@ -28,9 +26,7 @@ class TransactionController extends Controller
 
     public function update(Request $request, Transaction $transaction)
     {
-        $transaction->update($request->only([
-            'date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator'
-        ]));
+        $transaction->update($request->all());
         return response()->json($transaction);
     }
 

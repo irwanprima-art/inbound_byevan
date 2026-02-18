@@ -15,12 +15,7 @@ class SohController extends Controller
 
     public function store(Request $request)
     {
-        $item = Soh::create($request->only([
-            'location', 'sku', 'sku_category', 'sku_brand', 'zone',
-            'location_type', 'owner', 'status', 'qty',
-            'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date',
-            'batch_no', 'update_date'
-        ]));
+        $item = Soh::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -31,12 +26,7 @@ class SohController extends Controller
 
     public function update(Request $request, Soh $soh)
     {
-        $soh->update($request->only([
-            'location', 'sku', 'sku_category', 'sku_brand', 'zone',
-            'location_type', 'owner', 'status', 'qty',
-            'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date',
-            'batch_no', 'update_date'
-        ]));
+        $soh->update($request->all());
         return response()->json($soh);
     }
 

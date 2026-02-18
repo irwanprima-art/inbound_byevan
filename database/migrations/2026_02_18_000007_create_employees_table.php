@@ -13,6 +13,9 @@ return new class extends Migration
             $table->string('nik')->nullable();
             $table->string('name')->nullable();
             $table->string('status')->nullable();
+            $table->string('jobdesc')->nullable();
+            $table->string('divisi')->nullable();
+            $table->text('clock_in_note')->nullable();
             $table->timestamps();
         });
     }

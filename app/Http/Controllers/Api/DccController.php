@@ -15,10 +15,7 @@ class DccController extends Controller
 
     public function store(Request $request)
     {
-        $item = Dcc::create($request->only([
-            'date', 'phy_inv', 'zone', 'location', 'owner',
-            'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'operator'
-        ]));
+        $item = Dcc::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -29,10 +26,7 @@ class DccController extends Controller
 
     public function update(Request $request, Dcc $dcc)
     {
-        $dcc->update($request->only([
-            'date', 'phy_inv', 'zone', 'location', 'owner',
-            'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'operator'
-        ]));
+        $dcc->update($request->all());
         return response()->json($dcc);
     }
 

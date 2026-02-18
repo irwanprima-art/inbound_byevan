@@ -15,9 +15,7 @@ class ArrivalController extends Controller
 
     public function store(Request $request)
     {
-        $arrival = Arrival::create($request->only([
-            'date', 'arrival_time', 'brand', 'receipt_no', 'po_no', 'po_qty', 'operator', 'note'
-        ]));
+        $arrival = Arrival::create($request->all());
         return response()->json($arrival, 201);
     }
 
@@ -28,9 +26,7 @@ class ArrivalController extends Controller
 
     public function update(Request $request, Arrival $arrival)
     {
-        $arrival->update($request->only([
-            'date', 'arrival_time', 'brand', 'receipt_no', 'po_no', 'po_qty', 'operator', 'note'
-        ]));
+        $arrival->update($request->all());
         return response()->json($arrival);
     }
 

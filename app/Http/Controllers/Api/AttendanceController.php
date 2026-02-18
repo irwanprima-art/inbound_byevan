@@ -15,10 +15,7 @@ class AttendanceController extends Controller
 
     public function store(Request $request)
     {
-        $item = Attendance::create($request->only([
-            'nik', 'name', 'status', 'jobdesc', 'divisi',
-            'date', 'clock_in', 'clock_out'
-        ]));
+        $item = Attendance::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -29,10 +26,7 @@ class AttendanceController extends Controller
 
     public function update(Request $request, Attendance $attendance)
     {
-        $attendance->update($request->only([
-            'nik', 'name', 'status', 'jobdesc', 'divisi',
-            'date', 'clock_in', 'clock_out'
-        ]));
+        $attendance->update($request->all());
         return response()->json($attendance);
     }
 

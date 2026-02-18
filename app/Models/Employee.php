@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Employee extends Model
 {
     protected $fillable = [
-        'nik', 'name', 'status',
+        'nik', 'name', 'status', 'jobdesc', 'divisi', 'clock_in_note',
     ];
 }

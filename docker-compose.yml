@@ -7,7 +7,7 @@ services:
     container_name: inbound-app
     restart: unless-stopped
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     volumes:
       - app-storage:/var/www/html/storage
@@ -32,19 +32,19 @@ services:
     networks:
       - inbound-net
 
-  # ─── MySQL Database ───
-  mysql:
-    image: mysql:8.0
-    container_name: inbound-mysql
+  # ─── PostgreSQL Database ───
+  postgres:
+    image: postgres:16-alpine
+    container_name: inbound-postgres
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "5433:5432"
     env_file:
       - .env.docker
     volumes:
-      - mysql-data:/var/lib/mysql
+      - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-inbound_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,7 +60,7 @@ services:
     container_name: inbound-queue
     restart: unless-stopped
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     command:
       ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=90"]
@@ -72,7 +72,7 @@ services:
       - inbound-net
 
 volumes:
-  mysql-data:
+  pg-data:
     driver: local
   app-storage:
     driver: local

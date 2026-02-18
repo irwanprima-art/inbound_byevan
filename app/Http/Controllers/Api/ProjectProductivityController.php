@@ -15,7 +15,7 @@ class ProjectProductivityController extends Controller
 
     public function store(Request $request)
     {
-        $item = ProjectProductivity::create($request->only(['name', 'task', 'qty', 'date']));
+        $item = ProjectProductivity::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -26,7 +26,7 @@ class ProjectProductivityController extends Controller
 
     public function update(Request $request, ProjectProductivity $projectProductivity)
     {
-        $projectProductivity->update($request->only(['name', 'task', 'qty', 'date']));
+        $projectProductivity->update($request->all());
         return response()->json($projectProductivity);
     }
 

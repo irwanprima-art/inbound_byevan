@@ -437,9 +437,142 @@ const STORAGE_KEYS = {
     projectProd: 'manpower_project_productivity'
 };
 
+// --- API Layer ---
+const API_BASE = '/api';
+const API_ENDPOINTS = {
+    [STORAGE_KEYS.arrivals]: '/api/arrivals',
+    [STORAGE_KEYS.transactions]: '/api/transactions',
+    [STORAGE_KEYS.vas]: '/api/vas',
+    [STORAGE_KEYS.dcc]: '/api/dcc',
+    [STORAGE_KEYS.damage]: '/api/damages',
+    [STORAGE_KEYS.soh]: '/api/soh',
+    [STORAGE_KEYS.qcReturn]: '/api/qc-returns',
+    [STORAGE_KEYS.locations]: '/api/locations',
+    [STORAGE_KEYS.attendance]: '/api/attendances',
+    [STORAGE_KEYS.employees]: '/api/employees',
+    [STORAGE_KEYS.projectProd]: '/api/project-productivities'
+};
+
+// camelCase ↔ snake_case conversion for API
+function camelToSnake(str) { return str.replace(/[A-Z]/g, l => `_${l.toLowerCase()}`); }
+function snakeToCamel(str) { return str.replace(/_([a-z])/g, (_, l) => l.toUpperCase()); }
+function convertKeys(obj, fn) {
+    if (Array.isArray(obj)) return obj.map(o => convertKeys(o, fn));
+    if (obj && typeof obj === 'object' && !(obj instanceof Date)) {
+        return Object.fromEntries(Object.entries(obj).map(([k, v]) => [fn(k), v]));
+    }
+    return obj;
+}
+function toSnakeCase(data) { return convertKeys(data, camelToSnake); }
+function toCamelCase(data) { return convertKeys(data, snakeToCamel); }
+
+let _apiAvailable = false;
+
+async function initApiLayer() {
+    try {
+        const res = await fetch(API_ENDPOINTS[STORAGE_KEYS.arrivals], {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(3000)
+        });
+        _apiAvailable = res.ok;
+        console.log('[API] Available:', _apiAvailable);
+    } catch (e) {
+        _apiAvailable = false;
+        console.warn('[API] Not available, using localStorage fallback');
+    }
+}
+
+function isApiAvailable() { return _apiAvailable; }
+
+async function apiGet(storageKey) {
+    const url = API_ENDPOINTS[storageKey];
+    if (!url) return [];
+    try {
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return toCamelCase(await res.json());
+    } catch (e) {
+        console.warn(`[API GET] ${url} failed:`, e.message);
+        return [];
+    }
+}
+
+async function apiPost(storageKey, data) {
+    const url = API_ENDPOINTS[storageKey];
+    if (!url) return null;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(toSnakeCase(data))
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(JSON.stringify(err));
+        }
+        return toCamelCase(await res.json());
+    } catch (e) {
+        console.warn(`[API POST] ${url} failed:`, e.message);
+        return null;
+    }
+}
+
+async function apiPut(storageKey, id, data) {
+    const url = `${API_ENDPOINTS[storageKey]}/${id}`;
+    if (!API_ENDPOINTS[storageKey]) return null;
+    try {
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(toSnakeCase(data))
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(JSON.stringify(err));
+        }
+        return toCamelCase(await res.json());
+    } catch (e) {
+        console.warn(`[API PUT] ${url} failed:`, e.message);
+        return null;
+    }
+}
+
+async function apiDelete(storageKey, id) {
+    const url = `${API_ENDPOINTS[storageKey]}/${id}`;
+    if (!API_ENDPOINTS[storageKey]) return false;
+    try {
+        const res = await fetch(url, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+        });
+        return res.ok;
+    } catch (e) {
+        console.warn(`[API DELETE] ${url} failed:`, e.message);
+        return false;
+    }
+}
+
+async function apiBulkDelete(storageKey, ids) {
+    const url = `${API_ENDPOINTS[storageKey]}/bulk-delete`;
+    if (!API_ENDPOINTS[storageKey]) return false;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+        return res.ok;
+    } catch (e) {
+        console.warn(`[API BULK DELETE] ${url} failed:`, e.message);
+        return false;
+    }
+}
+
 // Keys that use IndexedDB (large datasets)
 const IDB_KEYS = new Set([STORAGE_KEYS.soh, STORAGE_KEYS.locations]);
 const _idbCache = {}; // in-memory cache for IndexedDB data
+
 
 // --- IndexedDB helpers ---
 function openIDB() {
@@ -574,13 +707,18 @@ async function syncFromApi() {
     try {
         for (const key of Object.values(STORAGE_KEYS)) {
             const endpoint = API_ENDPOINTS[key];
-            if (!endpoint) continue; // Skip keys without API endpoints (e.g. DCC)
+            if (!endpoint) continue;
             const apiData = await apiGet(key);
-            if (apiData && apiData.length > 0) {
-                localStorage.setItem(key, JSON.stringify(apiData));
+            if (apiData) {
+                if (IDB_KEYS.has(key)) {
+                    _idbCache[key] = apiData;
+                    await setDataIDB(key, apiData);
+                } else {
+                    localStorage.setItem(key, JSON.stringify(apiData));
+                }
             }
         }
-        console.log('[Sync] Data synced from API to localStorage');
+        console.log('[Sync] Data synced from API to localStorage/IDB');
     } catch (err) {
         console.warn('[Sync] Failed:', err.message);
     }

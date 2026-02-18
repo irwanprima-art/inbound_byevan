@@ -15,9 +15,7 @@ class LocationController extends Controller
 
     public function store(Request $request)
     {
-        $item = Location::create($request->only([
-            'location', 'category', 'zone', 'loc_type'
-        ]));
+        $item = Location::create($request->all());
         return response()->json($item, 201);
     }
 
@@ -28,9 +26,7 @@ class LocationController extends Controller
 
     public function update(Request $request, Location $location)
     {
-        $location->update($request->only([
-            'location', 'category', 'zone', 'loc_type'
-        ]));
+        $location->update($request->all());
         return response()->json($location);
     }
 

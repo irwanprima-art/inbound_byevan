@@ -15,9 +15,7 @@ class VasController extends Controller
 
     public function store(Request $request)
     {
-        $vas = Vas::create($request->only([
-            'date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator'
-        ]));
+        $vas = Vas::create($request->all());
         return response()->json($vas, 201);
     }
 
@@ -28,9 +26,7 @@ class VasController extends Controller
 
     public function update(Request $request, Vas $va)
     {
-        $va->update($request->only([
-            'date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator'
-        ]));
+        $va->update($request->all());
         return response()->json($va);
     }
 

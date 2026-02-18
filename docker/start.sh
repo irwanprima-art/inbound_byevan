@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-echo "==> Waiting for MySQL to be ready..."
-while ! nc -z mysql 3306; do
-  echo "    MySQL not ready, retrying in 2s..."
+echo "==> Waiting for PostgreSQL to be ready..."
+while ! nc -z postgres 5432; do
+  echo "    PostgreSQL not ready, retrying in 2s..."
   sleep 2
 done
-echo "==> MySQL is ready!"
+echo "==> PostgreSQL is ready!"
 
 # Clear stale caches
 echo "==> Clearing stale caches..."
