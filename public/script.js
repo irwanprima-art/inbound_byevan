@@ -838,7 +838,7 @@ const PAGE_ICONS = {
 let openTabs = ['dashboard']; // track open tab IDs
 let activeTab = 'dashboard';
 
-function navigateTo(pageId) {
+async function navigateTo(pageId) {
     // Role-based navigation guard
     const session = getSession();
     if (session) {
@@ -879,6 +879,11 @@ function navigateTo(pageId) {
     const breadcrumb = document.getElementById('breadcrumbPage');
     if (breadcrumb) breadcrumb.textContent = PAGE_NAMES[pageId] || pageId;
 
+    // === SYNC FROM DATABASE before rendering ===
+    if (_apiAvailable) {
+        await syncFromApi();
+    }
+
     // Render page data
     const PAGE_RENDER_MAP = {
         'inbound-arrival': renderArrivalTable,
@@ -916,7 +921,7 @@ function navigateTo(pageId) {
 }
 
 // Global event delegation for all [data-refresh] buttons
-document.addEventListener('click', function (e) {
+document.addEventListener('click', async function (e) {
     const btn = e.target.closest('[data-refresh]');
     if (!btn) return;
     const pageId = btn.getAttribute('data-refresh');
@@ -937,9 +942,11 @@ document.addEventListener('click', function (e) {
     };
     const icon = btn.querySelector('i');
     if (icon) { icon.style.animation = 'spin 0.6s linear'; setTimeout(() => icon.style.animation = '', 600); }
+    // Sync from database first
+    if (_apiAvailable) await syncFromApi();
     const fn = REFRESH_MAP[pageId];
     if (fn) fn();
-    showToast('Data berhasil di-refresh', 'success');
+    showToast('Data berhasil di-refresh dari database', 'success');
 });
 
 function renderTabBar() {
