@@ -86,7 +86,8 @@ export default function DashboardPage() {
 
     // Filtered data for Inbound & Inventory tabs
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
-    const fTransactions = useMemo(() => transactions.filter(t => matchesDateRange(t.date)), [transactions, matchesDateRange]);
+    // Transactions NOT filtered by date — receive/putaway may happen on a different day than arrival
+    const fTransactions = transactions;
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
     const fDccList = useMemo(() => dccList.filter(d => matchesDateRange(d.date)), [dccList, matchesDateRange]);
     const fDamages = useMemo(() => damages.filter(d => matchesDateRange(d.date)), [damages, matchesDateRange]);
