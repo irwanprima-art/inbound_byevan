@@ -7,7 +7,7 @@ import {
     ClockCircleOutlined,
 } from '@ant-design/icons';
 import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi } from '../api/client';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -48,13 +48,15 @@ export default function DashboardPage() {
     const [sohList, setSohList] = useState<any[]>([]);
     const [qcReturns, setQcReturns] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
+    const [attData, setAttData] = useState<any[]>([]);
+    const [empData, setEmpData] = useState<any[]>([]);
 
     const fetchAll = useCallback(() => {
         Promise.all([
             arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
             dccApi.list(), damagesApi.list(), sohApi.list(), qcReturnsApi.list(),
-            locationsApi.list(),
-        ]).then(([a, t, v, d, dm, s, q, loc]) => {
+            locationsApi.list(), attendancesApi.list(), employeesApi.list(),
+        ]).then(([a, t, v, d, dm, s, q, loc, att, emp]) => {
             setArrivals(a.data || []);
             setTransactions(t.data || []);
             setVasList(v.data || []);
@@ -63,6 +65,8 @@ export default function DashboardPage() {
             setSohList(s.data || []);
             setQcReturns(q.data || []);
             setLocations(loc.data || []);
+            setAttData(att.data || []);
+            setEmpData(emp.data || []);
             setLoading(false);
         }).catch(() => setLoading(false));
     }, []);
@@ -1232,6 +1236,169 @@ export default function DashboardPage() {
                                             size="small"
                                             scroll={{ x: 'max-content', y: 500 }}
                                             pagination={false}
+                                        />
+                                    </Card>
+                                </>
+                            );
+                        })(),
+                    },
+                    {
+                        key: 'manpower',
+                        label: '👷 Manpower',
+                        children: (() => {
+                            // Build employee status map: nik -> status (Reguler/Tambahan)
+                            const empStatusMap: Record<string, string> = {};
+                            empData.forEach((e: any) => {
+                                if (e.nik) empStatusMap[e.nik.toLowerCase()] = (e.status || '').trim();
+                            });
+
+                            // Jobdesc → Divisi mapping
+                            const divisiMap: Record<string, string> = {
+                                'Troubleshoot': 'Inventory', 'Project Inventory': 'Inventory',
+                                'Admin': 'Inbound', 'VAS': 'Inbound', 'Return': 'Return',
+                                'Putaway': 'Inbound', 'Inspect': 'Inbound', 'Bongkaran': 'Inbound',
+                                'Damage Project': 'Inventory', 'Cycle Count': 'Inventory',
+                                'Receive': 'Inbound', 'STO': 'Inventory',
+                            };
+
+                            // Division categories for display
+                            const DIVISIONS = ['Inbound', 'Inventory', 'Return', 'Bongkaran/Project/Tambahan'];
+
+                            // Parse date and get month key
+                            const getMonthKey = (dateStr: string) => {
+                                const d = dayjs(dateStr, 'M/D/YYYY');
+                                return d.isValid() ? d.format('YYYY-MM') : null;
+                            };
+
+                            // Count attendance per division per month
+                            const monthDivMap: Record<string, Record<string, number>> = {};
+                            const allMonths = new Set<string>();
+
+                            attData.forEach((r: any) => {
+                                const mk = getMonthKey(r.date);
+                                if (!mk) return;
+                                allMonths.add(mk);
+
+                                const nik = (r.nik || '').toLowerCase();
+                                const empStatus = empStatusMap[nik] || '';
+                                const jobdesc = (r.jobdesc || '').trim();
+                                const divisi = divisiMap[jobdesc] || '';
+
+                                let rowKey = '';
+                                if (empStatus === 'Tambahan') {
+                                    rowKey = 'Bongkaran/Project/Tambahan';
+                                } else if (empStatus === 'Reguler' && DIVISIONS.includes(divisi)) {
+                                    rowKey = divisi;
+                                } else {
+                                    return; // skip unknown
+                                }
+
+                                if (!monthDivMap[rowKey]) monthDivMap[rowKey] = {};
+                                monthDivMap[rowKey][mk] = (monthDivMap[rowKey][mk] || 0) + 1;
+                            });
+
+                            const sortedMonths = Array.from(allMonths).sort();
+                            const MONTH_LABELS: Record<string, string> = {
+                                '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+                                '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+                                '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
+                            };
+
+                            // Build table rows
+                            const tableRows = DIVISIONS.map(div => {
+                                const row: any = { key: div, divisi: div };
+                                sortedMonths.forEach(m => {
+                                    row[m] = monthDivMap[div]?.[m] || 0;
+                                });
+                                return row;
+                            });
+
+                            // Add "Actual" total row
+                            const actualRow: any = { key: '_actual', divisi: 'Actual', isTotal: true };
+                            sortedMonths.forEach(m => {
+                                actualRow[m] = DIVISIONS.reduce((sum, div) => sum + (monthDivMap[div]?.[m] || 0), 0);
+                            });
+                            tableRows.push(actualRow);
+
+                            // M2M diff columns
+                            const lastMonth = sortedMonths[sortedMonths.length - 1];
+                            const prevMonth = sortedMonths.length >= 2 ? sortedMonths[sortedMonths.length - 2] : null;
+
+                            // Month columns
+                            const monthCols = sortedMonths.map(m => {
+                                const [, mm] = m.split('-');
+                                return {
+                                    title: MONTH_LABELS[mm] || mm,
+                                    dataIndex: m,
+                                    key: m,
+                                    width: 80,
+                                    align: 'center' as const,
+                                    render: (v: number, rec: any) => (
+                                        <span style={{ fontWeight: rec.isTotal ? 700 : 400, color: rec.isTotal ? '#60a5fa' : '#fff' }}>
+                                            {(v || 0).toLocaleString()}
+                                        </span>
+                                    ),
+                                };
+                            });
+
+                            // M2M columns
+                            const m2mCols = lastMonth && prevMonth ? [
+                                {
+                                    title: 'Diff',
+                                    key: 'diff',
+                                    width: 70,
+                                    align: 'center' as const,
+                                    render: (_: any, rec: any) => {
+                                        const curr = rec[lastMonth] || 0;
+                                        const prev = rec[prevMonth] || 0;
+                                        const diff = curr - prev;
+                                        const color = diff > 0 ? '#10b981' : diff < 0 ? '#ef4444' : 'rgba(255,255,255,0.4)';
+                                        const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '';
+                                        return <span style={{ color, fontWeight: 600 }}>{arrow} {Math.abs(diff)}</span>;
+                                    },
+                                },
+                                {
+                                    title: '%',
+                                    key: 'pct',
+                                    width: 80,
+                                    align: 'center' as const,
+                                    render: (_: any, rec: any) => {
+                                        const curr = rec[lastMonth] || 0;
+                                        const prev = rec[prevMonth] || 0;
+                                        if (prev === 0) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                                        const pct = (((curr - prev) / prev) * 100).toFixed(1);
+                                        const color = parseFloat(pct) > 0 ? '#10b981' : parseFloat(pct) < 0 ? '#ef4444' : 'rgba(255,255,255,0.4)';
+                                        return <span style={{ color, fontWeight: 600 }}>{parseFloat(pct) > 0 ? '+' : ''}{pct}%</span>;
+                                    },
+                                },
+                            ] : [];
+
+                            return (
+                                <>
+                                    <Card
+                                        title="👷 Manpower Report — Monthly Headcount per Divisi"
+                                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
+                                        styles={{ header: { color: '#fff' } }}
+                                    >
+                                        <ResizableTable
+                                            dataSource={tableRows}
+                                            columns={[
+                                                {
+                                                    title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 200, fixed: 'left' as const,
+                                                    render: (v: string, rec: any) => (
+                                                        <span style={{ fontWeight: rec.isTotal ? 700 : 500, color: rec.isTotal ? '#60a5fa' : '#fff' }}>{v}</span>
+                                                    ),
+                                                },
+                                                ...monthCols,
+                                                ...m2mCols,
+                                            ]}
+                                            rowKey="key"
+                                            size="small"
+                                            scroll={{ x: 'max-content' }}
+                                            pagination={false}
+                                            onRow={(record: any) => ({
+                                                style: record.isTotal ? { background: 'rgba(99,102,241,0.15)' } : undefined,
+                                            })}
                                         />
                                     </Card>
                                 </>
