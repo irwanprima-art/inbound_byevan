@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { Form, Input, InputNumber, Tag } from 'antd';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';

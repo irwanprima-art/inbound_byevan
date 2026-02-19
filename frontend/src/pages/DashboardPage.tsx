@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Row, Col, Card, Statistic, Typography, Tabs, Tag, Table, Spin, Progress } from 'antd';
 import ResizableTable from '../components/ResizableTable';
 import {
     InboxOutlined, SwapOutlined, ToolOutlined, CheckCircleOutlined,
-    ClockCircleOutlined, WarningOutlined, DatabaseOutlined,
+    ClockCircleOutlined,
 } from '@ant-design/icons';
 import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi } from '../api/client';
@@ -248,11 +248,11 @@ export default function DashboardPage() {
 
     const totalDcc = dccList.length;
     const matchDcc = dccList.filter(d => d.variance === 0).length;
-    const unmatchDcc = dccList.filter(d => d.variance !== 0).length;
-    const accuracy = totalDcc > 0 ? ((matchDcc / totalDcc) * 100).toFixed(1) : '0.0';
-    const totalSku = new Set(sohList.map(s => s.sku).filter(Boolean)).size;
-    const totalDmg = damages.length;
-    const totalQcr = qcReturns.length;
+    const _unmatchDcc = dccList.filter(d => d.variance !== 0).length; void _unmatchDcc;
+    const _accuracy = totalDcc > 0 ? ((matchDcc / totalDcc) * 100).toFixed(1) : '0.0'; void _accuracy;
+    const _totalSku = new Set(sohList.map(s => s.sku).filter(Boolean)).size; void _totalSku;
+    const _totalDmg = damages.length; void _totalDmg;
+    const _totalQcr = qcReturns.length; void _totalQcr;
 
     // Accuracy calculations from DCC data
     const totalSysQty = dccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);

@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { Form, Input, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
 import { employeesApi } from '../api/client';

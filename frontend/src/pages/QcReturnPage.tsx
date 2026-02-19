@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
 import { qcReturnsApi } from '../api/client';
