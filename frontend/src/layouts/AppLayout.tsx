@@ -217,6 +217,12 @@ export default function AppLayout() {
         });
     }, [activeTab, openTabs.length, navigate]);
 
+    const handleCloseAll = useCallback(() => {
+        setOpenTabs([{ key: '/', label: 'Dashboard' }]);
+        setActiveTab('/');
+        navigate('/');
+    }, [navigate]);
+
     return (
         <Layout style={{ minHeight: '100vh' }}>
             <Sider
@@ -350,6 +356,29 @@ export default function AppLayout() {
                             )}
                         </div>
                     ))}
+                    {openTabs.length > 1 && (
+                        <div
+                            onClick={handleCloseAll}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '6px 10px',
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                color: 'rgba(255,255,255,0.35)',
+                                whiteSpace: 'nowrap',
+                                marginLeft: 'auto',
+                                borderRadius: '6px 6px 0 0',
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.background = 'rgba(255,107,107,0.1)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <CloseOutlined style={{ fontSize: 10 }} />
+                            <span>Close All</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content — render all open tabs, show only active */}
