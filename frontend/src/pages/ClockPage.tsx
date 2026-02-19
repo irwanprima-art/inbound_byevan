@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-const API = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080/api';
+const API = (import.meta as any).env?.VITE_API_URL || '/api';
 
 const jobdescOptions = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
