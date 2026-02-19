@@ -7,7 +7,7 @@ import {
     ClockCircleOutlined,
 } from '@ant-design/icons';
 import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi } from '../api/client';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -50,13 +50,15 @@ export default function DashboardPage() {
     const [locations, setLocations] = useState<any[]>([]);
     const [attData, setAttData] = useState<any[]>([]);
     const [empData, setEmpData] = useState<any[]>([]);
+    const [unloadings, setUnloadings] = useState<any[]>([]);
 
     const fetchAll = useCallback(() => {
         Promise.all([
             arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
             dccApi.list(), damagesApi.list(), sohApi.list(), qcReturnsApi.list(),
             locationsApi.list(), attendancesApi.list(), employeesApi.list(),
-        ]).then(([a, t, v, d, dm, s, q, loc, att, emp]) => {
+            unloadingsApi.list(),
+        ]).then(([a, t, v, d, dm, s, q, loc, att, emp, ul]) => {
             setArrivals(a.data || []);
             setTransactions(t.data || []);
             setVasList(v.data || []);
@@ -67,6 +69,7 @@ export default function DashboardPage() {
             setLocations(loc.data || []);
             setAttData(att.data || []);
             setEmpData(emp.data || []);
+            setUnloadings(ul.data || []);
             setLoading(false);
         }).catch(() => setLoading(false));
     }, []);
@@ -494,6 +497,49 @@ export default function DashboardPage() {
                                         </Col>
                                     </Row>
                                 )}
+
+                                {/* Unloading Summary */}
+                                <Card
+                                    title="🚚 Unloading Summary"
+                                    style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
+                                    styles={{ header: { color: '#fff' } }}
+                                >
+                                    <Table
+                                        dataSource={(() => {
+                                            const fUl = dateRange
+                                                ? unloadings.filter((u: any) => matchesDateRange(u.date))
+                                                : unloadings;
+                                            const brandMap: Record<string, { days: Set<string>; vehicles: number }> = {};
+                                            fUl.forEach((u: any) => {
+                                                const brand = u.brand || 'Unknown';
+                                                if (!brandMap[brand]) brandMap[brand] = { days: new Set(), vehicles: 0 };
+                                                if (u.date) brandMap[brand].days.add(u.date);
+                                                brandMap[brand].vehicles += (u.total_vehicles || 0);
+                                            });
+                                            return Object.entries(brandMap).map(([brand, v]) => ({
+                                                key: brand,
+                                                brand,
+                                                total_unloading: v.days.size,
+                                                total_vehicles: v.vehicles,
+                                            })).sort((a, b) => b.total_vehicles - a.total_vehicles);
+                                        })()}
+                                        columns={[
+                                            { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 200 },
+                                            {
+                                                title: 'Total Unloading (Hari)', dataIndex: 'total_unloading', key: 'total_unloading', width: 160, align: 'center' as const,
+                                                render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span>
+                                            },
+                                            {
+                                                title: 'Total Vehicles', dataIndex: 'total_vehicles', key: 'total_vehicles', width: 140, align: 'center' as const,
+                                                render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v.toLocaleString()}</span>
+                                            },
+                                        ]}
+                                        rowKey="key"
+                                        size="small"
+                                        pagination={false}
+                                        scroll={{ x: 'max-content' }}
+                                    />
+                                </Card>
                             </>
                         ),
                     },
