@@ -112,6 +112,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 const LABEL_MAP: Record<string, string> = {};
 NAV_ITEMS.forEach(item => { LABEL_MAP[item.key] = item.label; });
+LABEL_MAP['/settings'] = 'Settings';
+LABEL_MAP['/clock'] = 'Clock In/Out';
 
 interface TabItem {
     key: string;
