@@ -10,6 +10,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const { Title } = Typography;
@@ -62,9 +63,10 @@ export default function DataPage<T extends { id: number }>({
     title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields,
 }: DataPageProps<T>) {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
     const [data, setData] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(searchParams.get('search') || '');
     const [modalOpen, setModalOpen] = useState(false);
     const [editRecord, setEditRecord] = useState<T | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);

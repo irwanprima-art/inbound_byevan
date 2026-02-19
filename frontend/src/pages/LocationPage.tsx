@@ -58,6 +58,7 @@ export default function LocationPage() {
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
+    const canEdit = user?.role !== 'admin_inventory';
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -215,9 +216,9 @@ export default function LocationPage() {
                 return brand || '-';
             },
         },
-        {
+        ...(canEdit ? [{
             title: 'Actions', key: 'actions', width: 90, fixed: 'right' as const,
-            render: (_, r) => (
+            render: (_: any, r: LocationRecord) => (
                 <Space size="small">
                     <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
                     {canDelete && (
@@ -227,7 +228,7 @@ export default function LocationPage() {
                     )}
                 </Space>
             ),
-        },
+        }] : []),
     ];
 
     return (
@@ -244,10 +245,12 @@ export default function LocationPage() {
                         allowClear
                     />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
-                    <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}>
-                        <Button icon={<UploadOutlined />}>Import</Button>
-                    </Upload>
+                    {canEdit && <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>}
+                    {canEdit && (
+                        <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}>
+                            <Button icon={<UploadOutlined />}>Import</Button>
+                        </Upload>
+                    )}
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>

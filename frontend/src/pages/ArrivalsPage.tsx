@@ -5,13 +5,15 @@ import {
     DownloadOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi } from '../api/client';
+import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 export default function ArrivalsPage() {
+    const [searchParams] = useSearchParams();
     const [data, setData] = useState<any[]>([]);
     const [transData, setTransData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(searchParams.get('search') || '');
     const [modalOpen, setModalOpen] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);

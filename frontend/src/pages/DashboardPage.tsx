@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Statistic, Typography, Tabs, Tag, Table, Spin, Progress, DatePicker, Space, Button as AntButton } from 'antd';
 import type { Dayjs } from 'dayjs';
 import ResizableTable from '../components/ResizableTable';
@@ -18,15 +19,22 @@ interface StatCardProps {
     value: number | string;
     icon: React.ReactNode;
     color: string;
+    onClick?: () => void;
 }
 
-function StatCard({ title, value, icon, color }: StatCardProps) {
+function StatCard({ title, value, icon, color, onClick }: StatCardProps) {
     return (
-        <Card style={{
-            background: `linear-gradient(135deg, ${color}22, ${color}11)`,
-            border: `1px solid ${color}33`,
-            borderRadius: 12,
-        }}>
+        <Card
+            style={{
+                background: `linear-gradient(135deg, ${color}22, ${color}11)`,
+                border: `1px solid ${color}33`,
+                borderRadius: 12,
+                cursor: onClick ? 'pointer' : 'default',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+            }}
+            hoverable={!!onClick}
+            onClick={onClick}
+        >
             <Statistic
                 title={<Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{title}</Text>}
                 value={value}
@@ -38,6 +46,7 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
 }
 
 export default function DashboardPage() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [arrivals, setArrivals] = useState<any[]>([]);
@@ -363,7 +372,7 @@ export default function DashboardPage() {
                                 <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                                     <Col xs={12} sm={8} lg={6}><StatCard title="Total Receive Qty" value={totalReceiveQty.toLocaleString()} icon={<SwapOutlined />} color="#3b82f6" /></Col>
                                     <Col xs={12} sm={8} lg={6}><StatCard title="Total Putaway Qty" value={totalPutawayQty.toLocaleString()} icon={<CheckCircleOutlined />} color="#10b981" /></Col>
-                                    <Col xs={12} sm={8} lg={6}><StatCard title="Pending Receive" value={pendingReceive.toLocaleString()} icon={<ClockCircleOutlined />} color="#f59e0b" /></Col>
+                                    <Col xs={12} sm={8} lg={6}><StatCard title="Pending Receive" value={pendingReceive.toLocaleString()} icon={<ClockCircleOutlined />} color="#f59e0b" onClick={() => navigate('/arrivals?search=Pending')} /></Col>
                                     <Col xs={12} sm={8} lg={6}><StatCard title="% Completed" value={`${pctCompleted}%`} icon={<CheckCircleOutlined />} color="#22c55e" /></Col>
                                 </Row>
                                 <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
@@ -578,12 +587,12 @@ export default function DashboardPage() {
                                                 {[
                                                     { label: 'Total Sys. Qty', value: totalSysQty.toLocaleString(), color: 'rgba(255,255,255,0.85)' },
                                                     { label: 'Total Phy. Qty', value: totalPhyQty.toLocaleString(), color: 'rgba(255,255,255,0.85)' },
-                                                    { label: 'Shortage Qty', value: shortageQty.toLocaleString(), color: '#f87171' },
-                                                    { label: 'Gain Qty', value: gainQty.toLocaleString(), color: '#fbbf24' },
+                                                    { label: 'Shortage Qty', value: shortageQty.toLocaleString(), color: '#f87171', link: '/dcc?search=Shortage' },
+                                                    { label: 'Gain Qty', value: gainQty.toLocaleString(), color: '#fbbf24', link: '/dcc?search=Gain' },
                                                 ].map(item => (
-                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', cursor: item.link ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', transition: 'background 0.2s' }} onClick={item.link ? () => navigate(item.link!) : undefined} onMouseEnter={e => { if (item.link) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                                                         <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{item.label}</span>
-                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13 }}>{item.value}</span>
+                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13, textDecoration: item.link ? 'underline' : 'none' }}>{item.value}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -604,11 +613,11 @@ export default function DashboardPage() {
                                                 {[
                                                     { label: 'Total SKU Count', value: totalSkuCount.toLocaleString(), color: 'rgba(255,255,255,0.85)' },
                                                     { label: 'Total SKU Match', value: totalSkuMatch.toLocaleString(), color: '#4ade80' },
-                                                    { label: 'Total SKU Not Match', value: totalSkuNotMatch.toLocaleString(), color: '#f87171' },
+                                                    { label: 'Total SKU Not Match', value: totalSkuNotMatch.toLocaleString(), color: '#f87171', link: '/dcc?search=Shortage' },
                                                 ].map(item => (
-                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', cursor: item.link ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', transition: 'background 0.2s' }} onClick={item.link ? () => navigate(item.link!) : undefined} onMouseEnter={e => { if (item.link) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                                                         <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{item.label}</span>
-                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13 }}>{item.value}</span>
+                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13, textDecoration: item.link ? 'underline' : 'none' }}>{item.value}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -629,11 +638,11 @@ export default function DashboardPage() {
                                                 {[
                                                     { label: 'Total Location Count', value: totalLocCount.toLocaleString(), color: 'rgba(255,255,255,0.85)' },
                                                     { label: 'Total Location Match', value: totalLocMatch.toLocaleString(), color: '#4ade80' },
-                                                    { label: 'Total Location Not Match', value: totalLocNotMatch.toLocaleString(), color: '#f87171' },
+                                                    { label: 'Total Location Not Match', value: totalLocNotMatch.toLocaleString(), color: '#f87171', link: '/dcc?search=Shortage' },
                                                 ].map(item => (
-                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', cursor: item.link ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', transition: 'background 0.2s' }} onClick={item.link ? () => navigate(item.link!) : undefined} onMouseEnter={e => { if (item.link) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                                                         <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{item.label}</span>
-                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13 }}>{item.value}</span>
+                                                        <span style={{ color: item.color, fontWeight: 600, fontSize: 13, textDecoration: item.link ? 'underline' : 'none' }}>{item.value}</span>
                                                     </div>
                                                 ))}
                                             </div>

@@ -98,6 +98,7 @@ export default function SohPage() {
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
+    const canEdit = user?.role !== 'admin_inventory';
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -247,7 +248,7 @@ export default function SohPage() {
                 return note !== '-' ? <Tag color="blue">{note}</Tag> : '-';
             },
         },
-        {
+        ...(canEdit ? [{
             title: 'Actions', key: 'actions', width: 90, fixed: 'right' as const,
             render: (_: any, r: SohRecord) => (
                 <Space size="small">
@@ -259,7 +260,7 @@ export default function SohPage() {
                     )}
                 </Space>
             ),
-        },
+        }] : []),
     ];
 
     return (
@@ -269,8 +270,10 @@ export default function SohPage() {
                 <Space>
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
-                    <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
+                    {canEdit && <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>}
+                    {canEdit && (
+                        <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
+                    )}
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
