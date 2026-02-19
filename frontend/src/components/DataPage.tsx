@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Table, Button, Space, Input, Modal, Form, Upload, message, Popconfirm,
-    Typography, Card, Tooltip, Tag,
+    Typography, Tooltip,
 } from 'antd';
 import {
     PlusOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined,
