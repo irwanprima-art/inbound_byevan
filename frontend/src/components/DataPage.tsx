@@ -86,6 +86,12 @@ export default function DataPage<T extends { id: number }>({
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => { fetchData(); }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchData]);
+
     const handleAdd = () => {
         setEditRecord(null);
         form.resetFields();

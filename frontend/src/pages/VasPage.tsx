@@ -63,6 +63,12 @@ export default function VasPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => { fetchData(); }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchData]);
+
     // ─── Global timer for all active tasks ─────
     useEffect(() => {
         if (activeTasks.length === 0) return;

@@ -33,6 +33,12 @@ export default function ArrivalsPage() {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => { fetchAll(); }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchAll]);
+
     // Build lookup: receipt_no → { receiveQty, putawayQty } from transactions
     const txLookup = useMemo(() => {
         const map: Record<string, { receiveQty: number; putawayQty: number }> = {};

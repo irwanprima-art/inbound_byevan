@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Row, Col, Card, Statistic, Typography, Tabs, Tag, Table, Spin, Progress } from 'antd';
 import ResizableTable from '../components/ResizableTable';
 import {
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     const [qcReturns, setQcReturns] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
 
-    useEffect(() => {
+    const fetchAll = useCallback(() => {
         Promise.all([
             arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
             dccApi.list(), damagesApi.list(), sohApi.list(), qcReturnsApi.list(),
@@ -64,6 +64,14 @@ export default function DashboardPage() {
             setLoading(false);
         }).catch(() => setLoading(false));
     }, []);
+
+    useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => { fetchAll(); }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchAll]);
 
     // === INBOUND STATS ===
     const totalKedatangan = new Set(arrivals.map(a => `${a.brand}|${a.date}|${a.arrival_time}`).filter(k => k !== '||')).size;
