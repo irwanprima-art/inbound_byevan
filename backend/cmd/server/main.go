@@ -57,6 +57,13 @@ func main() {
 	protected.Use(middleware.AuthRequired())
 	protected.GET("/auth/me", handlers.GetCurrentUser)
 
+	// User management routes
+	protected.GET("/users", handlers.ListUsers)
+	protected.POST("/users", handlers.CreateUser)
+	protected.PUT("/users/:id/password", handlers.ChangePassword)
+	protected.PUT("/users/:id/role", handlers.ChangeRole)
+	protected.DELETE("/users/:id", handlers.DeleteUser)
+
 	// Register all resource routes using generic handler
 	arrivals := handlers.NewResource[models.Arrival]("arrivals")
 	arrivals.RegisterRoutes(protected.Group("/arrivals"))

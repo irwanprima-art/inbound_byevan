@@ -24,6 +24,7 @@ import AttendancePage from '../pages/AttendancePage';
 import EmployeesPage from '../pages/EmployeesPage';
 import ProductivityPage from '../pages/ProductivityPage';
 import UnloadingPage from '../pages/UnloadingPage';
+import SettingsPage from '../pages/SettingsPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -89,6 +90,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/attendance': <AttendancePage />,
     '/employees': <EmployeesPage />,
     '/productivity': <ProductivityPage />,
+    '/settings': <SettingsPage />,
 };
 
 // Icon map for tabs
@@ -296,6 +298,8 @@ export default function AppLayout() {
                             { key: 'role', label: ROLE_LABELS[role] || role, disabled: true },
                             { type: 'divider' },
                             { key: 'clock', label: 'Clock In/Out', icon: <ClockCircleOutlined />, onClick: () => navigate('/clock') },
+                            { key: 'settings', label: 'Settings', icon: <span style={{ fontSize: 14 }}>⚙️</span>, onClick: () => navigate('/settings') },
+                            { type: 'divider' },
                             { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: logout },
                         ],
                     }}>

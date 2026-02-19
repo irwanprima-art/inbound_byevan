@@ -64,4 +64,13 @@ export const employeesApi = createResourceApi('employees');
 export const productivityApi = createResourceApi('project-productivities');
 export const unloadingsApi = createResourceApi('unloadings');
 
+// User management API (custom endpoints)
+export const usersApi = {
+    list: () => api.get('/users'),
+    create: (data: { username: string; password: string; role: string }) => api.post('/users', data),
+    changePassword: (id: number, data: { current_password?: string; new_password: string }) => api.put(`/users/${id}/password`, data),
+    changeRole: (id: number, role: string) => api.put(`/users/${id}/role`, { role }),
+    remove: (id: number) => api.delete(`/users/${id}`),
+};
+
 export default api;

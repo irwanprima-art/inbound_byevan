@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import { authApi } from '../api/client';
 
 interface User {
+    user_id: number;
     username: string;
     role: string;
     token: string;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (username: string, password: string) => {
         const res = await authApi.login(username, password);
         const userData: User = {
+            user_id: res.data.user_id,
             username: res.data.username,
             role: res.data.role,
             token: res.data.token,
