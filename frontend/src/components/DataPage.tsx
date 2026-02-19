@@ -57,10 +57,12 @@ interface DataPageProps<T> {
     columnMap?: Record<string, string>;
     /** Fields that should be parsed as numbers */
     numberFields?: string[];
+    /** Compute additional searchable text from a row (for computed columns like Remarks) */
+    computeSearchText?: (item: T) => string;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -325,9 +327,14 @@ export default function DataPage<T extends { id: number }>({
     const tableComponents = { header: { cell: ResizableTitle } };
 
     // Filter data by search
-    const filtered = data.filter(item =>
-        search === '' || JSON.stringify(item).toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = data.filter(item => {
+        if (search === '') return true;
+        const q = search.toLowerCase();
+        const base = JSON.stringify(item).toLowerCase().includes(q);
+        if (base) return true;
+        if (computeSearchText) return computeSearchText(item).toLowerCase().includes(q);
+        return false;
+    });
 
     return (
         <div>
