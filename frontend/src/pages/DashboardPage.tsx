@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Row, Col, Card, Statistic, Typography, Tabs, Tag, Table, Spin, Progress } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Tabs, Tag, Table, Spin, Progress, DatePicker, Space, Button as AntButton } from 'antd';
+import type { Dayjs } from 'dayjs';
 import ResizableTable from '../components/ResizableTable';
 import {
     InboxOutlined, SwapOutlined, ToolOutlined, CheckCircleOutlined,
@@ -38,6 +39,7 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [arrivals, setArrivals] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [vasList, setVasList] = useState<any[]>([]);
@@ -73,15 +75,33 @@ export default function DashboardPage() {
         return () => clearInterval(interval);
     }, [fetchAll]);
 
-    // === INBOUND STATS ===
-    const totalKedatangan = new Set(arrivals.map(a => `${a.brand}|${a.date}|${a.arrival_time}`).filter(k => k !== '||')).size;
-    const totalPO = new Set(arrivals.map(a => a.po_no).filter(Boolean)).size;
-    const totalBrand = new Set(arrivals.map(a => a.brand).filter(Boolean)).size;
-    const totalQtyKedatangan = arrivals.reduce((s, a) => s + (parseInt(a.po_qty) || 0), 0);
+    // === DATE FILTER HELPER ===
+    const matchesDateRange = useCallback((dateStr: string): boolean => {
+        if (!dateRange) return true;
+        if (!dateStr) return false;
+        const d = dayjs(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'D/M/YYYY']);
+        if (!d.isValid()) return false;
+        return d.diff(dateRange[0], 'day') >= 0 && d.diff(dateRange[1], 'day') <= 0;
+    }, [dateRange]);
+
+    // Filtered data for Inbound & Inventory tabs
+    const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
+    const fTransactions = useMemo(() => transactions.filter(t => matchesDateRange(t.date)), [transactions, matchesDateRange]);
+    const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
+    const fDccList = useMemo(() => dccList.filter(d => matchesDateRange(d.date)), [dccList, matchesDateRange]);
+    const fDamages = useMemo(() => damages.filter(d => matchesDateRange(d.date)), [damages, matchesDateRange]);
+    const fSohList = useMemo(() => sohList.filter(s => matchesDateRange(s.date)), [sohList, matchesDateRange]);
+    const fQcReturns = useMemo(() => qcReturns.filter(q => matchesDateRange(q.date)), [qcReturns, matchesDateRange]);
+
+    // === INBOUND STATS (filtered) ===
+    const totalKedatangan = new Set(fArrivals.map(a => `${a.brand}|${a.date}|${a.arrival_time}`).filter(k => k !== '||')).size;
+    const totalPO = new Set(fArrivals.map(a => a.po_no).filter(Boolean)).size;
+    const totalBrand = new Set(fArrivals.map(a => a.brand).filter(Boolean)).size;
+    const totalQtyKedatangan = fArrivals.reduce((s, a) => s + (parseInt(a.po_qty) || 0), 0);
 
     // Transaction lookups by receipt_no
-    const receiveTx = transactions.filter(t => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
-    const putawayTx = transactions.filter(t => (t.operate_type || '').toLowerCase() === 'putaway');
+    const receiveTx = fTransactions.filter(t => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
+    const putawayTx = fTransactions.filter(t => (t.operate_type || '').toLowerCase() === 'putaway');
     const totalReceiveQty = receiveTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
     const totalPutawayQty = putawayTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
     const pendingReceive = totalQtyKedatangan - totalReceiveQty;
@@ -116,7 +136,7 @@ export default function DashboardPage() {
     // Avg Kedatangan → Putaway (per receipt_no: latest putaway time - arrival_time)
     const calcAvgKedatanganPutaway = () => {
         const arrivalMap: Record<string, number> = {}; // receipt_no → arrival_time in min
-        arrivals.forEach(a => {
+        fArrivals.forEach(a => {
             const key = (a.receipt_no || '').trim().toLowerCase();
             const t = parseToMin(a.arrival_time);
             if (key && t !== null) {
@@ -174,8 +194,8 @@ export default function DashboardPage() {
     };
 
     // VAS stats
-    const totalVAS = vasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
-    const vasOperators = new Set(vasList.map(v => v.operator).filter(Boolean)).size;
+    const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
+    const vasOperators = new Set(fVasList.map(v => v.operator).filter(Boolean)).size;
     const avgVasPerMP = vasOperators > 0 ? Math.round(totalVAS / vasOperators) : 0;
 
     const avgKedPutaway = calcAvgKedatanganPutaway();
@@ -198,14 +218,14 @@ export default function DashboardPage() {
 
     // Item Type breakdown per Brand from arrivals
     const brandItemTypeMap: Record<string, Record<string, number>> = {};
-    arrivals.forEach((a: any) => {
+    fArrivals.forEach((a: any) => {
         const brand = a.brand || 'Unknown';
         const t = a.item_type || 'Barang Jual';
         if (!brandItemTypeMap[brand]) brandItemTypeMap[brand] = {};
         brandItemTypeMap[brand][t] = (brandItemTypeMap[brand][t] || 0) + (parseInt(a.po_qty) || 0);
     });
     // Collect all item types
-    const allItemTypes = Array.from(new Set(arrivals.map((a: any) => a.item_type || 'Barang Jual')));
+    const allItemTypes = Array.from(new Set(fArrivals.map((a: any) => a.item_type || 'Barang Jual')));
     const brandItemTypeData = Object.entries(brandItemTypeMap).map(([brand, types]) => ({
         brand,
         ...types,
@@ -213,7 +233,7 @@ export default function DashboardPage() {
 
     // PO & Qty per Brand from arrivals
     const brandMap: Record<string, { po: number; qty: number }> = {};
-    arrivals.forEach((a: any) => {
+    fArrivals.forEach((a: any) => {
         const brand = a.brand || 'Unknown';
         if (!brandMap[brand]) brandMap[brand] = { po: 0, qty: 0 };
         brandMap[brand].po += 1;
@@ -223,7 +243,7 @@ export default function DashboardPage() {
 
     // VAS by type
     const vasTypeMap: Record<string, number> = {};
-    vasList.forEach((v: any) => {
+    fVasList.forEach((v: any) => {
         const t = v.vas_type || 'Unknown';
         vasTypeMap[t] = (vasTypeMap[t] || 0) + (parseInt(v.qty) || 0);
     });
@@ -232,7 +252,7 @@ export default function DashboardPage() {
     // Pending arrivals (enriched with status from transactions)
     const pendingArrivals = useMemo(() => {
         const txMap: Record<string, { rcv: number; put: number }> = {};
-        transactions.forEach((tx: any) => {
+        fTransactions.forEach((tx: any) => {
             const key = (tx.receipt_no || '').trim().toLowerCase();
             if (!key) return;
             if (!txMap[key]) txMap[key] = { rcv: 0, put: 0 };
@@ -241,7 +261,7 @@ export default function DashboardPage() {
             if (type === 'receive' || type === 'receiving') txMap[key].rcv += qty;
             else if (type === 'putaway') txMap[key].put += qty;
         });
-        return arrivals.map((a: any) => {
+        return fArrivals.map((a: any) => {
             const key = (a.receipt_no || '').trim().toLowerCase();
             const tx = txMap[key] || { rcv: 0, put: 0 };
             const poQty = parseInt(a.po_qty) || 0;
@@ -250,28 +270,28 @@ export default function DashboardPage() {
             else if (tx.rcv >= poQty) status = 'Pending Putaway';
             return { ...a, receive_qty: tx.rcv, putaway_qty: tx.put, status };
         }).filter((a: any) => a.status !== 'Completed');
-    }, [arrivals, transactions]);
+    }, [fArrivals, fTransactions]);
 
     // Inventory stats
 
-    const totalDcc = dccList.length;
-    const matchDcc = dccList.filter(d => d.variance === 0).length;
-    const _unmatchDcc = dccList.filter(d => d.variance !== 0).length; void _unmatchDcc;
+    const totalDcc = fDccList.length;
+    const matchDcc = fDccList.filter(d => d.variance === 0).length;
+    const _unmatchDcc = fDccList.filter(d => d.variance !== 0).length; void _unmatchDcc;
     const _accuracy = totalDcc > 0 ? ((matchDcc / totalDcc) * 100).toFixed(1) : '0.0'; void _accuracy;
-    const _totalSku = new Set(sohList.map(s => s.sku).filter(Boolean)).size; void _totalSku;
-    const _totalDmg = damages.length; void _totalDmg;
-    const _totalQcr = qcReturns.length; void _totalQcr;
+    const _totalSku = new Set(fSohList.map(s => s.sku).filter(Boolean)).size; void _totalSku;
+    const _totalDmg = fDamages.length; void _totalDmg;
+    const _totalQcr = fQcReturns.length; void _totalQcr;
 
     // Accuracy calculations from DCC data
-    const totalSysQty = dccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);
-    const totalPhyQty = dccList.reduce((sum, d) => sum + (parseInt(d.phy_qty) || 0), 0);
-    const shortageQty = dccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
-    const gainQty = dccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v > 0 ? v : 0); }, 0);
+    const totalSysQty = fDccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);
+    const totalPhyQty = fDccList.reduce((sum, d) => sum + (parseInt(d.phy_qty) || 0), 0);
+    const shortageQty = fDccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
+    const gainQty = fDccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v > 0 ? v : 0); }, 0);
     const accuracyQty = totalSysQty > 0 ? (((totalSysQty - shortageQty - gainQty) / totalSysQty) * 100).toFixed(2) : '0.00';
 
     // SKU Accuracy (unique SKUs)
     const skuVarianceMap: Record<string, number> = {};
-    dccList.forEach(d => {
+    fDccList.forEach(d => {
         const sku = (d.sku || '').trim();
         if (!sku) return;
         const v = parseInt(d.variance) || 0;
@@ -286,7 +306,7 @@ export default function DashboardPage() {
 
     // Location Accuracy (unique locations)
     const locVarianceMap: Record<string, number> = {};
-    dccList.forEach(d => {
+    fDccList.forEach(d => {
         const loc = (d.location || '').trim();
         if (!loc) return;
         const v = parseInt(d.variance) || 0;
@@ -313,6 +333,19 @@ export default function DashboardPage() {
                         label: '📦 Inbound',
                         children: (
                             <>
+                                <Space style={{ marginBottom: 16 }} wrap>
+                                    <DatePicker.RangePicker
+                                        value={dateRange}
+                                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                                        format="DD/MM/YYYY"
+                                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                                        allowClear
+                                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                                    />
+                                    <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
+                                    <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
+                                    {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
+                                </Space>
                                 <Row gutter={[16, 16]}>
                                     <Col xs={12} sm={8} lg={6}><StatCard title="Total Kedatangan" value={totalKedatangan} icon={<InboxOutlined />} color="#6366f1" /></Col>
                                     <Col xs={12} sm={8} lg={6}><StatCard title="Total PO" value={totalPO} icon={<InboxOutlined />} color="#8b5cf6" /></Col>
@@ -464,6 +497,19 @@ export default function DashboardPage() {
                         label: '📋 Inventory',
                         children: (
                             <>
+                                <Space style={{ marginBottom: 16 }} wrap>
+                                    <DatePicker.RangePicker
+                                        value={dateRange}
+                                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                                        format="DD/MM/YYYY"
+                                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                                        allowClear
+                                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                                    />
+                                    <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
+                                    <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
+                                    {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
+                                </Space>
                                 {/* Accuracy Cards */}
                                 <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                                     <Col xs={24} lg={8}>
@@ -546,9 +592,9 @@ export default function DashboardPage() {
                                             <ResizableTable
                                                 dataSource={(() => {
                                                     const skuBrandMap: Record<string, string> = {};
-                                                    sohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                                                    fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
                                                     const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
-                                                    dccList.forEach(d => {
+                                                    fDccList.forEach(d => {
                                                         const v = parseInt(d.variance) || 0;
                                                         if (v >= 0) return;
                                                         const sku = (d.sku || '').trim();
@@ -582,9 +628,9 @@ export default function DashboardPage() {
                                             <ResizableTable
                                                 dataSource={(() => {
                                                     const skuBrandMap: Record<string, string> = {};
-                                                    sohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                                                    fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
                                                     const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
-                                                    dccList.forEach(d => {
+                                                    fDccList.forEach(d => {
                                                         const v = parseInt(d.variance) || 0;
                                                         if (v <= 0) return;
                                                         const sku = (d.sku || '').trim();
@@ -624,7 +670,7 @@ export default function DashboardPage() {
                                         zoneTotalMap[zone] = (zoneTotalMap[zone] || 0) + 1;
                                     });
                                     const zoneCountedMap: Record<string, Set<string>> = {};
-                                    dccList.forEach((d: any) => {
+                                    fDccList.forEach((d: any) => {
                                         const zone = (d.zone || '').trim();
                                         const loc = (d.location || '').trim();
                                         if (!zone || !loc) return;
@@ -689,7 +735,7 @@ export default function DashboardPage() {
                                                 <ResizableTable
                                                     dataSource={(() => {
                                                         const map: Record<string, { damage_note: string; skuCount: number; totalQty: number; skus: Set<string> }> = {};
-                                                        damages.forEach((d: any) => {
+                                                        fDamages.forEach((d: any) => {
                                                             const note = (d.damage_note || '').trim() || 'Unknown';
                                                             const sku = (d.sku || '').trim();
                                                             const qty = parseInt(d.qty) || 0;
@@ -716,7 +762,7 @@ export default function DashboardPage() {
                                                 <ResizableTable
                                                     dataSource={(() => {
                                                         const map: Record<string, { brand: string; skuCount: number; totalQty: number; skus: Set<string> }> = {};
-                                                        damages.forEach((d: any) => {
+                                                        fDamages.forEach((d: any) => {
                                                             const brand = (d.brand || '').trim() || '-';
                                                             const sku = (d.sku || '').trim();
                                                             const qty = parseInt(d.qty) || 0;
@@ -753,7 +799,7 @@ export default function DashboardPage() {
                                                 <ResizableTable
                                                     dataSource={(() => {
                                                         const map: Record<string, { brand: string; good: number; damage: number }> = {};
-                                                        qcReturns.forEach((q: any) => {
+                                                        fQcReturns.forEach((q: any) => {
                                                             const brand = (q.owner || '').trim() || '-';
                                                             const qty = parseInt(q.qty) || 0;
                                                             const status = (q.status || '').trim().toLowerCase();
@@ -780,7 +826,7 @@ export default function DashboardPage() {
                                                 <ResizableTable
                                                     dataSource={(() => {
                                                         const map: Record<string, { operator: string; good: number; damage: number; total: number }> = {};
-                                                        qcReturns.forEach((q: any) => {
+                                                        fQcReturns.forEach((q: any) => {
                                                             const op = (q.operator || '').trim() || '-';
                                                             const qty = parseInt(q.qty) || 0;
                                                             const status = (q.status || '').trim().toLowerCase();
