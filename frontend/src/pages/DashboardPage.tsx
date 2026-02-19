@@ -567,9 +567,9 @@ export default function DashboardPage() {
                                     {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
                                 </Space>
                                 {/* Accuracy Cards */}
-                                <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                                    <Col xs={24} lg={8}>
-                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+                                <Row gutter={[16, 16]} style={{ marginTop: 24, display: 'flex', alignItems: 'stretch' }}>
+                                    <Col xs={24} lg={8} style={{ display: 'flex' }}>
+                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, width: '100%', display: 'flex', flexDirection: 'column' }} styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                                                 <span style={{ fontSize: 18 }}>📊</span>
                                                 <span style={{ color: '#fff', fontWeight: 600, fontSize: 15 }}>Qty Accuracy</span>
@@ -587,14 +587,15 @@ export default function DashboardPage() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            <div style={{ flex: 1 }} />
                                             <div style={{ marginTop: 16, padding: '10px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ color: '#10b981', fontWeight: 700, fontSize: 13, textTransform: 'uppercase' }}>Accuracy Qty</span>
                                                 <span style={{ color: '#10b981', fontWeight: 700, fontSize: 16 }}>{accuracyQty}%</span>
                                             </div>
                                         </Card>
                                     </Col>
-                                    <Col xs={24} lg={8}>
-                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+                                    <Col xs={24} lg={8} style={{ display: 'flex' }}>
+                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, width: '100%', display: 'flex', flexDirection: 'column' }} styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                                                 <span style={{ fontSize: 18 }}>📦</span>
                                                 <span style={{ color: '#fff', fontWeight: 600, fontSize: 15 }}>SKU Accuracy</span>
@@ -611,14 +612,15 @@ export default function DashboardPage() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            <div style={{ flex: 1 }} />
                                             <div style={{ marginTop: 16, padding: '10px 16px', background: 'rgba(6, 182, 212, 0.1)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ color: '#06b6d4', fontWeight: 700, fontSize: 13, textTransform: 'uppercase' }}>Accuracy SKU</span>
                                                 <span style={{ color: '#06b6d4', fontWeight: 700, fontSize: 16 }}>{accuracySku}%</span>
                                             </div>
                                         </Card>
                                     </Col>
-                                    <Col xs={24} lg={8}>
-                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+                                    <Col xs={24} lg={8} style={{ display: 'flex' }}>
+                                        <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, width: '100%', display: 'flex', flexDirection: 'column' }} styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                                                 <span style={{ fontSize: 18 }}>📍</span>
                                                 <span style={{ color: '#fff', fontWeight: 600, fontSize: 15 }}>Location Accuracy</span>
@@ -635,6 +637,7 @@ export default function DashboardPage() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            <div style={{ flex: 1 }} />
                                             <div style={{ marginTop: 16, padding: '10px 16px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 13, textTransform: 'uppercase' }}>Accuracy Location</span>
                                                 <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 16 }}>{accuracyLoc}%</span>
