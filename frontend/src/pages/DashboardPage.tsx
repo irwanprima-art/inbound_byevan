@@ -373,6 +373,38 @@ export default function DashboardPage() {
                                     <Col xs={12} sm={8} lg={6}><StatCard title="Avg VAS / Manpower" value={avgVasPerMP} icon={<ToolOutlined />} color="#64748b" /></Col>
                                 </Row>
 
+                                {/* Pending Arrivals Table — below stat cards */}
+                                <Card
+                                    title={`⏳ Pending Inbound (${pendingArrivals.length})`}
+                                    style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
+                                    styles={{ header: { color: '#fff' } }}
+                                >
+                                    {pendingArrivals.length > 0 ? (
+                                        <Table
+                                            dataSource={pendingArrivals}
+                                            columns={[
+                                                { title: 'Tgl Kedatangan', dataIndex: 'date', key: 'date', width: 110 },
+                                                { title: 'Waktu', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
+                                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
+                                                { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 130 },
+                                                { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 130 },
+                                                { title: 'PO Qty', dataIndex: 'po_qty', key: 'po_qty', width: 80 },
+                                                { title: 'Receive', dataIndex: 'receive_qty', key: 'receive_qty', width: 80, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v}</span> },
+                                                { title: 'Putaway', dataIndex: 'putaway_qty', key: 'putaway_qty', width: 80, render: (v: number) => <span style={{ color: '#a78bfa' }}>{v}</span> },
+                                                { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={s === 'Pending Putaway' ? 'orange' : 'red'}>{s}</Tag> },
+                                            ]}
+                                            rowKey="id"
+                                            size="small"
+                                            pagination={{ pageSize: 10, showTotal: (t) => `Total: ${t}` }}
+                                            scroll={{ x: 'max-content' }}
+                                        />
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: 24 }}>
+                                            <Text style={{ color: 'rgba(255,255,255,0.4)' }}>✅ Tidak ada pending — semua sudah selesai</Text>
+                                        </div>
+                                    )}
+                                </Card>
+
                                 {/* Charts Row 1: Item Type + Breakdown Qty */}
                                 <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                                     <Col xs={24} lg={12}>
@@ -470,33 +502,6 @@ export default function DashboardPage() {
                                     </Col>
                                 </Row>
 
-                                {/* Pending Arrivals Table */}
-                                {pendingArrivals.length > 0 && (
-                                    <Row style={{ marginTop: 24 }}>
-                                        <Col span={24}>
-                                            <Card title={`⏳ Pending Inbound (${pendingArrivals.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
-                                                <Table
-                                                    dataSource={pendingArrivals}
-                                                    columns={[
-                                                        { title: 'Tgl Kedatangan', dataIndex: 'date', key: 'date', width: 110 },
-                                                        { title: 'Waktu', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
-                                                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
-                                                        { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 130 },
-                                                        { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 130 },
-                                                        { title: 'PO Qty', dataIndex: 'po_qty', key: 'po_qty', width: 80 },
-                                                        { title: 'Receive', dataIndex: 'receive_qty', key: 'receive_qty', width: 80, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v}</span> },
-                                                        { title: 'Putaway', dataIndex: 'putaway_qty', key: 'putaway_qty', width: 80, render: (v: number) => <span style={{ color: '#a78bfa' }}>{v}</span> },
-                                                        { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={s === 'Pending Putaway' ? 'orange' : 'red'}>{s}</Tag> },
-                                                    ]}
-                                                    rowKey="id"
-                                                    size="small"
-                                                    pagination={{ pageSize: 10, showTotal: (t) => `Total: ${t}` }}
-                                                    scroll={{ x: 'max-content' }}
-                                                />
-                                            </Card>
-                                        </Col>
-                                    </Row>
-                                )}
 
                                 {/* Unloading Summary */}
                                 <Card
