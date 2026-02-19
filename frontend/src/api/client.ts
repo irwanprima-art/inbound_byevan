@@ -62,5 +62,6 @@ export const locationsApi = createResourceApi('locations');
 export const attendancesApi = createResourceApi('attendances');
 export const employeesApi = createResourceApi('employees');
 export const productivityApi = createResourceApi('project-productivities');
+export const unloadingsApi = createResourceApi('unloadings');
 
 export default api;

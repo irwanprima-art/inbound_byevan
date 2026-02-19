@@ -91,6 +91,9 @@ func main() {
 	productivity := handlers.NewResource[models.ProjectProductivity]("project-productivities")
 	productivity.RegisterRoutes(protected.Group("/project-productivities"))
 
+	unloadings := handlers.NewResource[models.Unloading]("unloadings")
+	unloadings.RegisterRoutes(protected.Group("/unloadings"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

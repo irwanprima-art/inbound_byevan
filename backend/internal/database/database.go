@@ -62,6 +62,7 @@ func AutoMigrate() {
 		&models.Attendance{},
 		&models.Employee{},
 		&models.ProjectProductivity{},
+		&models.Unloading{},
 		&models.User{},
 	)
 	if err != nil {

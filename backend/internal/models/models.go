@@ -187,6 +187,18 @@ type ProjectProductivity struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// Unloading represents inbound unloading data
+type Unloading struct {
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	Date          string         `gorm:"column:date" json:"date"`
+	Brand         string         `gorm:"column:brand" json:"brand"`
+	VehicleType   string         `gorm:"column:vehicle_type" json:"vehicle_type"`
+	TotalVehicles int            `gorm:"column:total_vehicles" json:"total_vehicles"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // User represents auth user for JWT login
 type User struct {
 	ID       uint   `gorm:"primaryKey" json:"id"`

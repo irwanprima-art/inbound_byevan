@@ -5,7 +5,7 @@ import {
     CheckCircleOutlined, WarningOutlined, DatabaseOutlined, RollbackOutlined,
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
-    CloseOutlined,
+    CloseOutlined, CarOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -23,6 +23,7 @@ import LocationPage from '../pages/LocationPage';
 import AttendancePage from '../pages/AttendancePage';
 import EmployeesPage from '../pages/EmployeesPage';
 import ProductivityPage from '../pages/ProductivityPage';
+import UnloadingPage from '../pages/UnloadingPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
+    { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
     { key: '/vas', icon: <ToolOutlined />, label: 'VAS', group: 'inbound' },
     { key: '/locations', icon: <EnvironmentOutlined />, label: 'Master Location', group: 'inventory' },
     { key: '/soh', icon: <DatabaseOutlined />, label: 'Stock on Hand', group: 'inventory' },
@@ -60,6 +62,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/': 'dashboard',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
+    '/unloading': 'inbound-unloading',
     '/vas': 'vas',
     '/dcc': 'daily-cycle-count',
     '/damages': 'project-damage',
@@ -76,6 +79,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/': <DashboardPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
+    '/unloading': <UnloadingPage />,
     '/vas': <VasPage />,
     '/dcc': <DccPage />,
     '/damages': <DamagePage />,
@@ -92,6 +96,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/': <DashboardOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
+    '/unloading': <CarOutlined />,
     '/vas': <ToolOutlined />,
     '/dcc': <CheckCircleOutlined />,
     '/damages': <WarningOutlined />,
