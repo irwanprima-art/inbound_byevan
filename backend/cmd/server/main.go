@@ -93,7 +93,7 @@ func main() {
 
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
-	r.StaticFile("/vite.svg", "./static/vite.svg")
+	r.StaticFile("/favicon.svg", "./static/favicon.svg")
 	r.StaticFile("/favicon.ico", "./static/favicon.ico")
 
 	// SPA fallback: serve index.html for all non-API routes
