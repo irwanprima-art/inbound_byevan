@@ -163,7 +163,7 @@ export default function AttendancePage() {
         const s = search.toLowerCase();
         return Object.values(r).some(v => String(v).toLowerCase().includes(s))
             || (divisiMap[r.jobdesc] || '').toLowerCase().includes(s);
-    });
+    }).sort((a, b) => b.id - a.id);
 
     const columns: any[] = [
         { title: 'Tanggal', dataIndex: 'date', key: 'date', width: 100, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
@@ -250,6 +250,7 @@ export default function AttendancePage() {
                 scroll={{ x: 1300, y: 'calc(100vh - 280px)' }}
                 pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={canDelete ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
+                sortDirections={['descend', 'ascend']}
             />
 
             <Modal title="Edit Attendance" open={editModalOpen} onOk={handleSave} onCancel={() => setEditModalOpen(false)}>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Button, Typography, Space, Select, Modal, message } from 'antd';
-import { ClockCircleOutlined, LoginOutlined, LogoutOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Typography, Space, Select, Modal, message, Alert } from 'antd';
+import { ClockCircleOutlined, LoginOutlined, LogoutOutlined, ArrowLeftOutlined, WarningOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -108,6 +108,21 @@ export default function ClockPage() {
         setLoading(false);
     };
 
+    // Find employees who haven't clocked out for 12+ hours
+    const overtimeAlerts = attendances.filter(r => {
+        if (!r.clock_in || r.clock_out) return false;
+        const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'M/D/YYYY HH:mm');
+        if (!clockInTime.isValid()) return false;
+        const hours = dayjs().diff(clockInTime, 'hour', true);
+        return hours >= 12;
+    }).map(r => ({
+        name: r.name || r.nik,
+        nik: r.nik,
+        hours: Math.floor(dayjs().diff(dayjs(`${r.date} ${r.clock_in}`, 'M/D/YYYY HH:mm'), 'hour', true)),
+        clockIn: r.clock_in,
+        date: r.date,
+    }));
+
     return (
         <div style={{
             height: '100vh',
@@ -178,6 +193,33 @@ export default function ClockPage() {
                     </Button>
                 </Space>
             </Card>
+
+            {overtimeAlerts.length > 0 && (
+                <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', width: 460, zIndex: 100 }}>
+                    <Alert
+                        type="warning"
+                        showIcon
+                        icon={<WarningOutlined style={{ fontSize: 20 }} />}
+                        message={<span style={{ fontWeight: 700, fontSize: 14 }}>⚠️ Belum Clock Out ({overtimeAlerts.length})</span>}
+                        description={
+                            <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                                {overtimeAlerts.map((a, i) => (
+                                    <div key={i} style={{ padding: '4px 0', borderBottom: i < overtimeAlerts.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+                                        <strong>{a.name}</strong> ({a.nik}) — Clock In {a.clockIn} ({a.date})
+                                        <span style={{ color: '#cf1322', fontWeight: 700, marginLeft: 8 }}>{a.hours} jam</span>
+                                    </div>
+                                ))}
+                            </div>
+                        }
+                        style={{
+                            borderRadius: 12,
+                            boxShadow: '0 8px 32px rgba(250, 173, 20, 0.3)',
+                            animation: 'pulse 2s infinite',
+                        }}
+                    />
+                    <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }`}</style>
+                </div>
+            )}
         </div>
     );
 }
