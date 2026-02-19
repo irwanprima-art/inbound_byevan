@@ -1,5 +1,5 @@
 services:
-  # ─── PHP-FPM Application ───
+  # ─── Go + React Application ───
   app:
     build:
       context: .
@@ -9,15 +9,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - app-storage:/var/www/html/storage
-      - ./public:/var/www/html/public
-    env_file:
-      - .env.docker
+    environment:
+      - DB_DRIVER=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-inbound_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-inbound_pass}
+      - DB_NAME=${POSTGRES_DB:-inbound_db}
+      - JWT_SECRET=${JWT_SECRET:-supersecretkey}
+      - GIN_MODE=release
     networks:
       - inbound-net
 
-  # ─── Nginx Web Server ───
+  # ─── Nginx Reverse Proxy ───
   nginx:
     image: nginx:alpine
     container_name: inbound-nginx
@@ -26,7 +30,6 @@ services:
       - "8070:80"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./public:/var/www/html/public:ro
     depends_on:
       - app
     networks:
@@ -39,8 +42,10 @@ services:
     restart: unless-stopped
     ports:
       - "5454:5432"
-    env_file:
-      - .env.docker
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-inbound_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-inbound_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-inbound_db}
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
@@ -52,30 +57,8 @@ services:
     networks:
       - inbound-net
 
-  # ─── Queue Worker ───
-  queue:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: inbound-queue
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_started
-      postgres:
-        condition: service_healthy
-    command: ["/var/www/html/docker/queue-start.sh"]
-    volumes:
-      - app-storage:/var/www/html/storage
-    env_file:
-      - .env.docker
-    networks:
-      - inbound-net
-
 volumes:
   pg-data:
-    driver: local
-  app-storage:
     driver: local
 
 networks:

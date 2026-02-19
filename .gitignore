@@ -1,25 +1,45 @@
-*.log
-.DS_Store
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+frontend/dist/
+backend/server.exe
+backend/warehouse.db
+
+# Environment files
 .env
 .env.*
 !.env.example
 !.env.docker.example
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
+
+# IDE
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Laravel leftovers
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
+*.log
+.phpactor.json
+.phpunit.result.cache
+.phpunit.cache
+auth.json
 Homestead.json
 Homestead.yaml
-Thumbs.db
+
+# Docker scripts (old Laravel)
+docker/start.sh
+docker/queue-start.sh

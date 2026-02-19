@@ -91,6 +91,16 @@ func main() {
 	productivity := handlers.NewResource[models.ProjectProductivity]("project-productivities")
 	productivity.RegisterRoutes(protected.Group("/project-productivities"))
 
+	// Serve React static files (production build in ./static)
+	r.Static("/assets", "./static/assets")
+	r.StaticFile("/vite.svg", "./static/vite.svg")
+	r.StaticFile("/favicon.ico", "./static/favicon.ico")
+
+	// SPA fallback: serve index.html for all non-API routes
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
+
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
