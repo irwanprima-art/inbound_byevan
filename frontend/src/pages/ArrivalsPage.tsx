@@ -1,0 +1,313 @@
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select } from 'antd';
+import {
+    PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
+    DownloadOutlined, UploadOutlined,
+} from '@ant-design/icons';
+import { arrivalsApi, transactionsApi } from '../api/client';
+import dayjs from 'dayjs';
+
+export default function ArrivalsPage() {
+    const [data, setData] = useState<any[]>([]);
+    const [transData, setTransData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [search, setSearch] = useState('');
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editId, setEditId] = useState<number | null>(null);
+    const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+    const [form] = Form.useForm();
+
+    // Fetch arrivals + transactions data
+    const fetchAll = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [aRes, tRes] = await Promise.all([arrivalsApi.list(), transactionsApi.list()]);
+            setData(aRes.data || []);
+            setTransData(tRes.data || []);
+        } catch {
+            message.error('Gagal memuat data');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Build lookup: receipt_no → { receiveQty, putawayQty } from transactions
+    const txLookup = useMemo(() => {
+        const map: Record<string, { receiveQty: number; putawayQty: number }> = {};
+        transData.forEach((tx: any) => {
+            const key = (tx.receipt_no || '').trim().toLowerCase();
+            if (!key) return;
+            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0 };
+            const qty = parseInt(tx.qty) || 0;
+            const type = (tx.operate_type || '').trim().toLowerCase();
+            if (type === 'receive' || type === 'receiving') {
+                map[key].receiveQty += qty;
+            } else if (type === 'putaway') {
+                map[key].putawayQty += qty;
+            }
+        });
+        return map;
+    }, [transData]);
+
+    // Compute enriched data with Receive Qty, Putaway Qty, Pending Qty, Status
+    const enrichedData = useMemo(() => {
+        return data.map((row: any) => {
+            const key = (row.receipt_no || '').trim().toLowerCase();
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0 };
+            const poQty = parseInt(row.po_qty) || 0;
+            const receiveQty = tx.receiveQty;
+            const putawayQty = tx.putawayQty;
+            const pendingQty = Math.abs(receiveQty - poQty);
+
+            let status = 'Pending Receive';
+            if (receiveQty === poQty && putawayQty === poQty) {
+                status = 'Completed';
+            } else if (receiveQty === poQty && putawayQty !== poQty) {
+                status = 'Pending Putaway';
+            }
+
+            return { ...row, receive_qty: receiveQty, putaway_qty: putawayQty, pending_qty: pendingQty, status };
+        });
+    }, [data, txLookup]);
+
+    // Filter by search
+    const filteredData = useMemo(() => {
+        const q = search.toLowerCase();
+        if (!q) return enrichedData;
+        return enrichedData.filter((d: any) =>
+            Object.values(d).some(v => String(v).toLowerCase().includes(q))
+        );
+    }, [enrichedData, search]);
+
+    // Status color
+    const statusColor = (s: string) => {
+        if (s === 'Completed') return 'green';
+        if (s === 'Pending Putaway') return 'orange';
+        return 'red';
+    };
+
+    const columns = [
+        { title: 'Tgl Kedatangan', dataIndex: 'date', key: 'date', width: 120, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
+        { title: 'Waktu Kedatangan', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
+        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
+        {
+            title: 'Item Type', dataIndex: 'item_type', key: 'item_type', width: 110,
+            render: (v: string) => {
+                const color = v === 'ATK' ? 'blue' : v === 'Gimmick' ? 'purple' : 'green';
+                return <Tag color={color}>{v || 'Barang Jual'}</Tag>;
+            },
+            filters: [{ text: 'ATK', value: 'ATK' }, { text: 'Barang Jual', value: 'Barang Jual' }, { text: 'Gimmick', value: 'Gimmick' }],
+            onFilter: (value: any, record: any) => (record.item_type || 'Barang Jual') === value,
+        },
+        { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 120 },
+        { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 120 },
+        { title: 'PO Qty', dataIndex: 'po_qty', key: 'po_qty', width: 90, sorter: (a: any, b: any) => a.po_qty - b.po_qty },
+        { title: 'Receive Qty', dataIndex: 'receive_qty', key: 'receive_qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v.toLocaleString()}</span> },
+        { title: 'Putaway Qty', dataIndex: 'putaway_qty', key: 'putaway_qty', width: 100, render: (v: number) => <span style={{ color: '#a78bfa' }}>{v.toLocaleString()}</span> },
+        { title: 'Pending Qty', dataIndex: 'pending_qty', key: 'pending_qty', width: 100, render: (v: number) => v > 0 ? <span style={{ color: '#f87171', fontWeight: 600 }}>{v}</span> : <span style={{ color: '#4ade80' }}>0</span> },
+        { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
+        { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
+        { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
+        {
+            title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
+            render: (_: any, record: any) => (
+                <Space>
+                    <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    <Popconfirm title="Hapus data ini?" onConfirm={() => handleDelete(record.id)}>
+                        <Button type="link" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Space>
+            ),
+        },
+    ];
+
+    // Track record to edit
+    const editRecord = useRef<any>(null);
+
+    // Add / Edit
+    const handleAdd = () => {
+        setEditId(null);
+        editRecord.current = null;
+        setModalOpen(true);
+    };
+
+    const handleEdit = (record: any) => {
+        setEditId(record.id);
+        editRecord.current = record;
+        setModalOpen(true);
+    };
+
+    // Set form values when modal opens
+    useEffect(() => {
+        if (modalOpen) {
+            if (editRecord.current) {
+                form.setFieldsValue(editRecord.current);
+            } else {
+                form.resetFields();
+                form.setFieldsValue({
+                    date: dayjs().format('M/D/YYYY'),
+                    arrival_time: dayjs().format('M/D/YYYY HH:mm:ss'),
+                });
+            }
+        }
+    }, [modalOpen, form]);
+
+    const handleSave = async () => {
+        try {
+            const vals = await form.validateFields();
+            if (editId) {
+                await arrivalsApi.update(editId, vals);
+                message.success('Data diupdate');
+            } else {
+                await arrivalsApi.create(vals);
+                message.success('Data ditambahkan');
+            }
+            setModalOpen(false);
+            fetchAll();
+        } catch (err: any) {
+            if (err.response) message.error('Error: ' + (err.response?.data?.error || 'Unknown'));
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        await arrivalsApi.remove(id);
+        message.success('Data dihapus');
+        fetchAll();
+    };
+
+    const handleBulkDelete = async () => {
+        await arrivalsApi.bulkDelete(selectedKeys as number[]);
+        message.success(`${selectedKeys.length} data dihapus`);
+        setSelectedKeys([]);
+        fetchAll();
+    };
+
+    // CSV Export
+    const handleExport = () => {
+        const headers = ['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'operator', 'note', 'status'];
+        const csv = '\uFEFF' + headers.join(',') + '\n' +
+            enrichedData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `inbound_arrival_${dayjs().format('M/D/YYYY')}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        message.success('Export berhasil');
+    };
+
+    // CSV Import
+    const handleImport = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            const lines = text.split('\n').filter(l => l.trim());
+            const rows = lines.slice(1).map(line => {
+                const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                return {
+                    date: cols[0] || dayjs().format('M/D/YYYY'),
+                    arrival_time: cols[1] || dayjs().format('M/D/YYYY HH:mm:ss'),
+                    brand: cols[2] || '',
+                    receipt_no: cols[3] || '',
+                    po_no: cols[4] || '',
+                    po_qty: parseInt(cols[5]) || 0,
+                    operator: cols[6] || '',
+                    note: cols[7] || '',
+                };
+            });
+            try {
+                await arrivalsApi.sync(rows);
+                message.success(`${rows.length} data imported`);
+                fetchAll();
+            } catch {
+                message.error('Import gagal');
+            }
+        };
+        reader.readAsText(file);
+        return false;
+    };
+
+    return (
+        <div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: '#fff' }}>Inbound Arrival</h2>
+                <Space>
+                    <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
+                    <Button icon={<ReloadOutlined />} onClick={fetchAll}>Refresh</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
+                    <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
+                        <Button icon={<UploadOutlined />}>Import</Button>
+                    </Upload>
+                    <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                </Space>
+            </div>
+
+            {/* Bulk delete */}
+            {selectedKeys.length > 0 && (
+                <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
+                    <Button danger style={{ marginBottom: 12 }}><DeleteOutlined /> Hapus {selectedKeys.length} data</Button>
+                </Popconfirm>
+            )}
+
+            <Table
+                dataSource={filteredData}
+                columns={columns}
+                rowKey="id"
+                loading={loading}
+                size="small"
+                scroll={{ x: 1400, y: 'calc(100vh - 280px)' }}
+                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `Total ${t} data` }}
+                rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
+            />
+
+            {/* Add / Edit Modal */}
+            <Modal
+                title={editId ? 'Edit Arrival' : 'Tambah Arrival'}
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={handleSave}
+                width={520}
+            >
+                <Form form={form} layout="vertical">
+                    <Form.Item name="date" label="Tanggal Kedatangan" rules={[{ required: true }]}
+                        tooltip="Otomatis terisi tanggal hari ini">
+                        <Input disabled={!editId} />
+                    </Form.Item>
+                    <Form.Item name="arrival_time" label="Waktu Kedatangan"
+                        tooltip="Otomatis terisi jam saat input">
+                        <Input disabled={!editId} />
+                    </Form.Item>
+                    <Form.Item name="brand" label="Brand" rules={[{ required: true }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="receipt_no" label="Receipt No" rules={[{ required: true }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="po_no" label="PO No" rules={[{ required: true }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="po_qty" label="PO Qty" rules={[{ required: true }]}>
+                        <InputNumber style={{ width: '100%' }} min={0} />
+                    </Form.Item>
+                    <Form.Item name="operator" label="Operator">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="note" label="Note">
+                        <Input.TextArea rows={2} />
+                    </Form.Item>
+                    <Form.Item name="item_type" label="Item Type" initialValue="Barang Jual">
+                        <Select options={[
+                            { label: 'ATK', value: 'ATK' },
+                            { label: 'Barang Jual', value: 'Barang Jual' },
+                            { label: 'Gimmick', value: 'Gimmick' },
+                        ]} />
+                    </Form.Item>
+                </Form>
+            </Modal>
+        </div>
+    );
+}
