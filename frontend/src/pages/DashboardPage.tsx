@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -12,50 +12,95 @@ import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
 
 const { Title } = Typography;
 
+// Tab groups: only fetch the APIs each group needs
+const TAB_GROUPS: Record<string, string> = {
+    inbound: 'inbound',
+    inventory: 'inventory',
+    utilization: 'inventory', // shares data with inventory group
+    aging_stock: 'inventory', // shares data with inventory group
+    manpower: 'manpower',
+};
+
 export default function DashboardPage() {
-    const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
+    const [activeTab, setActiveTab] = useState('inbound');
+
+    // Per-group loading state
+    const [loadedGroups, setLoadedGroups] = useState<Set<string>>(new Set());
+    const [loadingGroup, setLoadingGroup] = useState<string | null>(null);
+
+    // Inbound group data
     const [arrivals, setArrivals] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [vasList, setVasList] = useState<any[]>([]);
-    const [dccList, setDccList] = useState<any[]>([]);
-    const [damages, setDamages] = useState<any[]>([]);
-    const [sohList, setSohList] = useState<any[]>([]);
-    const [qcReturns, setQcReturns] = useState<any[]>([]);
-    const [locations, setLocations] = useState<any[]>([]);
-    const [attData, setAttData] = useState<any[]>([]);
-    const [empData, setEmpData] = useState<any[]>([]);
     const [unloadings, setUnloadings] = useState<any[]>([]);
 
-    const fetchAll = useCallback(() => {
-        Promise.all([
-            arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
-            dccApi.list(), damagesApi.list(), sohApi.list(), qcReturnsApi.list(),
-            locationsApi.list(), attendancesApi.list(), employeesApi.list(),
-            unloadingsApi.list(),
-        ]).then(([a, t, v, d, dm, s, q, loc, att, emp, ul]) => {
-            setArrivals(a.data || []);
-            setTransactions(t.data || []);
-            setVasList(v.data || []);
-            setDccList(d.data || []);
-            setDamages(dm.data || []);
-            setSohList(s.data || []);
-            setQcReturns(q.data || []);
-            setLocations(loc.data || []);
-            setAttData(att.data || []);
-            setEmpData(emp.data || []);
-            setUnloadings(ul.data || []);
-            setLoading(false);
-        }).catch(() => setLoading(false));
+    // Inventory group data (also used by Utilization + Aging)
+    const [dccList, setDccList] = useState<any[]>([]);
+    const [sohList, setSohList] = useState<any[]>([]);
+    const [damages, setDamages] = useState<any[]>([]);
+    const [qcReturns, setQcReturns] = useState<any[]>([]);
+    const [locations, setLocations] = useState<any[]>([]);
+
+    // Manpower group data
+    const [attData, setAttData] = useState<any[]>([]);
+    const [empData, setEmpData] = useState<any[]>([]);
+
+    // Track if auto-refresh is active
+    const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Fetch a specific group of APIs
+    const fetchGroup = useCallback(async (group: string) => {
+        setLoadingGroup(group);
+        try {
+            if (group === 'inbound') {
+                const [a, t, v, ul] = await Promise.all([
+                    arrivalsApi.list(), transactionsApi.list(), vasApi.list(), unloadingsApi.list(),
+                ]);
+                setArrivals(a.data || []);
+                setTransactions(t.data || []);
+                setVasList(v.data || []);
+                setUnloadings(ul.data || []);
+            } else if (group === 'inventory') {
+                const [d, s, dm, q, loc] = await Promise.all([
+                    dccApi.list(), sohApi.list(), damagesApi.list(), qcReturnsApi.list(), locationsApi.list(),
+                ]);
+                setDccList(d.data || []);
+                setSohList(s.data || []);
+                setDamages(dm.data || []);
+                setQcReturns(q.data || []);
+                setLocations(loc.data || []);
+            } else if (group === 'manpower') {
+                const [att, emp] = await Promise.all([
+                    attendancesApi.list(), employeesApi.list(),
+                ]);
+                setAttData(att.data || []);
+                setEmpData(emp.data || []);
+            }
+            setLoadedGroups(prev => new Set(prev).add(group));
+        } catch {
+            // silently fail, data stays empty
+        }
+        setLoadingGroup(null);
     }, []);
 
-    useEffect(() => { fetchAll(); }, [fetchAll]);
-
-    // Auto-refresh every 30 seconds
+    // Fetch the active tab's group if not yet loaded
     useEffect(() => {
-        const interval = setInterval(() => { fetchAll(); }, 30000);
-        return () => clearInterval(interval);
-    }, [fetchAll]);
+        const group = TAB_GROUPS[activeTab];
+        if (group && !loadedGroups.has(group)) {
+            fetchGroup(group);
+        }
+    }, [activeTab, loadedGroups, fetchGroup]);
+
+    // Auto-refresh: reload the currently active tab's group every 30 seconds
+    useEffect(() => {
+        if (refreshRef.current) clearInterval(refreshRef.current);
+        refreshRef.current = setInterval(() => {
+            const group = TAB_GROUPS[activeTab];
+            if (group) fetchGroup(group);
+        }, 30000);
+        return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
+    }, [activeTab, fetchGroup]);
 
     // === DATE FILTER HELPER ===
     // Backend now returns dates in consistent YYYY-MM-DD format via FlexDate
@@ -67,25 +112,30 @@ export default function DashboardPage() {
         return d.diff(dateRange[0], 'day') >= 0 && d.diff(dateRange[1], 'day') <= 0;
     }, [dateRange]);
 
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-                <Spin size="large" tip="Loading dashboard..." />
-            </div>
-        );
-    }
+    // Loading spinner for a tab group
+    const groupSpinner = (group: string) => {
+        if (loadingGroup === group && !loadedGroups.has(group)) {
+            return (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh' }}>
+                    <Spin size="large" />
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <div>
             <Title level={3} style={{ color: '#fff', marginBottom: 24 }}>📊 Dashboard</Title>
             <Tabs
-                defaultActiveKey="inbound"
+                activeKey={activeTab}
+                onChange={setActiveTab}
                 type="card"
                 items={[
                     {
                         key: 'inbound',
                         label: '📦 Inbound',
-                        children: (
+                        children: groupSpinner('inbound') || (
                             <DashboardInboundTab
                                 dateRange={dateRange}
                                 setDateRange={setDateRange}
@@ -100,7 +150,7 @@ export default function DashboardPage() {
                     {
                         key: 'inventory',
                         label: '📋 Inventory',
-                        children: (
+                        children: groupSpinner('inventory') || (
                             <DashboardInventoryTab
                                 dateRange={dateRange}
                                 setDateRange={setDateRange}
@@ -116,7 +166,7 @@ export default function DashboardPage() {
                     {
                         key: 'utilization',
                         label: '🏭 WH Utilization',
-                        children: (
+                        children: groupSpinner('inventory') || (
                             <DashboardUtilizationTab
                                 sohList={sohList}
                                 locations={locations}
@@ -126,7 +176,7 @@ export default function DashboardPage() {
                     {
                         key: 'aging_stock',
                         label: '📅 Aging Stock',
-                        children: (
+                        children: groupSpinner('inventory') || (
                             <DashboardAgingTab
                                 sohList={sohList}
                                 locations={locations}
@@ -136,7 +186,7 @@ export default function DashboardPage() {
                     {
                         key: 'manpower',
                         label: '👷 Manpower',
-                        children: (
+                        children: groupSpinner('manpower') || (
                             <DashboardManpowerTab
                                 attData={attData}
                                 empData={empData}
