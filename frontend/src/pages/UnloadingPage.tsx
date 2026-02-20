@@ -8,6 +8,7 @@ import {
     DownloadOutlined, UploadOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { unloadingsApi } from '../api/client';
+import { downloadCsvTemplate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -265,6 +266,7 @@ export default function UnloadingPage() {
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>Add</Button>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'brand', 'vehicle_type', 'total_vehicles'], 'Unloading_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>

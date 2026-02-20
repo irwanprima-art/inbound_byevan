@@ -9,6 +9,7 @@ import {
     CloseOutlined,
 } from '@ant-design/icons';
 import { vasApi } from '../api/client';
+import { downloadCsvTemplate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -686,6 +687,7 @@ export default function VasPage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'start_time', 'end_time', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type'], 'VAS_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                 </Space>
             </div>

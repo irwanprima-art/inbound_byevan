@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { downloadCsvTemplate } from '../utils/csvTemplate';
 import {
     Table, Button, Space, Input, Modal, Form, Upload, message, Popconfirm,
     Typography, Tooltip, DatePicker,
@@ -389,7 +390,10 @@ export default function DataPage<T extends { id: number }>({
                         </Upload>
                     )}
                     {csvHeaders && (
-                        <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                        <>
+                            <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(csvHeaders, `${title.replace(/\s+/g, '_')}_template`)}>Template</Button>
+                            <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                        </>
                     )}
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>

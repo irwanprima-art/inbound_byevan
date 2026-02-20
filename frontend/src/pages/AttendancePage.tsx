@@ -8,6 +8,7 @@ import {
     DownloadOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
+import { downloadCsvTemplate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { attendancesApi, employeesApi } from '../api/client';
@@ -247,6 +248,7 @@ export default function AttendancePage() {
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'nik', 'name', 'jobdesc', 'clock_in', 'clock_out', 'status'], 'Attendance_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>

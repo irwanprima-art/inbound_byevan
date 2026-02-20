@@ -7,6 +7,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
 import { locationsApi, sohApi } from '../api/client';
+import { downloadCsvTemplate } from '../utils/csvTemplate';
 
 interface LocationRecord {
     id: number;
@@ -251,6 +252,7 @@ export default function LocationPage() {
                             <Button icon={<UploadOutlined />}>Import</Button>
                         </Upload>
                     )}
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['location', 'location_category', 'zone', 'location_type'], 'Location_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
