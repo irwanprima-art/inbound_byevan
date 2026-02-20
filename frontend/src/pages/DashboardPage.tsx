@@ -58,10 +58,11 @@ export default function DashboardPage() {
     }, [fetchAll]);
 
     // === DATE FILTER HELPER ===
+    // Backend now returns dates in consistent YYYY-MM-DD format via FlexDate
     const matchesDateRange = useCallback((dateStr: string): boolean => {
         if (!dateRange) return true;
         if (!dateStr) return false;
-        const d = dayjs(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'D/M/YYYY']);
+        const d = dayjs(dateStr);
         if (!d.isValid()) return false;
         return d.diff(dateRange[0], 'day') >= 0 && d.diff(dateRange[1], 'day') <= 0;
     }, [dateRange]);

@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { sohApi, locationsApi } from '../api/client';
 import dayjs from 'dayjs';
 
-// Helper: parse date string flexibly
+// Helper: parse date string — backend returns consistent YYYY-MM-DD via FlexDate
 const parseDate = (dateStr: string): dayjs.Dayjs | null => {
     if (!dateStr) return null;
     const d = dayjs(dateStr);

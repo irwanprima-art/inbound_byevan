@@ -8,12 +8,11 @@ interface Props {
 }
 
 export default function DashboardAgingTab({ sohList, locations }: Props) {
+    // Backend returns consistent YYYY-MM-DD via FlexDate
     const parseDate = (s: string) => {
         if (!s) return null;
-        for (const fmt of ['M/D/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'D/M/YYYY', 'DD/MM/YYYY']) {
-            const d = dayjs(s, fmt); if (d.isValid()) return d;
-        }
-        const d = dayjs(s); return d.isValid() ? d : null;
+        const d = dayjs(s);
+        return d.isValid() ? d : null;
     };
 
     const calcEdNote = (expStr: string, whStr: string) => {
