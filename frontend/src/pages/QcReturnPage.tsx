@@ -13,6 +13,7 @@ const columns = [
     { title: 'Receipt#', dataIndex: 'receipt', key: 'receipt', width: 130 },
     { title: 'Return Date', dataIndex: 'return_date', key: 'return_date', width: 110, sorter: (a: any, b: any) => a.return_date?.localeCompare(b.return_date) },
     { title: 'Owner', dataIndex: 'owner', key: 'owner', width: 100 },
+    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120 },
     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70, sorter: (a: any, b: any) => a.qty - b.qty },
     { title: 'From Loc', dataIndex: 'from_loc', key: 'from_loc', width: 100 },
@@ -30,6 +31,7 @@ const formFields = (
         <Form.Item name="receipt" label="Receipt#"><Input /></Form.Item>
         <Form.Item name="return_date" label="Return Date"><Input placeholder="M/D/YYYY" /></Form.Item>
         <Form.Item name="owner" label="Owner"><Input /></Form.Item>
+        <Form.Item name="brand" label="Brand"><Input /></Form.Item>
         <Form.Item name="sku" label="SKU" rules={[{ required: true }]}><Input /></Form.Item>
         <Form.Item name="qty" label="Qty" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
         <Form.Item name="from_loc" label="From Loc"><Input /></Form.Item>
@@ -41,7 +43,7 @@ const formFields = (
     </>
 );
 
-const csvHeaders = ['qc_date', 'receipt', 'return_date', 'owner', 'sku', 'qty', 'from_loc', 'to_loc', 'status', 'operator'];
+const csvHeaders = ['qc_date', 'receipt', 'return_date', 'owner', 'brand', 'sku', 'qty', 'from_loc', 'to_loc', 'status', 'operator'];
 
 const columnMap: Record<string, string> = {
     'QC Date': 'qc_date',
@@ -54,6 +56,7 @@ const columnMap: Record<string, string> = {
     'from loc': 'from_loc',
     'To Loc': 'to_loc',
     'to loc': 'to_loc',
+    'Brand': 'brand',
 };
 
 const numberFields = ['qty'];

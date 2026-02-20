@@ -126,6 +126,7 @@ type QcReturn struct {
 	Receipt    string         `gorm:"column:receipt" json:"receipt"`
 	ReturnDate FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
 	Owner      string         `gorm:"column:owner" json:"owner"`
+	Brand      string         `gorm:"column:brand" json:"brand"`
 	Sku        string         `gorm:"column:sku" json:"sku" binding:"required"`
 	Qty        int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	FromLoc    string         `gorm:"column:from_loc" json:"from_loc"`
