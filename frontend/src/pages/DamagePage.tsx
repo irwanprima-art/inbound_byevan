@@ -29,7 +29,6 @@ const columns = [
     },
     { title: 'Damage Reason', dataIndex: 'damage_reason', key: 'damage_reason', width: 160, ellipsis: true },
     { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
-    { title: 'QC by', dataIndex: 'qc_by', key: 'qc_by', width: 120 },
 ];
 
 const formFields = (
@@ -44,11 +43,10 @@ const formFields = (
         </Form.Item>
         <Form.Item name="damage_reason" label="Damage Reason"><Input /></Form.Item>
         <Form.Item name="operator" label="Operator"><Input /></Form.Item>
-        <Form.Item name="qc_by" label="QC by"><Input /></Form.Item>
     </>
 );
 
-const csvHeaders = ['date', 'brand', 'sku', 'description', 'qty', 'damage_note', 'damage_reason', 'operator', 'qc_by'];
+const csvHeaders = ['date', 'brand', 'sku', 'description', 'qty', 'damage_note', 'damage_reason', 'operator'];
 
 const columnMap: Record<string, string> = {
     'tanggal': 'date',
@@ -57,9 +55,6 @@ const columnMap: Record<string, string> = {
     'damage note': 'damage_note',
     'Damage Reason': 'damage_reason',
     'damage reason': 'damage_reason',
-    'QC by': 'qc_by',
-    'qc by': 'qc_by',
-    'qc_by': 'qc_by',
 };
 
 const numberFields = ['qty'];

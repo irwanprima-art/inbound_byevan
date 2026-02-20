@@ -254,7 +254,7 @@ export default function ProductivityPage() {
         fTransactions.forEach(d => addEmp(d.operator, 'Inbound', d.operate_type || ''));
         fVas.forEach(d => addEmp(d.operator, 'Inbound', 'VAS'));
         fDcc.forEach(d => addEmp(d.operator, 'Inventory', 'Cycle Count'));
-        fDamage.forEach(d => addEmp(d.qc_by, 'Inventory', 'Project Damage'));
+        fDamage.forEach(d => addEmp(d.operator, 'Inventory', 'Project Damage'));
         fQcr.forEach(d => addEmp(d.operator, 'Inventory', 'QC Return'));
 
         const inspection: RankItem[] = [];
@@ -294,7 +294,7 @@ export default function ProductivityPage() {
 
             // Damage + QC Return
             let dmgQty = 0;
-            fDamage.forEach(d => { if ((d.qc_by || '').trim().toLowerCase() === key) dmgQty += (parseInt(d.qty) || 0); });
+            fDamage.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key) dmgQty += (parseInt(d.qty) || 0); });
             let qcrQty = 0;
             fQcr.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key) qcrQty += (parseInt(d.qty) || 0); });
             const qcTotal = dmgQty + qcrQty;
