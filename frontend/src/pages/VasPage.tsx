@@ -331,13 +331,23 @@ export default function VasPage() {
         reader.onload = async (e) => {
             const text = e.target?.result as string;
             const lines = text.split('\n').filter(l => l.trim());
+            if (lines.length < 2) { message.warning('CSV kosong atau hanya header'); return; }
+
+            // Parse header row to build column index map
+            const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+            const colIdx = (name: string) => headers.indexOf(name);
+
             const rows = lines.slice(1).map(line => {
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                const get = (name: string, fallback = '') => {
+                    const idx = colIdx(name);
+                    return idx >= 0 && cols[idx] ? cols[idx] : fallback;
+                };
                 return {
-                    date: cols[0] || '', start_time: cols[1] || '', end_time: cols[2] || '',
-                    brand: cols[4] || '', sku: cols[5] || '', vas_type: cols[6] || '',
-                    qty: parseInt(cols[7]) || 0, operator: cols[8] || '',
-                    item_type: cols[9] || 'Barang Jual',
+                    date: get('date'), start_time: get('start_time'), end_time: get('end_time'),
+                    brand: get('brand'), sku: get('sku'), vas_type: get('vas_type'),
+                    qty: parseInt(get('qty', '0')) || 0, operator: get('operator'),
+                    item_type: get('item_type', 'Barang Jual'),
                 };
             });
             try {

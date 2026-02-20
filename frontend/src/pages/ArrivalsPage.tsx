@@ -207,23 +207,38 @@ export default function ArrivalsPage() {
         message.success('Export berhasil');
     };
 
-    // CSV Import
+    // CSV Import — reads by header name, not column position
     const handleImport = (file: File) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target?.result as string;
             const lines = text.split('\n').filter(l => l.trim());
+            if (lines.length < 2) { message.warning('CSV kosong atau hanya header'); return; }
+
+            // Parse header row to build column index map
+            const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+            const colIdx = (name: string) => headers.indexOf(name);
+
             const rows = lines.slice(1).map(line => {
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                const get = (name: string, fallback = '') => {
+                    const idx = colIdx(name);
+                    return idx >= 0 && cols[idx] ? cols[idx] : fallback;
+                };
                 return {
-                    date: cols[0] || dayjs().format('YYYY-MM-DD'),
-                    arrival_time: cols[1] || dayjs().format('YYYY-MM-DD HH:mm:ss'),
-                    brand: cols[2] || '',
-                    receipt_no: cols[3] || '',
-                    po_no: cols[4] || '',
-                    po_qty: parseInt(cols[5]) || 0,
-                    operator: cols[6] || '',
-                    note: cols[7] || '',
+                    date: get('date', dayjs().format('YYYY-MM-DD')),
+                    arrival_time: get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss')),
+                    brand: get('brand'),
+                    item_type: get('item_type'),
+                    receipt_no: get('receipt_no'),
+                    po_no: get('po_no'),
+                    po_qty: parseInt(get('po_qty', '0')) || 0,
+                    receive_qty: parseInt(get('receive_qty', '0')) || 0,
+                    putaway_qty: parseInt(get('putaway_qty', '0')) || 0,
+                    pending_qty: parseInt(get('pending_qty', '0')) || 0,
+                    operator: get('operator'),
+                    note: get('note'),
+                    status: get('status', 'Completed'),
                 };
             });
             try {
