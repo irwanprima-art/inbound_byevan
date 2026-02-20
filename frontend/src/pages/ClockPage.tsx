@@ -51,8 +51,14 @@ export default function ClockPage() {
     const findEmployee = (nikVal: string) =>
         employees.find(e => e.nik?.toLowerCase() === nikVal?.toLowerCase());
 
-    const findActiveRecord = (nikVal: string) =>
-        attendances.find(r => r.nik?.toLowerCase() === nikVal?.toLowerCase() && r.date === today && r.clock_in && !r.clock_out);
+    const findActiveRecord = (nikVal: string) => {
+        const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+        return attendances.find(r =>
+            r.nik?.toLowerCase() === nikVal?.toLowerCase() &&
+            (r.date === today || r.date === yesterday) &&
+            r.clock_in && !r.clock_out
+        );
+    };
 
     const calcWorkhourMin = (clockIn: string, clockOut: string): number => {
         if (!clockIn || !clockOut) return 0;
