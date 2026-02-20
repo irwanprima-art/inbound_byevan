@@ -28,9 +28,13 @@ const divisiMap: Record<string, string> = {
 
 const calcWorkhourMin = (clockIn: string, clockOut: string): number => {
     if (!clockIn || !clockOut) return 0;
-    const [inH, inM] = clockIn.split(':').map(Number);
-    const [outH, outM] = clockOut.split(':').map(Number);
-    return (outH * 60 + outM) - (inH * 60 + inM);
+    const inParts = clockIn.split(':').map(Number);
+    const outParts = clockOut.split(':').map(Number);
+    const inSec = (inParts[0] || 0) * 3600 + (inParts[1] || 0) * 60 + (inParts[2] || 0);
+    const outSec = (outParts[0] || 0) * 3600 + (outParts[1] || 0) * 60 + (outParts[2] || 0);
+    let diff = outSec - inSec;
+    if (diff < 0) diff += 86400; // cross-midnight: add 24 hours
+    return Math.floor(diff / 60);
 };
 
 const formatMinutes = (totalMin: number): string => {
