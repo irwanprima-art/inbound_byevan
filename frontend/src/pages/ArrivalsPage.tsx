@@ -287,7 +287,7 @@ export default function ArrivalsPage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
-                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'operator', 'note', 'status'], 'Arrivals_template')}>Template</Button>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'operator', 'note'], 'Arrivals_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                 </Space>
             </div>
