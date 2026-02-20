@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"warehouse-report-monitoring/internal/database"
 	"warehouse-report-monitoring/internal/handlers"
@@ -26,9 +28,17 @@ func main() {
 	r := gin.Default()
 	r.MaxMultipartMemory = 50 << 20 // 50 MB
 
-	// CORS
+	// CORS — read allowed origins from env (comma-separated), default to common dev origins
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:8080", "http://localhost:8070"}
+	if envOrigins := os.Getenv("CORS_ORIGINS"); envOrigins != "" {
+		allowedOrigins = strings.Split(envOrigins, ",")
+		for i := range allowedOrigins {
+			allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
+		}
+	}
+	log.Printf("[CORS] Allowed origins: %v", allowedOrigins)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -42,7 +52,10 @@ func main() {
 
 	// Public routes
 	api := r.Group("/api")
-	api.POST("/auth/login", handlers.Login)
+
+	// Rate limiter for login: 5 attempts per minute per IP
+	loginLimiter := middleware.NewLoginRateLimiter(5, 1*time.Minute)
+	api.POST("/auth/login", loginLimiter.Middleware(), handlers.Login)
 
 	// Public clock routes (no auth needed for clock in/out kiosk)
 	clockEmployees := handlers.NewResource[models.Employee]("employees")

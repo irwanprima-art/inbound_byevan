@@ -16,7 +16,8 @@ services:
       - DB_USER=${POSTGRES_USER:-inbound_user}
       - DB_PASSWORD=${POSTGRES_PASSWORD:-inbound_pass}
       - DB_NAME=${POSTGRES_DB:-inbound_db}
-      - JWT_SECRET=${JWT_SECRET:-supersecretkey}
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-strong-random-secret}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8070}
       - GIN_MODE=release
     networks:
       - inbound-net

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +16,11 @@ var jwtSecret []byte
 func init() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "warehouse-report-secret-key-change-in-production"
+		if os.Getenv("GIN_MODE") == "release" {
+			log.Fatal("[SECURITY] JWT_SECRET environment variable is REQUIRED in production. Server cannot start without it.")
+		}
+		secret = "dev-only-secret-do-not-use-in-production"
+		log.Println("[SECURITY] WARNING: JWT_SECRET not set, using dev-only default. Set JWT_SECRET env var for production!")
 	}
 	jwtSecret = []byte(secret)
 }

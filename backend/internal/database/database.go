@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"warehouse-report-monitoring/internal/models"
 
@@ -81,24 +82,48 @@ func SeedDefaultUsers() {
 
 	defaults := []struct {
 		Username string
-		Password string
+		EnvKey   string
 		Role     string
 	}{
-		{"supervisor", "super123", "supervisor"},
-		{"leader", "leader123", "leader"},
-		{"admin.inbound", "inbound123", "admin_inbound"},
-		{"admin.inventory", "inventory123", "admin_inventory"},
+		{"supervisor", "SEED_PASSWORD_SUPERVISOR", "supervisor"},
+		{"leader", "SEED_PASSWORD_LEADER", "leader"},
+		{"admin.inbound", "SEED_PASSWORD_ADMIN_INBOUND", "admin_inbound"},
+		{"admin.inventory", "SEED_PASSWORD_ADMIN_INVENTORY", "admin_inventory"},
 	}
 
+	log.Println("═══════════════════════════════════════════════")
+	log.Println("[DB] Creating default user accounts...")
+
 	for _, d := range defaults {
-		hash, _ := bcrypt.GenerateFromPassword([]byte(d.Password), bcrypt.DefaultCost)
+		password := os.Getenv(d.EnvKey)
+		if password == "" {
+			password = generateRandomPassword(12)
+			log.Printf("[DB] ⚠ %s: generated password = %s (set %s env to override)", d.Username, password, d.EnvKey)
+		} else {
+			log.Printf("[DB] ✓ %s: password set from env %s", d.Username, d.EnvKey)
+		}
+		hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		DB.Create(&models.User{
 			Username: d.Username,
 			Password: string(hash),
 			Role:     d.Role,
 		})
 	}
-	log.Println("[DB] Default users seeded")
+
+	log.Println("[DB] Default users seeded — CHANGE PASSWORDS after first login!")
+	log.Println("═══════════════════════════════════════════════")
+}
+
+// generateRandomPassword creates a random alphanumeric password of given length
+func generateRandomPassword(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+		// add small variation
+		time.Sleep(time.Nanosecond)
+	}
+	return string(b)
 }
 
 func getEnv(key, fallback string) string {
