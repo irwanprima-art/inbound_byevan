@@ -359,8 +359,16 @@ export default function VasPage() {
                 };
             });
             try {
-                await vasApi.sync(rows);
-                message.success(`${rows.length} data imported`);
+                const CHUNK = 1000;
+                let imported = 0;
+                const hide = message.loading(`Importing... 0/${rows.length}`, 0);
+                for (let i = 0; i < rows.length; i += CHUNK) {
+                    await vasApi.batchImport(rows.slice(i, i + CHUNK));
+                    imported += Math.min(CHUNK, rows.length - i);
+                    hide();
+                    if (i + CHUNK < rows.length) message.loading(`Importing... ${imported}/${rows.length}`, 0);
+                }
+                message.success(`✅ ${imported} data imported`);
                 fetchData();
             } catch { message.error('Import gagal'); }
         };
