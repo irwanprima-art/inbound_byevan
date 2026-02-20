@@ -54,6 +54,17 @@ const formFields = (
 const csvHeaders = ['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator'];
 const numberFields = ['qty'];
 
+// Header-based CSV row parser that normalizes operate_type to lowercase
+const parseCSVRow = (row: string[], headers?: string[]) => {
+    const idx = (name: string) => headers ? headers.findIndex(h => h.toLowerCase().replace(/[^a-z0-9_]/g, '_') === name) : -1;
+    const get = (name: string, fallback = '') => { const i = idx(name); return i >= 0 && row[i] ? row[i] : fallback; };
+    return {
+        date: get('date'), time_transaction: get('time_transaction'), receipt_no: get('receipt_no'),
+        sku: get('sku'), operate_type: get('operate_type').toLowerCase(), qty: parseInt(get('qty', '0')) || 0,
+        operator: get('operator'),
+    };
+};
+
 export default function TransactionsPage() {
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} />;
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} />;
 }
