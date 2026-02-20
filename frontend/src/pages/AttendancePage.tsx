@@ -8,7 +8,7 @@ import {
     DownloadOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
-import { downloadCsvTemplate } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { attendancesApi, employeesApi } from '../api/client';
@@ -136,6 +136,7 @@ export default function AttendancePage() {
             const parsed = rows.map(cells => {
                 const obj: Record<string, unknown> = {};
                 headers.forEach((h, i) => { if (h !== 'id') obj[h] = cells[i] ?? ''; });
+                if (obj.date) obj.date = normalizeDate(obj.date as string);
                 if (obj.clock_in) obj.clock_in = normalizeTime(obj.clock_in as string);
                 if (obj.clock_out) obj.clock_out = normalizeTime(obj.clock_out as string);
                 return obj;

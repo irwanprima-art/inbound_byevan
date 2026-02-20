@@ -5,7 +5,7 @@ import {
     DownloadOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi } from '../api/client';
-import { downloadCsvTemplate, normalizeDateTime } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -237,7 +237,7 @@ export default function ArrivalsPage() {
                     return idx >= 0 && cols[idx] ? cols[idx] : fallback;
                 };
                 return {
-                    date: get('date', dayjs().format('YYYY-MM-DD')),
+                    date: normalizeDate(get('date', dayjs().format('YYYY-MM-DD'))),
                     arrival_time: normalizeDateTime(get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss'))),
                     brand: get('brand'),
                     item_type: get('item_type'),

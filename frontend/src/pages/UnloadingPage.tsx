@@ -8,7 +8,7 @@ import {
     DownloadOutlined, UploadOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { unloadingsApi } from '../api/client';
-import { downloadCsvTemplate } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -160,6 +160,7 @@ export default function UnloadingPage() {
                 headers.forEach((h, i) => {
                     if (h === 'id') return;
                     if (h === 'total_vehicles') obj[h] = parseInt(cells[i]) || 0;
+                    else if (h === 'date') obj[h] = normalizeDate(cells[i] ?? '');
                     else obj[h] = cells[i] ?? '';
                 });
                 return obj;

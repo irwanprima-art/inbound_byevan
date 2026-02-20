@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { downloadCsvTemplate } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import {
     Table, Button, Space, Input, Modal, Form, Upload, message, Popconfirm,
     Typography, Tooltip, DatePicker,
@@ -218,7 +218,13 @@ export default function DataPage<T extends { id: number }>({
                     const obj: Record<string, unknown> = {};
                     fieldMap.forEach(({ index, field }) => {
                         const val = cells[index] ?? '';
-                        obj[field] = numSet.has(field) ? (parseInt(val) || 0) : val;
+                        if (numSet.has(field)) {
+                            obj[field] = parseInt(val) || 0;
+                        } else if (field.includes('date') || field === 'date') {
+                            obj[field] = normalizeDate(val);
+                        } else {
+                            obj[field] = val;
+                        }
                     });
                     return obj;
                 }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0));

@@ -9,7 +9,7 @@ import {
     CloseOutlined,
 } from '@ant-design/icons';
 import { vasApi } from '../api/client';
-import { downloadCsvTemplate, normalizeDateTime } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -352,7 +352,7 @@ export default function VasPage() {
                     return idx >= 0 && cols[idx] ? cols[idx] : fallback;
                 };
                 return {
-                    date: get('date'), start_time: normalizeDateTime(get('start_time')), end_time: normalizeDateTime(get('end_time')),
+                    date: normalizeDate(get('date')), start_time: normalizeDateTime(get('start_time')), end_time: normalizeDateTime(get('end_time')),
                     brand: get('brand'), sku: get('sku'), vas_type: get('vas_type'),
                     qty: parseInt(get('qty', '0')) || 0, operator: get('operator'),
                     item_type: get('item_type', 'Barang Jual'),

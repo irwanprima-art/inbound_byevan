@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { sohApi, locationsApi } from '../api/client';
-import { downloadCsvTemplate } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
@@ -183,7 +183,13 @@ export default function SohPage() {
                 const obj: Record<string, unknown> = {};
                 fieldMap.forEach(({ index, field }) => {
                     const val = cells[index] ?? '';
-                    obj[field] = numFields.has(field) ? (parseInt(val) || 0) : val;
+                    if (numFields.has(field)) {
+                        obj[field] = parseInt(val) || 0;
+                    } else if (field.includes('date')) {
+                        obj[field] = normalizeDate(val);
+                    } else {
+                        obj[field] = val;
+                    }
                 });
                 return obj;
             }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0));
