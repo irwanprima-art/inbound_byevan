@@ -62,8 +62,10 @@ func main() {
 	clockAttendances := handlers.NewResource[models.Attendance]("attendances")
 	api.GET("/clock/employees", clockEmployees.List)
 	api.GET("/clock/attendances", clockAttendances.List)
-	api.POST("/clock/attendances", clockAttendances.Create)
-	api.PUT("/clock/attendances/:id", clockAttendances.Update)
+	// Clock in/out restricted to warehouse WiFi (default 192.168.4.0/24, configurable via CLOCK_ALLOWED_CIDRS)
+	clockGuard := middleware.IPWhitelist()
+	api.POST("/clock/attendances", clockGuard, clockAttendances.Create)
+	api.PUT("/clock/attendances/:id", clockGuard, clockAttendances.Update)
 
 	// Protected routes
 	protected := api.Group("")

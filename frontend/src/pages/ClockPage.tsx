@@ -88,7 +88,7 @@ export default function ClockPage() {
             await axios.post(`${API}/clock/attendances`, { date: today, nik: emp.nik, name: emp.name, jobdesc, clock_in: now, clock_out: '', status: 'Active' });
             Modal.success({ title: '🎉 Clock In Berhasil, ' + emp.name + '!', content: '"Langkah pelan kaya zombie,\ntapi rezeki nggak boleh lari!" 🧟' });
             setNik(''); setJobdesc(''); fetchData();
-        } catch { message.error('Gagal clock in'); }
+        } catch (err: any) { message.error(err?.response?.data?.error || 'Gagal clock in'); }
         setLoading(false);
     };
 
@@ -108,7 +108,7 @@ export default function ClockPage() {
             await axios.put(`${API}/clock/attendances/${active.id}`, { ...active, clock_out: now, status: `Done (${formatMinutes(totalMin)})` });
             Modal.success({ title: '🎉 Clock Out Berhasil, ' + emp.name + '!', content: '"Kerja tuntas tanpa drama,\nwaktunya rebahan penuh bahagia!" 🛌' });
             setNik(''); setJobdesc(''); fetchData();
-        } catch { message.error('Gagal clock out'); }
+        } catch (err: any) { message.error(err?.response?.data?.error || 'Gagal clock out'); }
         setLoading(false);
     };
 
