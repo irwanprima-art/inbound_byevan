@@ -145,9 +145,18 @@ export default function AttendancePage() {
             if (lines.length < 2) return;
             const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''));
             const rows = lines.slice(1).map(l => parseCsvLine(l));
+            const normalizeTime = (v: string) => {
+                if (!v) return v;
+                const t = v.trim();
+                if (/^\d{1,2}:\d{2}$/.test(t)) return t + ':00';        // HH:MM → HH:MM:00
+                if (/^\d{1,2}:\d{2}:\d{2}$/.test(t)) return t;          // HH:MM:SS → keep
+                return t;
+            };
             const parsed = rows.map(cells => {
                 const obj: Record<string, unknown> = {};
                 headers.forEach((h, i) => { if (h !== 'id') obj[h] = cells[i] ?? ''; });
+                if (obj.clock_in) obj.clock_in = normalizeTime(obj.clock_in as string);
+                if (obj.clock_out) obj.clock_out = normalizeTime(obj.clock_out as string);
                 return obj;
             }).filter(o => Object.values(o).some(v => v !== ''));
             if (!parsed.length) return;

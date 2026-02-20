@@ -83,7 +83,7 @@ export default function ClockPage() {
         if (active) { message.error(`${emp.name} sudah clock in hari ini dan belum clock out!`); return; }
 
         setLoading(true);
-        const now = dayjs().format('HH:mm');
+        const now = dayjs().format('HH:mm:ss');
         try {
             await axios.post(`${API}/clock/attendances`, { date: today, nik: emp.nik, name: emp.name, jobdesc, clock_in: now, clock_out: '', status: 'Active' });
             Modal.success({ title: '🎉 Clock In Berhasil, ' + emp.name + '!', content: '"Langkah pelan kaya zombie,\ntapi rezeki nggak boleh lari!" 🧟' });
@@ -102,7 +102,7 @@ export default function ClockPage() {
         if (!active) { message.error(`${emp.name} belum clock in hari ini atau sudah clock out!`); return; }
 
         setLoading(true);
-        const now = dayjs().format('HH:mm');
+        const now = dayjs().format('HH:mm:ss');
         const totalMin = calcWorkhourMin(active.clock_in, now);
         try {
             await axios.put(`${API}/clock/attendances/${active.id}`, { ...active, clock_out: now, status: `Done (${formatMinutes(totalMin)})` });
