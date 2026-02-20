@@ -13,15 +13,19 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-interface ActiveTask {
-    id: string;
+interface TaskItem {
     brand: string;
     sku: string;
     vas_type: string;
+}
+
+interface ActiveTask {
+    id: string;
     operator: string;
     startTime: string;
     startTs: number;
     expanded: boolean;
+    items: TaskItem[];
 }
 
 export default function VasPage() {
@@ -43,10 +47,14 @@ export default function VasPage() {
 
     // ─── Qty finish modal ─────────────────────
     const [qtyModalTask, setQtyModalTask] = useState<ActiveTask | null>(null);
-    const [finishQty, setFinishQty] = useState<number>(1);
+    const [finishQtys, setFinishQtys] = useState<number[]>([]);
 
     // ─── New task form ─────────────────────────
     const [swForm] = Form.useForm();
+
+    // ─── Add SKU form (inline per task) ────────
+    const [addSkuTaskId, setAddSkuTaskId] = useState<string | null>(null);
+    const [addSkuForm] = Form.useForm();
 
     // ─── Data fetching ─────────────────────────
     const fetchData = useCallback(async () => {
@@ -95,13 +103,11 @@ export default function VasPage() {
             const now = dayjs();
             const task: ActiveTask = {
                 id: `task_${Date.now()}`,
-                brand: vals.brand,
-                sku: vals.sku,
-                vas_type: vals.vas_type,
                 operator: vals.operator,
                 startTime: now.format('M/D/YYYY HH:mm:ss'),
                 startTs: Date.now(),
                 expanded: false,
+                items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type }],
             };
             setActiveTasks(prev => [...prev, task]);
             swForm.resetFields();
@@ -109,6 +115,32 @@ export default function VasPage() {
         } catch {
             message.error('Isi Brand, SKU, VAS Type, dan Operator dulu!');
         }
+    };
+
+    // ─── Add SKU to existing task ──────────────
+    const handleAddSku = async (taskId: string) => {
+        try {
+            const vals = await addSkuForm.validateFields();
+            setActiveTasks(prev => prev.map(t =>
+                t.id === taskId
+                    ? { ...t, items: [...t.items, { brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type }] }
+                    : t
+            ));
+            addSkuForm.resetFields();
+            setAddSkuTaskId(null);
+            message.success('SKU ditambahkan ke task');
+        } catch {
+            message.error('Isi Brand, SKU, dan VAS Type!');
+        }
+    };
+
+    // ─── Remove SKU item from task ─────────────
+    const handleRemoveItem = (taskId: string, itemIdx: number) => {
+        setActiveTasks(prev => prev.map(t => {
+            if (t.id !== taskId) return t;
+            if (t.items.length <= 1) return t; // can't remove last item
+            return { ...t, items: t.items.filter((_, i) => i !== itemIdx) };
+        }));
     };
 
     // ─── Toggle expand/collapse card ───────────
@@ -121,7 +153,7 @@ export default function VasPage() {
     // ─── Finish task → open qty modal ──────────
     const handleFinish = (task: ActiveTask) => {
         setQtyModalTask(task);
-        setFinishQty(1);
+        setFinishQtys(task.items.map(() => 1));
     };
 
     // ─── Save after entering Qty ───────────────
@@ -129,18 +161,26 @@ export default function VasPage() {
         if (!qtyModalTask) return;
         try {
             const endTime = dayjs().format('M/D/YYYY HH:mm:ss');
-            const record = {
-                date: dayjs().format('M/D/YYYY'),
-                start_time: qtyModalTask.startTime,
-                end_time: endTime,
-                brand: qtyModalTask.brand,
-                sku: qtyModalTask.sku,
-                vas_type: qtyModalTask.vas_type,
-                qty: finishQty,
-                operator: qtyModalTask.operator,
-            };
-            await vasApi.create(record);
-            message.success(`✅ ${qtyModalTask.operator} — ${qtyModalTask.vas_type} selesai!`);
+            const dateStr = dayjs().format('M/D/YYYY');
+
+            // Save one record per item
+            for (let i = 0; i < qtyModalTask.items.length; i++) {
+                const item = qtyModalTask.items[i];
+                const qty = finishQtys[i] || 1;
+                const record = {
+                    date: dateStr,
+                    start_time: qtyModalTask.startTime,
+                    end_time: endTime,
+                    brand: item.brand,
+                    sku: item.sku,
+                    vas_type: item.vas_type,
+                    qty,
+                    operator: qtyModalTask.operator,
+                };
+                await vasApi.create(record);
+            }
+
+            message.success(`✅ ${qtyModalTask.operator} — ${qtyModalTask.items.length} SKU selesai!`);
 
             // Remove from active
             setActiveTasks(prev => prev.filter(t => t.id !== qtyModalTask.id));
@@ -170,6 +210,16 @@ export default function VasPage() {
         const sec = diff % 60;
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
+
+    // ─── VAS type options ──────────────────────
+    const vasTypeOptions = [
+        { value: 'Barcode', label: 'Barcode' },
+        { value: 'Repacking / relabeling', label: 'Repacking / relabeling' },
+        { value: 'Assembly', label: 'Assembly' },
+        { value: 'Disassembly', label: 'Disassembly' },
+        { value: 'Bundling', label: 'Bundling' },
+        { value: 'Additional QC', label: 'Additional QC' },
+    ];
 
     // ─── Table columns ────────────────────────
     const columns = [
@@ -341,14 +391,7 @@ export default function VasPage() {
                         </Col>
                         <Col xs={12} md={5}>
                             <Form.Item name="vas_type" label="VAS Type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                                <Select placeholder="Pilih jenis VAS" options={[
-                                    { value: 'Barcode', label: 'Barcode' },
-                                    { value: 'Repacking / relabeling', label: 'Repacking / relabeling' },
-                                    { value: 'Assembly', label: 'Assembly' },
-                                    { value: 'Disassembly', label: 'Disassembly' },
-                                    { value: 'Bundling', label: 'Bundling' },
-                                    { value: 'Additional QC', label: 'Additional QC' },
-                                ]} />
+                                <Select placeholder="Pilih jenis VAS" options={vasTypeOptions} />
                             </Form.Item>
                         </Col>
                         <Col xs={12} md={5}>
@@ -392,9 +435,8 @@ export default function VasPage() {
                                                     {task.operator}
                                                 </Text>
                                                 <Text style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>
-                                                    sedang melakukan
+                                                    — {task.items.length} SKU
                                                 </Text>
-                                                <Tag color="blue" style={{ marginLeft: 8 }}>{task.vas_type}</Tag>
                                             </div>
                                             <Button type="text" icon={<CloseOutlined />}
                                                 onClick={() => toggleExpand(task.id)}
@@ -415,10 +457,59 @@ export default function VasPage() {
                                                 </Text>
                                             </Col>
                                             <Col span={12}>
-                                                <Row gutter={8}>
-                                                    <Col span={12}><Text style={{ color: 'rgba(255,255,255,0.4)' }}>Brand:</Text> <Text style={{ color: '#fff' }}>{task.brand}</Text></Col>
-                                                    <Col span={12}><Text style={{ color: 'rgba(255,255,255,0.4)' }}>SKU:</Text> <Text style={{ color: '#fff' }}>{task.sku}</Text></Col>
-                                                </Row>
+                                                {/* SKU Items List */}
+                                                <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                                                    {task.items.map((item, idx) => (
+                                                        <div key={idx} style={{
+                                                            display: 'flex', alignItems: 'center', gap: 8,
+                                                            padding: '5px 10px', marginBottom: 4, borderRadius: 8,
+                                                            background: 'rgba(255,255,255,0.04)',
+                                                            border: '1px solid rgba(255,255,255,0.06)',
+                                                        }}>
+                                                            <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>{item.vas_type}</Tag>
+                                                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.brand}</Text>
+                                                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{item.sku}</Text>
+                                                            {task.items.length > 1 && (
+                                                                <Button type="text" size="small"
+                                                                    icon={<CloseOutlined style={{ fontSize: 10 }} />}
+                                                                    onClick={() => handleRemoveItem(task.id, idx)}
+                                                                    style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 'auto', padding: 0, width: 20, height: 20 }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Add SKU inline form */}
+                                                {addSkuTaskId === task.id ? (
+                                                    <Form form={addSkuForm} layout="inline" style={{ marginTop: 8 }}>
+                                                        <Form.Item name="brand" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                                                            <Input placeholder="Brand" size="small" style={{ width: 80 }} />
+                                                        </Form.Item>
+                                                        <Form.Item name="sku" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                                                            <Input placeholder="SKU" size="small" style={{ width: 100 }} />
+                                                        </Form.Item>
+                                                        <Form.Item name="vas_type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                                                            <Select placeholder="VAS Type" size="small" style={{ width: 130 }} options={vasTypeOptions} />
+                                                        </Form.Item>
+                                                        <Button type="primary" size="small" icon={<PlusOutlined />}
+                                                            onClick={() => handleAddSku(task.id)}
+                                                            style={{ background: '#22c55e', border: 'none', borderRadius: 6 }}>
+                                                            Add
+                                                        </Button>
+                                                        <Button type="text" size="small"
+                                                            onClick={() => { setAddSkuTaskId(null); addSkuForm.resetFields(); }}
+                                                            style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                                            Batal
+                                                        </Button>
+                                                    </Form>
+                                                ) : (
+                                                    <Button type="dashed" size="small" icon={<PlusOutlined />}
+                                                        onClick={() => { setAddSkuTaskId(task.id); addSkuForm.resetFields(); }}
+                                                        style={{ marginTop: 8, borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', borderRadius: 6 }}>
+                                                        Tambah SKU lain
+                                                    </Button>
+                                                )}
                                             </Col>
                                             <Col span={6} style={{ textAlign: 'right' }}>
                                                 <Space>
@@ -456,7 +547,7 @@ export default function VasPage() {
                                                 {task.operator}
                                             </Text>
                                             <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginLeft: 4 }}>
-                                                — {task.vas_type}
+                                                — {task.items.length} SKU
                                             </Text>
                                         </div>
                                         <div style={{
@@ -482,18 +573,18 @@ export default function VasPage() {
 
             {/* ───── QTY MODAL on FINISH ───── */}
             <Modal
-                title="⏱ Finish — Masukkan Qty"
+                title="⏱ Finish — Masukkan Qty per SKU"
                 open={!!qtyModalTask}
                 onCancel={() => setQtyModalTask(null)}
                 onOk={handleSaveQty}
-                okText="Simpan"
-                width={400}
+                okText="Simpan Semua"
+                width={520}
             >
                 {qtyModalTask && (
                     <>
                         <div style={{ textAlign: 'center', marginBottom: 16 }}>
                             <Text style={{ color: '#60a5fa', fontWeight: 700 }}>{qtyModalTask.operator}</Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.4)' }}> — {qtyModalTask.vas_type}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)' }}> — {qtyModalTask.items.length} SKU</Text>
                         </div>
                         <div style={{ textAlign: 'center', marginBottom: 16 }}>
                             <Text style={{ color: 'rgba(255,255,255,0.5)' }}>Duration: </Text>
@@ -501,16 +592,38 @@ export default function VasPage() {
                                 {formatElapsed(elapsed[qtyModalTask.id] || 0)}
                             </Tag>
                         </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <Text style={{ display: 'block', marginBottom: 8 }}>Qty yang dikerjakan:</Text>
-                            <InputNumber
-                                value={finishQty}
-                                onChange={v => setFinishQty(v || 1)}
-                                min={1}
-                                size="large"
-                                style={{ width: 200 }}
-                                autoFocus
-                            />
+                        <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                            {qtyModalTask.items.map((item, idx) => (
+                                <div key={idx} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '10px 14px', marginBottom: 8, borderRadius: 10,
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>{item.vas_type}</Tag>
+                                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.brand}</Text>
+                                        </div>
+                                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{item.sku}</Text>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Qty:</Text>
+                                        <InputNumber
+                                            value={finishQtys[idx]}
+                                            onChange={v => {
+                                                const next = [...finishQtys];
+                                                next[idx] = v || 1;
+                                                setFinishQtys(next);
+                                            }}
+                                            min={1}
+                                            size="small"
+                                            style={{ width: 80 }}
+                                            autoFocus={idx === 0}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </>
                 )}
@@ -561,14 +674,7 @@ export default function VasPage() {
                     <Form.Item name="end_time" label="End Time"><Input placeholder="M/D/YYYY HH:mm:ss" /></Form.Item>
                     <Form.Item name="brand" label="Brand"><Input /></Form.Item>
                     <Form.Item name="sku" label="SKU"><Input /></Form.Item>
-                    <Form.Item name="vas_type" label="VAS Type"><Select placeholder="Pilih jenis VAS" options={[
-                        { value: 'Barcode', label: 'Barcode' },
-                        { value: 'Repacking / relabeling', label: 'Repacking / relabeling' },
-                        { value: 'Assembly', label: 'Assembly' },
-                        { value: 'Disassembly', label: 'Disassembly' },
-                        { value: 'Bundling', label: 'Bundling' },
-                        { value: 'Additional QC', label: 'Additional QC' },
-                    ]} /></Form.Item>
+                    <Form.Item name="vas_type" label="VAS Type"><Select placeholder="Pilih jenis VAS" options={vasTypeOptions} /></Form.Item>
                     <Form.Item name="qty" label="Qty"><InputNumber style={{ width: '100%' }} min={1} /></Form.Item>
                     <Form.Item name="operator" label="Operator"><Input /></Form.Item>
                 </Form>
