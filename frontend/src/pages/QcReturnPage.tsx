@@ -15,6 +15,7 @@ const columns = [
     { title: 'Owner', dataIndex: 'owner', key: 'owner', width: 100 },
     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120 },
+    { title: 'Description', dataIndex: 'description', key: 'description', width: 180, ellipsis: true },
     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70, sorter: (a: any, b: any) => a.qty - b.qty },
     { title: 'From Loc', dataIndex: 'from_loc', key: 'from_loc', width: 100 },
     { title: 'To Loc', dataIndex: 'to_loc', key: 'to_loc', width: 100 },
@@ -33,6 +34,7 @@ const formFields = (
         <Form.Item name="owner" label="Owner"><Input /></Form.Item>
         <Form.Item name="brand" label="Brand"><Input /></Form.Item>
         <Form.Item name="sku" label="SKU" rules={[{ required: true }]}><Input /></Form.Item>
+        <Form.Item name="description" label="Description"><Input /></Form.Item>
         <Form.Item name="qty" label="Qty" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
         <Form.Item name="from_loc" label="From Loc"><Input /></Form.Item>
         <Form.Item name="to_loc" label="To Loc"><Input /></Form.Item>
@@ -43,7 +45,7 @@ const formFields = (
     </>
 );
 
-const csvHeaders = ['qc_date', 'receipt', 'return_date', 'owner', 'brand', 'sku', 'qty', 'from_loc', 'to_loc', 'status', 'operator'];
+const csvHeaders = ['qc_date', 'receipt', 'return_date', 'owner', 'brand', 'sku', 'description', 'qty', 'from_loc', 'to_loc', 'status', 'operator'];
 
 const columnMap: Record<string, string> = {
     'QC Date': 'qc_date',

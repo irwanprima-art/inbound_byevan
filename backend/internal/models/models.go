@@ -122,21 +122,22 @@ type Soh struct {
 
 // QcReturn represents QC return data
 type QcReturn struct {
-	ID         uint           `gorm:"primaryKey" json:"id"`
-	QcDate     FlexDate       `gorm:"column:qc_date;type:text" json:"qc_date" binding:"required"`
-	Receipt    string         `gorm:"column:receipt" json:"receipt"`
-	ReturnDate FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
-	Owner      string         `gorm:"column:owner" json:"owner"`
-	Brand      string         `gorm:"column:brand" json:"brand"`
-	Sku        string         `gorm:"column:sku" json:"sku" binding:"required"`
-	Qty        int            `gorm:"column:qty" json:"qty" binding:"min=0"`
-	FromLoc    string         `gorm:"column:from_loc" json:"from_loc"`
-	ToLoc      string         `gorm:"column:to_loc" json:"to_loc"`
-	Status     string         `gorm:"column:status" json:"status"`
-	Operator   string         `gorm:"column:operator" json:"operator"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	QcDate      FlexDate       `gorm:"column:qc_date;type:text" json:"qc_date" binding:"required"`
+	Receipt     string         `gorm:"column:receipt" json:"receipt"`
+	ReturnDate  FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
+	Owner       string         `gorm:"column:owner" json:"owner"`
+	Brand       string         `gorm:"column:brand" json:"brand"`
+	Sku         string         `gorm:"column:sku" json:"sku" binding:"required"`
+	Description string         `gorm:"column:description" json:"description"`
+	Qty         int            `gorm:"column:qty" json:"qty" binding:"min=0"`
+	FromLoc     string         `gorm:"column:from_loc" json:"from_loc"`
+	ToLoc       string         `gorm:"column:to_loc" json:"to_loc"`
+	Status      string         `gorm:"column:status" json:"status"`
+	Operator    string         `gorm:"column:operator" json:"operator"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Location represents master location data
