@@ -661,13 +661,14 @@ export default function DashboardPage() {
                                                 dataSource={(() => {
                                                     const skuBrandMap: Record<string, string> = {};
                                                     fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                                                    fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
                                                     const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
                                                     fDccList.forEach(d => {
                                                         const v = parseInt(d.variance) || 0;
                                                         if (v >= 0) return;
                                                         const sku = (d.sku || '').trim();
                                                         if (!sku) return;
-                                                        if (!map[sku]) map[sku] = { sku, brand: skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
+                                                        if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
                                                         map[sku].sys += parseInt(d.sys_qty) || 0;
                                                         map[sku].phy += parseInt(d.phy_qty) || 0;
                                                         map[sku].variance += v;
@@ -697,13 +698,14 @@ export default function DashboardPage() {
                                                 dataSource={(() => {
                                                     const skuBrandMap: Record<string, string> = {};
                                                     fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                                                    fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
                                                     const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
                                                     fDccList.forEach(d => {
                                                         const v = parseInt(d.variance) || 0;
                                                         if (v <= 0) return;
                                                         const sku = (d.sku || '').trim();
                                                         if (!sku) return;
-                                                        if (!map[sku]) map[sku] = { sku, brand: skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
+                                                        if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
                                                         map[sku].sys += parseInt(d.sys_qty) || 0;
                                                         map[sku].phy += parseInt(d.phy_qty) || 0;
                                                         map[sku].variance += v;
