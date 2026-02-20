@@ -68,8 +68,8 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
     const receiveTx = fTransactions.filter(t => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
     const putawayTx = fTransactions.filter(t => (t.operate_type || '').toLowerCase() === 'putaway');
-    const totalReceiveQty = receiveTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
-    const totalPutawayQty = putawayTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
+    const totalReceiveQty = fArrivals.reduce((s, a) => s + (parseInt(a.receive_qty) || 0), 0);
+    const totalPutawayQty = fArrivals.reduce((s, a) => s + (parseInt(a.putaway_qty) || 0), 0);
     const pendingReceive = totalQtyKedatangan - totalReceiveQty;
     const pctCompleted = totalQtyKedatangan > 0 ? ((totalPutawayQty / totalQtyKedatangan) * 100).toFixed(1) : '0.0';
 
