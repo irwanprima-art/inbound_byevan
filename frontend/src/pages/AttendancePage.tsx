@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Form, Input, Select, Table, Button, Space, Tag, Modal,
-    Popconfirm, Upload, message, notification, DatePicker,
+    Popconfirm, Upload, message, DatePicker,
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
-    DownloadOutlined, SearchOutlined, WarningOutlined,
+    DownloadOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
@@ -77,26 +77,6 @@ export default function AttendancePage() {
             const attData = (attRes.data || []) as AttRecord[];
             setData(attData);
             setEmployees((empRes.data || []) as EmpRecord[]);
-
-            // Overtime alerts (>10hr without clock out)
-            const now = dayjs();
-            const todayStr = now.format('YYYY-MM-DD');
-            attData.forEach(r => {
-                if (r.date === todayStr && r.clock_in && !r.clock_out) {
-                    const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
-                    if (clockInTime.isValid()) {
-                        const hours = now.diff(clockInTime, 'hour', true);
-                        if (hours >= 10) {
-                            notification.warning({
-                                message: '⚠️ Overtime Alert',
-                                description: `${r.name} (${r.nik}) sudah bekerja ${Math.floor(hours)} jam tanpa clock out!`,
-                                icon: <WarningOutlined style={{ color: '#faad14' }} />,
-                                duration: 0,
-                            });
-                        }
-                    }
-                }
-            });
         } catch { message.error('Gagal memuat data'); }
         setLoading(false);
     }, []);
