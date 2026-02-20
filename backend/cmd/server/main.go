@@ -26,6 +26,8 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
+	// Trust Nginx reverse proxy (Docker bridge network) so c.ClientIP() returns real client IP
+	r.SetTrustedProxies([]string{"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"})
 	r.MaxMultipartMemory = 50 << 20 // 50 MB
 
 	// CORS — read allowed origins from env (comma-separated), default to common dev origins
