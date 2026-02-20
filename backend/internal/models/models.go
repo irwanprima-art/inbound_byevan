@@ -49,6 +49,7 @@ type Vas struct {
 	VasType   string         `gorm:"column:vas_type" json:"vas_type"`
 	Qty       int            `gorm:"column:qty" json:"qty"`
 	Operator  string         `gorm:"column:operator" json:"operator"`
+	ItemType  string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

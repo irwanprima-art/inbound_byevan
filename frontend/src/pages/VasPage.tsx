@@ -17,6 +17,7 @@ interface TaskItem {
     brand: string;
     sku: string;
     vas_type: string;
+    item_type: string;
 }
 
 interface ActiveTask {
@@ -107,7 +108,7 @@ export default function VasPage() {
                 startTime: now.format('M/D/YYYY HH:mm:ss'),
                 startTs: Date.now(),
                 expanded: false,
-                items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type }],
+                items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }],
             };
             setActiveTasks(prev => [...prev, task]);
             swForm.resetFields();
@@ -123,7 +124,7 @@ export default function VasPage() {
             const vals = await addSkuForm.validateFields();
             setActiveTasks(prev => prev.map(t =>
                 t.id === taskId
-                    ? { ...t, items: [...t.items, { brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type }] }
+                    ? { ...t, items: [...t.items, { brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }] }
                     : t
             ));
             addSkuForm.resetFields();
@@ -174,6 +175,7 @@ export default function VasPage() {
                     brand: item.brand,
                     sku: item.sku,
                     vas_type: item.vas_type,
+                    item_type: item.item_type,
                     qty,
                     operator: qtyModalTask.operator,
                 };
@@ -235,6 +237,7 @@ export default function VasPage() {
         { title: 'VAS Type', dataIndex: 'vas_type', key: 'vas_type', width: 120 },
         { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80, sorter: (a: any, b: any) => a.qty - b.qty },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
+        { title: 'Item Type', dataIndex: 'item_type', key: 'item_type', width: 120, render: (v: string) => <Tag color={v === 'Gimmick' ? 'orange' : 'green'}>{v || 'Barang Jual'}</Tag> },
         {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
@@ -307,11 +310,11 @@ export default function VasPage() {
 
     // ─── Export / Import CSV ──────────────────
     const handleExport = () => {
-        const headers = ['date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator'];
+        const headers = ['date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             data.map((r: any) => {
                 const dur = computeDuration(r.start_time, r.end_time);
-                return [r.date, r.start_time, r.end_time, dur, r.brand, r.sku, r.vas_type, r.qty, r.operator]
+                return [r.date, r.start_time, r.end_time, dur, r.brand, r.sku, r.vas_type, r.qty, r.operator, r.item_type || 'Barang Jual']
                     .map(v => `"${v ?? ''}"`).join(',');
             }).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -334,6 +337,7 @@ export default function VasPage() {
                     date: cols[0] || '', start_time: cols[1] || '', end_time: cols[2] || '',
                     brand: cols[4] || '', sku: cols[5] || '', vas_type: cols[6] || '',
                     qty: parseInt(cols[7]) || 0, operator: cols[8] || '',
+                    item_type: cols[9] || 'Barang Jual',
                 };
             });
             try {
@@ -379,27 +383,35 @@ export default function VasPage() {
                 </div>
                 <Form form={swForm} layout="vertical">
                     <Row gutter={12} align="bottom">
-                        <Col xs={12} md={5}>
+                        <Col xs={12} md={4}>
                             <Form.Item name="brand" label="Brand" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                 <Input placeholder="Brand" />
                             </Form.Item>
                         </Col>
-                        <Col xs={12} md={5}>
+                        <Col xs={12} md={4}>
                             <Form.Item name="sku" label="SKU" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                 <Input placeholder="SKU" />
                             </Form.Item>
                         </Col>
-                        <Col xs={12} md={5}>
+                        <Col xs={12} md={4}>
                             <Form.Item name="vas_type" label="VAS Type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                 <Select placeholder="Pilih jenis VAS" options={vasTypeOptions} />
                             </Form.Item>
                         </Col>
-                        <Col xs={12} md={5}>
+                        <Col xs={12} md={4}>
+                            <Form.Item name="item_type" label="Item Type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                                <Select placeholder="Item Type" options={[
+                                    { value: 'Barang Jual', label: 'Barang Jual' },
+                                    { value: 'Gimmick', label: 'Gimmick' },
+                                ]} />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={12} md={4}>
                             <Form.Item name="operator" label="Operator" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                 <Input placeholder="Nama operator" />
                             </Form.Item>
                         </Col>
-                        <Col xs={24} md={4}>
+                        <Col xs={24} md={4} style={{ display: 'flex', alignItems: 'flex-end' }}>
                             <Button
                                 type="primary" icon={<PlayCircleOutlined />} onClick={handleStart}
                                 block
@@ -467,6 +479,7 @@ export default function VasPage() {
                                                             border: '1px solid rgba(255,255,255,0.06)',
                                                         }}>
                                                             <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>{item.vas_type}</Tag>
+                                                            <Tag color={item.item_type === 'Gimmick' ? 'orange' : 'green'} style={{ margin: 0, fontSize: 10 }}>{item.item_type}</Tag>
                                                             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.brand}</Text>
                                                             <Text style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{item.sku}</Text>
                                                             {task.items.length > 1 && (
@@ -491,6 +504,12 @@ export default function VasPage() {
                                                         </Form.Item>
                                                         <Form.Item name="vas_type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                                             <Select placeholder="VAS Type" size="small" style={{ width: 130 }} options={vasTypeOptions} />
+                                                        </Form.Item>
+                                                        <Form.Item name="item_type" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                                                            <Select placeholder="Item Type" size="small" style={{ width: 110 }} options={[
+                                                                { value: 'Barang Jual', label: 'Barang Jual' },
+                                                                { value: 'Gimmick', label: 'Gimmick' },
+                                                            ]} />
                                                         </Form.Item>
                                                         <Button type="primary" size="small" icon={<PlusOutlined />}
                                                             onClick={() => handleAddSku(task.id)}
@@ -675,6 +694,10 @@ export default function VasPage() {
                     <Form.Item name="brand" label="Brand"><Input /></Form.Item>
                     <Form.Item name="sku" label="SKU"><Input /></Form.Item>
                     <Form.Item name="vas_type" label="VAS Type"><Select placeholder="Pilih jenis VAS" options={vasTypeOptions} /></Form.Item>
+                    <Form.Item name="item_type" label="Item Type"><Select placeholder="Item Type" options={[
+                        { value: 'Barang Jual', label: 'Barang Jual' },
+                        { value: 'Gimmick', label: 'Gimmick' },
+                    ]} /></Form.Item>
                     <Form.Item name="qty" label="Qty"><InputNumber style={{ width: '100%' }} min={1} /></Form.Item>
                     <Form.Item name="operator" label="Operator"><Input /></Form.Item>
                 </Form>

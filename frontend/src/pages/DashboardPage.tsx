@@ -7,7 +7,7 @@ import {
     InboxOutlined, SwapOutlined, ToolOutlined, CheckCircleOutlined,
     ClockCircleOutlined,
 } from '@ant-design/icons';
-import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line } from 'recharts';
 import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi } from '../api/client';
 import dayjs from 'dayjs';
 
@@ -266,6 +266,23 @@ export default function DashboardPage() {
     });
     const vasTypeData = Object.entries(vasTypeMap).map(([name, value]) => ({ name, value }));
 
+    // VAS per Brand by Item Type (Barang Jual vs Gimmick)
+    const vasBrandItemMap: Record<string, { barangJual: number; gimmick: number }> = {};
+    fVasList.forEach((v: any) => {
+        const brand = (v.brand || 'Unknown').toUpperCase();
+        if (!vasBrandItemMap[brand]) vasBrandItemMap[brand] = { barangJual: 0, gimmick: 0 };
+        const qty = parseInt(v.qty) || 0;
+        const itemType = (v.item_type || 'Barang Jual').toLowerCase();
+        if (itemType === 'gimmick') {
+            vasBrandItemMap[brand].gimmick += qty;
+        } else {
+            vasBrandItemMap[brand].barangJual += qty;
+        }
+    });
+    const vasBrandItemData = Object.entries(vasBrandItemMap)
+        .map(([name, v]) => ({ name, qtyItem: v.barangJual, qtyGimmick: v.gimmick }))
+        .sort((a, b) => (b.qtyItem + b.qtyGimmick) - (a.qtyItem + a.qtyGimmick));
+
     // Pending arrivals (enriched with status from transactions)
     const pendingArrivals = useMemo(() => {
         const txMap: Record<string, { rcv: number; put: number }> = {};
@@ -511,6 +528,31 @@ export default function DashboardPage() {
                                     </Col>
                                 </Row>
 
+
+                                {/* VAS per Brand by Item Type */}
+                                <Card
+                                    title="📦 Value-Added Services (VAS)"
+                                    style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
+                                    styles={{ header: { color: '#fff' } }}
+                                >
+                                    {vasBrandItemData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <ComposedChart data={vasBrandItemData} margin={{ bottom: 20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
+                                                <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                                                <RTooltip contentStyle={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                                <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
+                                                <Bar dataKey="qtyItem" name="Qty Item" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                <Line type="monotone" dataKey="qtyGimmick" name="Qty Gimmick" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />
+                                            </ComposedChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
+                                        </div>
+                                    )}
+                                </Card>
 
                                 {/* Unloading Summary */}
                                 <Card
