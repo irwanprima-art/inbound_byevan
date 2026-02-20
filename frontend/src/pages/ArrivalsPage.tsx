@@ -155,8 +155,8 @@ export default function ArrivalsPage() {
             } else {
                 form.resetFields();
                 form.setFieldsValue({
-                    date: dayjs().format('M/D/YYYY'),
-                    arrival_time: dayjs().format('M/D/YYYY HH:mm:ss'),
+                    date: dayjs().format('YYYY-MM-DD'),
+                    arrival_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
                 });
             }
         }
@@ -201,7 +201,7 @@ export default function ArrivalsPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `inbound_arrival_${dayjs().format('M/D/YYYY')}.csv`;
+        a.download = `inbound_arrival_${dayjs().format('YYYY-MM-DD')}.csv`;
         a.click();
         URL.revokeObjectURL(url);
         message.success('Export berhasil');
@@ -216,8 +216,8 @@ export default function ArrivalsPage() {
             const rows = lines.slice(1).map(line => {
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                 return {
-                    date: cols[0] || dayjs().format('M/D/YYYY'),
-                    arrival_time: cols[1] || dayjs().format('M/D/YYYY HH:mm:ss'),
+                    date: cols[0] || dayjs().format('YYYY-MM-DD'),
+                    arrival_time: cols[1] || dayjs().format('YYYY-MM-DD HH:mm:ss'),
                     brand: cols[2] || '',
                     receipt_no: cols[3] || '',
                     po_no: cols[4] || '',

@@ -105,7 +105,7 @@ export default function VasPage() {
             const task: ActiveTask = {
                 id: `task_${Date.now()}`,
                 operator: vals.operator,
-                startTime: now.format('M/D/YYYY HH:mm:ss'),
+                startTime: now.format('YYYY-MM-DD HH:mm:ss'),
                 startTs: Date.now(),
                 expanded: false,
                 items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }],
@@ -161,8 +161,8 @@ export default function VasPage() {
     const handleSaveQty = async () => {
         if (!qtyModalTask) return;
         try {
-            const endTime = dayjs().format('M/D/YYYY HH:mm:ss');
-            const dateStr = dayjs().format('M/D/YYYY');
+            const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+            const dateStr = dayjs().format('YYYY-MM-DD');
 
             // Save one record per item
             for (let i = 0; i < qtyModalTask.items.length; i++) {
@@ -202,8 +202,8 @@ export default function VasPage() {
     // ─── Computed duration for table ──────────
     const computeDuration = (start: string, end: string) => {
         if (!start || !end) return '-';
-        const s = dayjs(start, 'M/D/YYYY HH:mm:ss');
-        const e = dayjs(end, 'M/D/YYYY HH:mm:ss');
+        const s = dayjs(start, 'YYYY-MM-DD HH:mm:ss');
+        const e = dayjs(end, 'YYYY-MM-DD HH:mm:ss');
         if (!s.isValid() || !e.isValid()) return '-';
         const diff = e.diff(s, 'second');
         if (diff < 0) return '-';

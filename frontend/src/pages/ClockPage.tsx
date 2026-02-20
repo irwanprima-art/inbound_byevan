@@ -24,7 +24,7 @@ export default function ClockPage() {
     const [clock, setClock] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const today = dayjs().format('M/D/YYYY');
+    const today = dayjs().format('YYYY-MM-DD');
 
     const fetchData = useCallback(async () => {
         try {
@@ -111,14 +111,14 @@ export default function ClockPage() {
     // Find employees who haven't clocked out for 12+ hours
     const overtimeAlerts = attendances.filter(r => {
         if (!r.clock_in || r.clock_out) return false;
-        const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'M/D/YYYY HH:mm');
+        const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
         if (!clockInTime.isValid()) return false;
         const hours = dayjs().diff(clockInTime, 'hour', true);
         return hours >= 12;
     }).map(r => ({
         name: r.name || r.nik,
         nik: r.nik,
-        hours: Math.floor(dayjs().diff(dayjs(`${r.date} ${r.clock_in}`, 'M/D/YYYY HH:mm'), 'hour', true)),
+        hours: Math.floor(dayjs().diff(dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm'), 'hour', true)),
         clockIn: r.clock_in,
         date: r.date,
     }));

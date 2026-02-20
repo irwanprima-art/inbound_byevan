@@ -74,10 +74,10 @@ export default function AttendancePage() {
 
             // Overtime alerts (>10hr without clock out)
             const now = dayjs();
-            const todayStr = now.format('M/D/YYYY');
+            const todayStr = now.format('YYYY-MM-DD');
             attData.forEach(r => {
                 if (r.date === todayStr && r.clock_in && !r.clock_out) {
-                    const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'M/D/YYYY HH:mm');
+                    const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
                     if (clockInTime.isValid()) {
                         const hours = now.diff(clockInTime, 'hour', true);
                         if (hours >= 10) {

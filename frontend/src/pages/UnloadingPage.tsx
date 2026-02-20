@@ -57,7 +57,7 @@ export default function UnloadingPage() {
             const vals = await addForm.validateFields();
             const payload = {
                 ...vals,
-                date: vals.date ? vals.date.format('M/D/YYYY') : '',
+                date: vals.date ? vals.date.format('YYYY-MM-DD') : '',
             };
             await unloadingsApi.create(payload);
             message.success('Data ditambahkan');
@@ -74,7 +74,7 @@ export default function UnloadingPage() {
         setEditRecord(r);
         editForm.setFieldsValue({
             ...r,
-            date: r.date ? dayjs(r.date, 'M/D/YYYY') : null,
+            date: r.date ? dayjs(r.date, 'YYYY-MM-DD') : null,
         });
         setEditOpen(true);
     };
@@ -83,7 +83,7 @@ export default function UnloadingPage() {
             const vals = await editForm.validateFields();
             const payload = {
                 ...vals,
-                date: vals.date ? vals.date.format('M/D/YYYY') : '',
+                date: vals.date ? vals.date.format('YYYY-MM-DD') : '',
             };
             if (editRecord) {
                 await unloadingsApi.update(editRecord.id, payload);

@@ -26,7 +26,7 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
     const DIVISIONS = ['Inbound', 'Inventory', 'Return', 'Bongkaran/Project/Tambahan'];
 
     const getMonthKey = (dateStr: string) => {
-        const d = dayjs(dateStr, 'M/D/YYYY');
+        const d = dayjs(dateStr, 'YYYY-MM-DD');
         return d.isValid() ? d.format('YYYY-MM') : null;
     };
 
