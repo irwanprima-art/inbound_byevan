@@ -2,6 +2,7 @@ import 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
 import { transactionsApi } from '../api/client';
+import { normalizeDateTime } from '../utils/csvTemplate';
 
 const columns = [
     {
@@ -59,7 +60,7 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
     const idx = (name: string) => headers ? headers.findIndex(h => h.toLowerCase().replace(/[^a-z0-9_]/g, '_') === name) : -1;
     const get = (name: string, fallback = '') => { const i = idx(name); return i >= 0 && row[i] ? row[i] : fallback; };
     return {
-        date: get('date'), time_transaction: get('time_transaction'), receipt_no: get('receipt_no'),
+        date: get('date'), time_transaction: normalizeDateTime(get('time_transaction')), receipt_no: get('receipt_no'),
         sku: get('sku'), operate_type: get('operate_type').toLowerCase(), qty: parseInt(get('qty', '0')) || 0,
         operator: get('operator'),
     };

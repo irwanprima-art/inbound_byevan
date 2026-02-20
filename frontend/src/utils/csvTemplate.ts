@@ -12,3 +12,15 @@ export function downloadCsvTemplate(headers: string[], filename: string) {
     a.click();
     URL.revokeObjectURL(url);
 }
+
+/**
+ * Normalize a datetime string: if only a date (YYYY-MM-DD) is given,
+ * append 00:00:00. If already has time, keep as-is.
+ */
+export function normalizeDateTime(value: string): string {
+    if (!value) return value;
+    const v = value.trim();
+    // Matches YYYY-MM-DD only (no time part)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v + ' 00:00:00';
+    return v;
+}

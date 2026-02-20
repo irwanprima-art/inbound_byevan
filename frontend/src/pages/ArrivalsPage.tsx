@@ -5,7 +5,7 @@ import {
     DownloadOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi } from '../api/client';
-import { downloadCsvTemplate } from '../utils/csvTemplate';
+import { downloadCsvTemplate, normalizeDateTime } from '../utils/csvTemplate';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -238,7 +238,7 @@ export default function ArrivalsPage() {
                 };
                 return {
                     date: get('date', dayjs().format('YYYY-MM-DD')),
-                    arrival_time: get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss')),
+                    arrival_time: normalizeDateTime(get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss'))),
                     brand: get('brand'),
                     item_type: get('item_type'),
                     receipt_no: get('receipt_no'),
