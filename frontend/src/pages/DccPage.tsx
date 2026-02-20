@@ -90,6 +90,7 @@ export default function DccPage() {
             csvHeaders={csvHeaders}
             columnMap={columnMap}
             numberFields={numberFields}
+            dateField="date"
             computeSearchText={(item: any) => {
                 const v = parseInt(item.variance) || 0;
                 return v < 0 ? 'Shortage' : v > 0 ? 'Gain' : 'Match';

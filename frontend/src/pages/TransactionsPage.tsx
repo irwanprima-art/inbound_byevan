@@ -66,5 +66,5 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
 };
 
 export default function TransactionsPage() {
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} />;
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" />;
 }

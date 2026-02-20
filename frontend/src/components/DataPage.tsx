@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Table, Button, Space, Input, Modal, Form, Upload, message, Popconfirm,
-    Typography, Tooltip,
+    Typography, Tooltip, DatePicker,
 } from 'antd';
 import {
     PlusOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined,
@@ -12,6 +12,8 @@ import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 const { Title } = Typography;
 
@@ -59,10 +61,12 @@ interface DataPageProps<T> {
     numberFields?: string[];
     /** Compute additional searchable text from a row (for computed columns like Remarks) */
     computeSearchText?: (item: T) => string;
+    /** Field name containing the date value, e.g. 'date'. When set, a date range picker is shown. */
+    dateField?: string;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -72,6 +76,7 @@ export default function DataPage<T extends { id: number }>({
     const [modalOpen, setModalOpen] = useState(false);
     const [editRecord, setEditRecord] = useState<T | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'supervisor' || user?.role === 'leader';
@@ -326,8 +331,17 @@ export default function DataPage<T extends { id: number }>({
 
     const tableComponents = { header: { cell: ResizableTitle } };
 
-    // Filter data by search
+    // Filter data by date range and search
     const filtered = data.filter(item => {
+        // Date range filter
+        if (dateField && dateRange) {
+            const val = (item as any)[dateField];
+            if (val) {
+                const d = dayjs(val);
+                if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
+            }
+        }
+        // Search filter
         if (search === '') return true;
         const q = search.toLowerCase();
         const base = JSON.stringify(item).toLowerCase().includes(q);
@@ -343,7 +357,22 @@ export default function DataPage<T extends { id: number }>({
                 marginBottom: 16,
             }}>
                 <Title level={4} style={{ margin: 0, color: '#fff' }}>{title}</Title>
-                <Space>
+                <Space wrap>
+                    {dateField && (
+                        <>
+                            <DatePicker.RangePicker
+                                value={dateRange}
+                                onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                                format="DD/MM/YYYY"
+                                placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                                allowClear
+                                style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                            />
+                            <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                            <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                            {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
+                        </>
+                    )}
                     <Input
                         placeholder="Search..."
                         prefix={<SearchOutlined />}

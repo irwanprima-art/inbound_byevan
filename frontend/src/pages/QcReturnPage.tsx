@@ -68,6 +68,7 @@ export default function QcReturnPage() {
             csvHeaders={csvHeaders}
             columnMap={columnMap}
             numberFields={numberFields}
+            dateField="qc_date"
         />
     );
 }

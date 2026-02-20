@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Form, Input, Select, Table, Button, Space, Tag, Modal,
-    Popconfirm, Upload, message, notification,
+    Popconfirm, Upload, message, notification, DatePicker,
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
     DownloadOutlined, SearchOutlined, WarningOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
-import { attendancesApi, employeesApi } from '../api/client';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
+import { attendancesApi, employeesApi } from '../api/client';
 
 const jobdescOptions = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
@@ -59,6 +60,7 @@ export default function AttendancePage() {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [editRecord, setEditRecord] = useState<AttRecord | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editForm] = Form.useForm();
@@ -164,7 +166,12 @@ export default function AttendancePage() {
     };
 
     const filteredData = data.filter(r => {
+        if (dateRange) {
+            const d = dayjs(r.date);
+            if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
+        }
         const s = search.toLowerCase();
+        if (!s) return true;
         return Object.values(r).some(v => String(v).toLowerCase().includes(s))
             || (divisiMap[r.jobdesc] || '').toLowerCase().includes(s);
     }).sort((a, b) => b.id - a.id);
@@ -236,7 +243,18 @@ export default function AttendancePage() {
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>Attendance</h2>
-                <Space>
+                <Space wrap>
+                    <DatePicker.RangePicker
+                        value={dateRange}
+                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                        format="DD/MM/YYYY"
+                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                        allowClear
+                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                    <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                    {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>

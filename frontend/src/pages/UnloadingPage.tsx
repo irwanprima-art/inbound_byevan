@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { unloadingsApi } from '../api/client';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 const VEHICLE_OPTIONS = [
     'Blind Van', 'CDD', 'CDE', 'Fuso',
@@ -28,6 +29,7 @@ export default function UnloadingPage() {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
 
     // Add modal
     const [addOpen, setAddOpen] = useState(false);
@@ -186,7 +188,12 @@ export default function UnloadingPage() {
     };
 
     const filteredData = data.filter(r => {
+        if (dateRange) {
+            const d = dayjs(r.date);
+            if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
+        }
         const s = search.toLowerCase();
+        if (!s) return true;
         return Object.values(r).some(v => String(v).toLowerCase().includes(s));
     });
 
@@ -242,7 +249,18 @@ export default function UnloadingPage() {
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>Inbound Unloading</h2>
-                <Space>
+                <Space wrap>
+                    <DatePicker.RangePicker
+                        value={dateRange}
+                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                        format="DD/MM/YYYY"
+                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                        allowClear
+                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                    <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                    {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>Add</Button>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>

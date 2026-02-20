@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Table, Button, Input, InputNumber, Space, Card, Typography, Tag, message,
-    Popconfirm, Upload, Form, Modal, Row, Col, Badge, Select,
+    Popconfirm, Upload, Form, Modal, Row, Col, Badge, Select, DatePicker,
 } from 'antd';
 import {
     PlayCircleOutlined, CheckCircleOutlined, ReloadOutlined, SearchOutlined,
@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { vasApi } from '../api/client';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -35,6 +36,7 @@ export default function VasPage() {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
 
     // ─── Edit modal state ──────────────────────
     const [modalOpen, setModalOpen] = useState(false);
@@ -251,9 +253,14 @@ export default function VasPage() {
         },
     ];
 
-    const filteredData = search
-        ? data.filter((d: any) => Object.values(d).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
-        : data;
+    const filteredData = data.filter((d: any) => {
+        if (dateRange) {
+            const dd = dayjs(d.date);
+            if (dd.isBefore(dateRange[0], 'day') || dd.isAfter(dateRange[1], 'day')) return false;
+        }
+        if (!search) return true;
+        return Object.values(d).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
+    });
 
     // ─── Edit modal ───────────────────────────
     const handleEdit = (record: any) => {
@@ -661,7 +668,18 @@ export default function VasPage() {
             {/* ───── DATA TABLE ───── */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Title level={4} style={{ margin: 0, color: '#fff' }}>VAS Records</Title>
-                <Space>
+                <Space wrap>
+                    <DatePicker.RangePicker
+                        value={dateRange}
+                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                        format="DD/MM/YYYY"
+                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                        allowClear
+                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                    <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                    {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Button icon={<PlusOutlined />} onClick={handleAddManual}>Manual Add</Button>

@@ -74,6 +74,7 @@ export default function DamagePage() {
             csvHeaders={csvHeaders}
             columnMap={columnMap}
             numberFields={numberFields}
+            dateField="date"
         />
     );
 }

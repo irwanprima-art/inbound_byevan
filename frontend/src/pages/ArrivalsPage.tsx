@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select } from 'antd';
+import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select, DatePicker } from 'antd';
 import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
     DownloadOutlined, UploadOutlined,
@@ -7,6 +7,7 @@ import {
 import { arrivalsApi, transactionsApi } from '../api/client';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 export default function ArrivalsPage() {
     const [searchParams] = useSearchParams();
@@ -17,6 +18,7 @@ export default function ArrivalsPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [form] = Form.useForm();
 
     // Fetch arrivals + transactions data
@@ -80,14 +82,22 @@ export default function ArrivalsPage() {
         });
     }, [data, txLookup]);
 
-    // Filter by search
+    // Filter by date range and search
     const filteredData = useMemo(() => {
+        let result = enrichedData;
+        if (dateRange) {
+            result = result.filter((d: any) => {
+                if (!d.date) return true;
+                const dd = dayjs(d.date);
+                return !dd.isBefore(dateRange[0], 'day') && !dd.isAfter(dateRange[1], 'day');
+            });
+        }
         const q = search.toLowerCase();
-        if (!q) return enrichedData;
-        return enrichedData.filter((d: any) =>
+        if (!q) return result;
+        return result.filter((d: any) =>
             Object.values(d).some(v => String(v).toLowerCase().includes(q))
         );
-    }, [enrichedData, search]);
+    }, [enrichedData, search, dateRange]);
 
     // Status color
     const statusColor = (s: string) => {
@@ -258,7 +268,18 @@ export default function ArrivalsPage() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: '#fff' }}>Inbound Arrival</h2>
-                <Space>
+                <Space wrap>
+                    <DatePicker.RangePicker
+                        value={dateRange}
+                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                        format="DD/MM/YYYY"
+                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                        allowClear
+                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                    <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                    {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
                     <Button icon={<ReloadOutlined />} onClick={fetchAll}>Refresh</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>

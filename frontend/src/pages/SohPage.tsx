@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
+import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, DatePicker } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     ReloadOutlined, UploadOutlined, DownloadOutlined, SearchOutlined,
@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { sohApi, locationsApi } from '../api/client';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 // Helper: parse date string — backend returns consistent YYYY-MM-DD via FlexDate
 const parseDate = (dateStr: string): dayjs.Dayjs | null => {
@@ -95,6 +96,7 @@ export default function SohPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editRecord, setEditRecord] = useState<SohRecord | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
+    const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
@@ -211,7 +213,14 @@ export default function SohPage() {
         const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'stock_on_hand.csv'; a.click();
     };
 
-    const filteredData = data.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase())));
+    const filteredData = data.filter(r => {
+        if (dateRange) {
+            const d = dayjs(r.update_date);
+            if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
+        }
+        if (!search) return true;
+        return Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
+    });
 
     const columns: any[] = [
         { title: 'Location', dataIndex: 'location', key: 'location', width: 100 },
@@ -267,7 +276,18 @@ export default function SohPage() {
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>Stock on Hand</h2>
-                <Space>
+                <Space wrap>
+                    <DatePicker.RangePicker
+                        value={dateRange}
+                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+                        format="DD/MM/YYYY"
+                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                        allowClear
+                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                    />
+                    <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
+                    <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
+                    {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     {canEdit && <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>}
