@@ -60,18 +60,50 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const fTransactions = transactions;
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
 
-    // Inbound stats
-    const totalKedatangan = new Set(fArrivals.map(a => `${a.brand}|${a.date}|${a.arrival_time}`).filter(k => k !== '||')).size;
-    const totalPO = new Set(fArrivals.map(a => a.po_no).filter(Boolean)).size;
-    const totalBrand = new Set(fArrivals.map(a => a.brand).filter(Boolean)).size;
-    const totalQtyKedatangan = fArrivals.reduce((s, a) => s + (parseInt(a.po_qty) || 0), 0);
+    // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
+    const txLookup = useMemo(() => {
+        const map: Record<string, { receiveQty: number; putawayQty: number }> = {};
+        transactions.forEach((tx: any) => {
+            const key = (tx.receipt_no || '').trim().toLowerCase();
+            if (!key) return;
+            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0 };
+            const qty = parseInt(tx.qty) || 0;
+            const type = (tx.operate_type || '').trim().toLowerCase();
+            if (type === 'receive' || type === 'receiving') map[key].receiveQty += qty;
+            else if (type === 'putaway') map[key].putawayQty += qty;
+        });
+        return map;
+    }, [transactions]);
 
-    const receiveTx = fTransactions.filter(t => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
-    const putawayTx = fTransactions.filter(t => (t.operate_type || '').toLowerCase() === 'putaway');
-    const totalReceiveQty = receiveTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
-    const totalPutawayQty = putawayTx.reduce((s, t) => s + (parseInt(t.qty) || 0), 0);
-    const pendingReceive = totalQtyKedatangan - totalReceiveQty;
-    const pctCompleted = totalQtyKedatangan > 0 ? ((totalPutawayQty / totalQtyKedatangan) * 100).toFixed(1) : '0.0';
+    // Enriched arrivals: attach receive/putaway/pending/status from transactions
+    const enrichedArrivals = useMemo(() => {
+        return fArrivals.map((row: any) => {
+            const key = (row.receipt_no || '').trim().toLowerCase();
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0 };
+            const poQty = parseInt(row.po_qty) || 0;
+            const receiveQty = tx.receiveQty;
+            const putawayQty = tx.putawayQty;
+            const pendingQty = Math.max(0, poQty - receiveQty);
+            let status = 'Pending Receive';
+            if (receiveQty >= poQty && putawayQty >= poQty) status = 'Completed';
+            else if (receiveQty >= poQty) status = 'Pending Putaway';
+            return { ...row, receive_qty: receiveQty, putaway_qty: putawayQty, pending_qty: pendingQty, status };
+        });
+    }, [fArrivals, txLookup]);
+
+    // Inbound stats — all from enriched arrivals
+    const totalKedatangan = new Set(enrichedArrivals.map((a: any) => `${a.brand}|${a.date}|${a.arrival_time}`).filter((k: string) => k !== '||')).size;
+    const totalPO = new Set(enrichedArrivals.map((a: any) => a.po_no).filter(Boolean)).size;
+    const totalBrand = new Set(enrichedArrivals.map((a: any) => a.brand).filter(Boolean)).size;
+    const totalQtyKedatangan = enrichedArrivals.reduce((s: number, a: any) => s + (parseInt(a.po_qty) || 0), 0);
+    const totalReceiveQty = enrichedArrivals.reduce((s: number, a: any) => s + (a.receive_qty || 0), 0);
+    const totalPutawayQty = enrichedArrivals.reduce((s: number, a: any) => s + (a.putaway_qty || 0), 0);
+    const pendingReceive = enrichedArrivals.reduce((s: number, a: any) => s + (a.pending_qty || 0), 0);
+    const completedCount = enrichedArrivals.filter((a: any) => a.status === 'Completed').length;
+    const pctCompleted = enrichedArrivals.length > 0 ? ((completedCount / enrichedArrivals.length) * 100).toFixed(1) : '0.0';
+
+    const receiveTx = fTransactions.filter((t: any) => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
+    const putawayTx = fTransactions.filter((t: any) => (t.operate_type || '').toLowerCase() === 'putaway');
 
     const parseToMin = (raw: string): number | null => {
         if (!raw) return null;
@@ -171,17 +203,17 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     ];
 
     const brandItemTypeMap: Record<string, Record<string, number>> = {};
-    fArrivals.forEach((a: any) => {
+    enrichedArrivals.forEach((a: any) => {
         const brand = a.brand || 'Unknown';
         const t = a.item_type || 'Barang Jual';
         if (!brandItemTypeMap[brand]) brandItemTypeMap[brand] = {};
         brandItemTypeMap[brand][t] = (brandItemTypeMap[brand][t] || 0) + (parseInt(a.po_qty) || 0);
     });
-    const allItemTypes = Array.from(new Set(fArrivals.map((a: any) => a.item_type || 'Barang Jual')));
+    const allItemTypes = Array.from(new Set(enrichedArrivals.map((a: any) => a.item_type || 'Barang Jual')));
     const brandItemTypeData = Object.entries(brandItemTypeMap).map(([brand, types]) => ({ brand, ...types }));
 
     const brandMap: Record<string, { po: number; qty: number }> = {};
-    fArrivals.forEach((a: any) => {
+    enrichedArrivals.forEach((a: any) => {
         const brand = a.brand || 'Unknown';
         if (!brandMap[brand]) brandMap[brand] = { po: 0, qty: 0 };
         brandMap[brand].po += 1;
@@ -213,26 +245,8 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         .sort((a, b) => (b.qtyItem + b.qtyGimmick) - (a.qtyItem + a.qtyGimmick));
 
     const pendingArrivals = useMemo(() => {
-        const txMap: Record<string, { rcv: number; put: number }> = {};
-        fTransactions.forEach((tx: any) => {
-            const key = (tx.receipt_no || '').trim().toLowerCase();
-            if (!key) return;
-            if (!txMap[key]) txMap[key] = { rcv: 0, put: 0 };
-            const qty = parseInt(tx.qty) || 0;
-            const type = (tx.operate_type || '').toLowerCase();
-            if (type === 'receive' || type === 'receiving') txMap[key].rcv += qty;
-            else if (type === 'putaway') txMap[key].put += qty;
-        });
-        return fArrivals.map((a: any) => {
-            const key = (a.receipt_no || '').trim().toLowerCase();
-            const tx = txMap[key] || { rcv: 0, put: 0 };
-            const poQty = parseInt(a.po_qty) || 0;
-            let status = 'Pending Receive';
-            if (tx.rcv >= poQty && tx.put >= poQty) status = 'Completed';
-            else if (tx.rcv >= poQty) status = 'Pending Putaway';
-            return { ...a, receive_qty: tx.rcv, putaway_qty: tx.put, status };
-        }).filter((a: any) => a.status !== 'Completed');
-    }, [fArrivals, fTransactions]);
+        return enrichedArrivals.filter((a: any) => a.status !== 'Completed');
+    }, [enrichedArrivals]);
 
     return (
         <>
