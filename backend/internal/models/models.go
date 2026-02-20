@@ -89,6 +89,7 @@ type Damage struct {
 	DamageNote   string         `gorm:"column:damage_note" json:"damage_note"`
 	DamageReason string         `gorm:"column:damage_reason" json:"damage_reason"`
 	Operator     string         `gorm:"column:operator" json:"operator"`
+	Owner        string         `gorm:"column:owner" json:"owner"`
 	QcBy         string         `gorm:"column:qc_by" json:"qc_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
