@@ -1,11 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Tag, Progress, DatePicker, Space, Button as AntButton, Typography } from 'antd';
+import { Row, Col, Card, Tag, Progress, DatePicker, Space, Button as AntButton } from 'antd';
 import type { Dayjs } from 'dayjs';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
-
-const { Text } = Typography;
 
 interface Props {
     dateRange: [Dayjs, Dayjs] | null;
