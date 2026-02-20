@@ -125,11 +125,13 @@ export default function ClockPage() {
 
     return (
         <div style={{
-            height: '100vh',
+            minHeight: '100vh',
             display: 'flex',
+            flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1117 100%)',
+            padding: '24px 0',
         }}>
             <Card style={{
                 width: 460,
@@ -193,6 +195,51 @@ export default function ClockPage() {
                     </Button>
                 </Space>
             </Card>
+
+            {/* Active Attendance Records */}
+            {(() => {
+                const activeRecords = attendances.filter(r => r.date === today && r.clock_in && !r.clock_out);
+                if (activeRecords.length === 0) return null;
+                return (
+                    <Card style={{
+                        width: 520,
+                        borderRadius: 16,
+                        background: 'rgba(26, 31, 58, 0.95)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+                        marginTop: 16,
+                    }} styles={{ body: { padding: '16px 20px' } }}>
+                        <div style={{ color: '#10b981', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+                            🟢 Sedang Aktif — {activeRecords.length} orang
+                        </div>
+                        <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Nama</th>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Jobdesc</th>
+                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Clock In</th>
+                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Durasi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activeRecords.map((r: any, i: number) => {
+                                        const mins = calcWorkhourMin(r.clock_in, dayjs().format('HH:mm'));
+                                        return (
+                                            <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                                <td style={{ padding: '7px 8px', color: '#fff', fontSize: 13, fontWeight: 500 }}>{r.name}</td>
+                                                <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{r.jobdesc || '-'}</td>
+                                                <td style={{ padding: '7px 8px', color: '#6366f1', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.clock_in}</td>
+                                                <td style={{ padding: '7px 8px', color: '#10b981', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{formatMinutes(mins)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                );
+            })()}
 
             {overtimeAlerts.length > 0 && (
                 <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', width: 460, zIndex: 100 }}>
