@@ -224,11 +224,13 @@ export default function ProductivityPage() {
 
     // Build leaderboard data — same logic as old script.js
     const categories = useMemo((): CategoryConfig[] => {
-        // Date filter
+        // Date filter — data uses M/D/YYYY format, parse with dayjs
         const matchDate = (dateStr: string) => {
             if (!dateStr) return false;
-            if (filterDate) return dateStr === filterDate.format('YYYY-MM-DD');
-            if (filterMonth) return dateStr.startsWith(filterMonth.format('YYYY-MM'));
+            const d = dayjs(dateStr, ['M/D/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'D/M/YYYY']);
+            if (!d.isValid()) return false;
+            if (filterDate) return d.format('YYYY-MM-DD') === filterDate.format('YYYY-MM-DD');
+            if (filterMonth) return d.format('YYYY-MM') === filterMonth.format('YYYY-MM');
             return true;
         };
 
