@@ -45,7 +45,7 @@ export function createResourceApi(resource: string) {
         update: (id: number, data: Record<string, unknown>) => api.put(`/${resource}/${id}`, data),
         remove: (id: number) => api.delete(`/${resource}/${id}`),
         bulkDelete: (ids: number[]) => api.post(`/${resource}/bulk-delete`, { ids }),
-        sync: (data: Record<string, unknown>[]) => api.post(`/${resource}/sync`, { data }),
+        sync: (data: Record<string, unknown>[]) => api.post(`/${resource}/sync`, { data, confirm: true }),
         batchImport: (data: Record<string, unknown>[]) => api.post(`/${resource}/import`, { data }),
     };
 }

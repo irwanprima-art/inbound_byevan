@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"warehouse-report-monitoring/internal/database"
@@ -111,14 +112,34 @@ func (h *ResourceHandler[T]) BulkDelete(c *gin.Context) {
 }
 
 // Sync truncates the table and re-inserts all data (for import/full sync)
+// REQUIRES "confirm": true in request body to prevent accidental data loss
 func (h *ResourceHandler[T]) Sync(c *gin.Context) {
 	var req struct {
-		Data []T `json:"data"`
+		Data    []T  `json:"data"`
+		Confirm bool `json:"confirm"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	if !req.Confirm {
+		// Count existing records to warn the user
+		var existingCount int64
+		database.DB.Model(new(T)).Count(&existingCount)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":          "Sync requires confirm: true. This will DELETE all existing data and replace with new data.",
+			"existing_count": existingCount,
+			"new_count":      len(req.Data),
+		})
+		return
+	}
+
+	// Count existing records for logging
+	var existingCount int64
+	database.DB.Model(new(T)).Count(&existingCount)
+	log.Printf("[SYNC] %s: replacing %d existing records with %d new records (by %s)",
+		h.Name, existingCount, len(req.Data), c.GetString("username"))
 
 	// Truncate + re-insert in a transaction
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
@@ -140,9 +161,11 @@ func (h *ResourceHandler[T]) Sync(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[SYNC] %s: completed successfully (%d records)", h.Name, len(req.Data))
 	c.JSON(http.StatusOK, gin.H{
-		"synced": len(req.Data),
-		"total":  len(req.Data),
+		"synced":   len(req.Data),
+		"total":    len(req.Data),
+		"replaced": existingCount,
 	})
 }
 
