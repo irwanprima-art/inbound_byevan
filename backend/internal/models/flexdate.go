@@ -82,6 +82,11 @@ func (fd *FlexDate) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// GormDataType tells GORM what database column type to use.
+func (FlexDate) GormDataType() string {
+	return "text"
+}
+
 // Value implements driver.Valuer for database storage (stores as TEXT).
 func (fd FlexDate) Value() (driver.Value, error) {
 	return fd.String(), nil
