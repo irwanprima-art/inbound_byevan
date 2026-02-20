@@ -57,7 +57,7 @@ const formFields = (
     </>
 );
 
-const csvHeaders = ['date', 'phy_inv', 'zone', 'location', 'owner', 'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'variance', 'pct_variance', 'operator', 'remarks'];
+const csvHeaders = ['date', 'phy_inv', 'zone', 'location', 'owner', 'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'operator'];
 
 // Map common CSV header names to database fields
 const columnMap: Record<string, string> = {
