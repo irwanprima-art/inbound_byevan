@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Button, Typography, Space, Select, Modal, message, Alert } from 'antd';
+import { Card, Input, Button, Typography, Space, Select, Modal, message } from 'antd';
 import { ClockCircleOutlined, LoginOutlined, LogoutOutlined, ArrowLeftOutlined, WarningOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -112,21 +112,6 @@ export default function ClockPage() {
         setLoading(false);
     };
 
-    // Find employees who haven't clocked out for 12+ hours
-    const overtimeAlerts = attendances.filter(r => {
-        if (!r.clock_in || r.clock_out) return false;
-        const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
-        if (!clockInTime.isValid()) return false;
-        const hours = dayjs().diff(clockInTime, 'hour', true);
-        return hours >= 12;
-    }).map(r => ({
-        name: r.name || r.nik,
-        nik: r.nik,
-        hours: Math.floor(dayjs().diff(dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm'), 'hour', true)),
-        clockIn: r.clock_in,
-        date: r.date,
-    }));
-
     return (
         <div style={{
             minHeight: '100vh',
@@ -200,79 +185,107 @@ export default function ClockPage() {
                 </Space>
             </Card>
 
-            {/* Active Attendance Records */}
+            {/* Active Attendance Records (< 12 hours) */}
             {(() => {
-                const activeRecords = attendances.filter(r => r.clock_in && !r.clock_out);
-                if (activeRecords.length === 0) return null;
+                const now = dayjs();
+                const isOverdue = (r: any) => {
+                    const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
+                    return clockInTime.isValid() && now.diff(clockInTime, 'hour', true) >= 12;
+                };
+                const normalRecords = attendances.filter(r => r.clock_in && !r.clock_out && !isOverdue(r));
+                const overdueRecords = attendances.filter(r => r.clock_in && !r.clock_out && isOverdue(r));
+
                 return (
-                    <Card style={{
-                        width: 520,
-                        borderRadius: 16,
-                        background: 'rgba(26, 31, 58, 0.95)',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
-                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-                        marginTop: 16,
-                    }} styles={{ body: { padding: '16px 20px' } }}>
-                        <div style={{ color: '#10b981', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
-                            🟢 Sedang Aktif — {activeRecords.length} orang
-                        </div>
-                        <div style={{ maxHeight: 240, overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Nama</th>
-                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Jobdesc</th>
-                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Tanggal</th>
-                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Clock In</th>
-                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Durasi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {activeRecords.map((r: any, i: number) => {
-                                        const mins = calcWorkhourMin(r.clock_in, dayjs().format('HH:mm'));
-                                        return (
-                                            <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                                <td style={{ padding: '7px 8px', color: '#fff', fontSize: 13, fontWeight: 500 }}>{r.name}</td>
-                                                <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{r.jobdesc || '-'}</td>
-                                                <td style={{ padding: '7px 8px', color: r.date !== today ? '#faad14' : 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', fontWeight: r.date !== today ? 600 : 400 }}>{r.date}</td>
-                                                <td style={{ padding: '7px 8px', color: '#6366f1', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.clock_in}</td>
-                                                <td style={{ padding: '7px 8px', color: '#10b981', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{formatMinutes(mins)}</td>
+                    <>
+                        {/* ── Normal Active ── */}
+                        {normalRecords.length > 0 && (
+                            <Card style={{
+                                width: 520, borderRadius: 16,
+                                background: 'rgba(26, 31, 58, 0.95)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)',
+                                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+                                marginTop: 16,
+                            }} styles={{ body: { padding: '16px 20px' } }}>
+                                <div style={{ color: '#10b981', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+                                    🟢 Sedang Aktif — {normalRecords.length} orang
+                                </div>
+                                <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Nama</th>
+                                                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Jobdesc</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Tanggal</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Clock In</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Durasi</th>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card>
+                                        </thead>
+                                        <tbody>
+                                            {normalRecords.map((r: any, i: number) => {
+                                                const mins = calcWorkhourMin(r.clock_in, dayjs().format('HH:mm'));
+                                                return (
+                                                    <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                                        <td style={{ padding: '7px 8px', color: '#fff', fontSize: 13, fontWeight: 500 }}>{r.name}</td>
+                                                        <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{r.jobdesc || '-'}</td>
+                                                        <td style={{ padding: '7px 8px', color: r.date !== today ? '#faad14' : 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', fontWeight: r.date !== today ? 600 : 400 }}>{r.date}</td>
+                                                        <td style={{ padding: '7px 8px', color: '#6366f1', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.clock_in}</td>
+                                                        <td style={{ padding: '7px 8px', color: '#10b981', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{formatMinutes(mins)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* ── Overdue Warning (12h+) ── */}
+                        {overdueRecords.length > 0 && (
+                            <Card style={{
+                                width: 520, borderRadius: 16,
+                                background: 'rgba(26, 31, 58, 0.95)',
+                                border: '1px solid rgba(255, 77, 79, 0.4)',
+                                boxShadow: '0 10px 40px rgba(255, 77, 79, 0.15)',
+                                marginTop: 16,
+                            }} styles={{ body: { padding: '16px 20px' } }}>
+                                <div style={{ color: '#ff4d4f', fontWeight: 700, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <WarningOutlined style={{ fontSize: 16 }} /> Peringatan Belum Clock Out ({'>'}12 jam) — {overdueRecords.length} orang
+                                </div>
+                                <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid rgba(255, 77, 79, 0.2)' }}>
+                                                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Nama</th>
+                                                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Jobdesc</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Tanggal</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Clock In</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Durasi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {overdueRecords.map((r: any, i: number) => {
+                                                const clockInTime = dayjs(`${r.date} ${r.clock_in}`, 'YYYY-MM-DD HH:mm');
+                                                const totalMin = Math.floor(now.diff(clockInTime, 'minute'));
+                                                const h = Math.floor(totalMin / 60);
+                                                const m = totalMin % 60;
+                                                return (
+                                                    <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(255, 77, 79, 0.05)' }}>
+                                                        <td style={{ padding: '7px 8px', color: '#ff4d4f', fontSize: 13, fontWeight: 600 }}>{r.name}</td>
+                                                        <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{r.jobdesc || '-'}</td>
+                                                        <td style={{ padding: '7px 8px', color: '#faad14', fontSize: 12, textAlign: 'center', fontWeight: 600 }}>{r.date}</td>
+                                                        <td style={{ padding: '7px 8px', color: '#6366f1', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.clock_in}</td>
+                                                        <td style={{ padding: '7px 8px', color: '#ff4d4f', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>{h}:{m.toString().padStart(2, '0')}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </Card>
+                        )}
+                    </>
                 );
             })()}
-
-            {overtimeAlerts.length > 0 && (
-                <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', width: 460, zIndex: 100 }}>
-                    <Alert
-                        type="warning"
-                        showIcon
-                        icon={<WarningOutlined style={{ fontSize: 20 }} />}
-                        message={<span style={{ fontWeight: 700, fontSize: 14 }}>⚠️ Belum Clock Out ({overtimeAlerts.length})</span>}
-                        description={
-                            <div style={{ maxHeight: 150, overflowY: 'auto' }}>
-                                {overtimeAlerts.map((a, i) => (
-                                    <div key={i} style={{ padding: '4px 0', borderBottom: i < overtimeAlerts.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
-                                        <strong>{a.name}</strong> ({a.nik}) — Clock In {a.clockIn} ({a.date})
-                                        <span style={{ color: '#cf1322', fontWeight: 700, marginLeft: 8 }}>{a.hours} jam</span>
-                                    </div>
-                                ))}
-                            </div>
-                        }
-                        style={{
-                            borderRadius: 12,
-                            boxShadow: '0 8px 32px rgba(250, 173, 20, 0.3)',
-                            animation: 'pulse 2s infinite',
-                        }}
-                    />
-                    <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }`}</style>
-                </div>
-            )}
         </div>
     );
 }
