@@ -202,7 +202,7 @@ export default function ClockPage() {
 
             {/* Active Attendance Records */}
             {(() => {
-                const activeRecords = attendances.filter(r => r.date === today && r.clock_in && !r.clock_out);
+                const activeRecords = attendances.filter(r => r.clock_in && !r.clock_out);
                 if (activeRecords.length === 0) return null;
                 return (
                     <Card style={{
@@ -222,6 +222,7 @@ export default function ClockPage() {
                                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                                         <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Nama</th>
                                         <th style={{ textAlign: 'left', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Jobdesc</th>
+                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Tanggal</th>
                                         <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Clock In</th>
                                         <th style={{ textAlign: 'center', padding: '6px 8px', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600 }}>Durasi</th>
                                     </tr>
@@ -233,6 +234,7 @@ export default function ClockPage() {
                                             <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                                 <td style={{ padding: '7px 8px', color: '#fff', fontSize: 13, fontWeight: 500 }}>{r.name}</td>
                                                 <td style={{ padding: '7px 8px', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{r.jobdesc || '-'}</td>
+                                                <td style={{ padding: '7px 8px', color: r.date !== today ? '#faad14' : 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', fontWeight: r.date !== today ? 600 : 400 }}>{r.date}</td>
                                                 <td style={{ padding: '7px 8px', color: '#6366f1', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.clock_in}</td>
                                                 <td style={{ padding: '7px 8px', color: '#10b981', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{formatMinutes(mins)}</td>
                                             </tr>
