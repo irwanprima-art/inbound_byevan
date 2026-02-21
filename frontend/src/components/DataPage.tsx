@@ -86,7 +86,10 @@ export default function DataPage<T extends { id: number }>({
         setLoading(true);
         try {
             const res = await api.list();
-            setData(res.data || []);
+            const items = res.data || [];
+            // Sort by id descending so newest data appears first
+            items.sort((a: T, b: T) => b.id - a.id);
+            setData(items);
         } catch (err) {
             message.error('Gagal memuat data');
         } finally {

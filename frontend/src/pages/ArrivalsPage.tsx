@@ -27,7 +27,9 @@ export default function ArrivalsPage() {
         setLoading(true);
         try {
             const [aRes, tRes] = await Promise.all([arrivalsApi.list(), transactionsApi.list()]);
-            setData(aRes.data || []);
+            const arrivals = aRes.data || [];
+            arrivals.sort((a: any, b: any) => b.id - a.id);
+            setData(arrivals);
             setTransData(tRes.data || []);
         } catch {
             message.error('Gagal memuat data');
