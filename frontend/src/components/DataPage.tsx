@@ -212,7 +212,7 @@ export default function DataPage<T extends { id: number }>({
             // Parse each row using the detected field mapping
             let parsed: Record<string, unknown>[];
             if (parseCSVRow) {
-                parsed = rows.map(r => parseCSVRow(r, headerCells)).filter(Boolean);
+                parsed = rows.map(r => parseCSVRow(r, headerCells)).filter(obj => obj && Object.values(obj).some(v => v !== '' && v !== 0 && v != null));
             } else {
                 parsed = rows.map(cells => {
                     const obj: Record<string, unknown> = {};

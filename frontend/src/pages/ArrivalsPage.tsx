@@ -251,7 +251,8 @@ export default function ArrivalsPage() {
                     note: get('note'),
                     status: get('status', 'Completed'),
                 };
-            });
+            }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0 && v != null && v !== 'Completed'));
+            if (rows.length === 0) { message.warning('Tidak ada data valid'); return; }
             try {
                 const CHUNK = 1000;
                 let imported = 0;

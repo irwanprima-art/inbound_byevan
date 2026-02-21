@@ -357,7 +357,8 @@ export default function VasPage() {
                     qty: parseInt(get('qty', '0')) || 0, operator: get('operator'),
                     item_type: get('item_type', 'Barang Jual'),
                 };
-            });
+            }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0 && v != null && v !== 'Barang Jual'));
+            if (rows.length === 0) { message.warning('Tidak ada data valid'); return; }
             try {
                 const CHUNK = 1000;
                 let imported = 0;
