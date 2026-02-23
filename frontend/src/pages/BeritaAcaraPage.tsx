@@ -24,6 +24,7 @@ interface SkuItem {
     sku: string;
     serial_number: string;
     qty: number;
+    note: string;
 }
 
 // Generate doc number: MMYY-XXXX/WH-JC/YYYY
@@ -79,7 +80,7 @@ export default function BeritaAcaraPage() {
         if (existing) {
             setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i));
         } else {
-            setItems([...items, { sku, serial_number: '', qty: 1 }]);
+            setItems([...items, { sku, serial_number: '', qty: 1, note: '' }]);
         }
         setSkuInput('');
         setTimeout(() => skuRef.current?.focus(), 50);
@@ -292,6 +293,15 @@ export default function BeritaAcaraPage() {
                                                 ),
                                             },
                                             {
+                                                title: 'Catatan', dataIndex: 'note', key: 'note',
+                                                render: (v: string, _: any, i: number) => (
+                                                    <Input
+                                                        value={v} size="small" placeholder="Opsional"
+                                                        onChange={e => handleItemChange(i, 'note', e.target.value)}
+                                                    />
+                                                ),
+                                            },
+                                            {
                                                 title: '', key: 'del', width: 40,
                                                 render: (_: any, __: any, i: number) => (
                                                     <Button type="text" size="small" icon={<DeleteOutlined />} danger onClick={() => handleRemoveSku(i)} />
@@ -378,6 +388,7 @@ export default function BeritaAcaraPage() {
                                     <th style={printTh}>SKU</th>
                                     <th style={printTh}>Qty</th>
                                     <th style={printTh}>Serial Number</th>
+                                    <th style={printTh}>Catatan</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -387,6 +398,7 @@ export default function BeritaAcaraPage() {
                                         <td style={printTd}>{item.sku}</td>
                                         <td style={printTd}>{item.qty}</td>
                                         <td style={printTd}>{item.serial_number || '-'}</td>
+                                        <td style={printTd}>{item.note || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
