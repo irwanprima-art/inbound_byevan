@@ -155,58 +155,57 @@ export default function BeritaAcaraPage() {
         const printContent = document.getElementById('berita-acara-print');
         if (!printContent) return;
 
-        // Convert logo to base64 so it renders in the print window
-        let logoBase64 = '';
+        // Convert logo to base64 so it renders in the about:blank print window
+        let logoDataUrl = '';
         try {
             const resp = await fetch('/logo-jc.png');
             const blob = await resp.blob();
-            logoBase64 = await new Promise<string>((resolve) => {
+            logoDataUrl = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.readAsDataURL(blob);
             });
         } catch { /* fallback: no logo */ }
 
-        const win = window.open('', '_blank');
-        if (!win) return;
-
-        // Clone content and replace logo src with base64
-        const clone = printContent.cloneNode(true) as HTMLElement;
-        if (logoBase64) {
-            const img = clone.querySelector('img[alt="Logo"]') as HTMLImageElement;
-            if (img) img.src = logoBase64;
+        // Get innerHTML and replace logo src with base64
+        let html = printContent.innerHTML;
+        if (logoDataUrl) {
+            html = html.replace(/src="[^"]*logo-jc\.png[^"]*"/, `src="${logoDataUrl}"`);
         }
 
+        const win = window.open('', '_blank');
+        if (!win) return;
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara</title>
 <style>
     @page { size: A4 portrait; margin: 16mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
     .print-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
-    .print-content { flex: 1; }
-    .print-footer { margin-top: auto; padding-top: 12px; border-top: 1.5px solid #d0d0d0; }
-    .doc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; }
-    .doc-header .logo { height: 52px; }
-    .doc-header .doc-info { text-align: right; }
-    .doc-header h2 { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1a1a1a; margin-bottom: 4px; }
-    .doc-header .doc-no { font-size: 12px; color: #555; }
-    .meta { margin-bottom: 16px; }
-    .meta div { margin-bottom: 4px; }
-    .meta strong { display: inline-block; width: 80px; }
+    .print-content { flex: 1 0 auto; }
+    .print-footer { flex-shrink: 0; margin-top: auto; padding-top: 12px; border-top: 1.5px solid #d0d0d0;
+        text-align: left; font-size: 9px; color: #888; line-height: 1.6; letter-spacing: 0.3px; }
+    .print-footer .company-name { font-weight: 700; font-size: 10px; color: #555; margin-bottom: 2px;
+        text-transform: uppercase; letter-spacing: 1.5px; }
+    .doc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+        padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; }
+    .doc-header img { height: 52px; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; }
     th, td { border: 1px solid #333; padding: 6px 10px; text-align: left; }
     th { background: #eee; font-weight: 700; font-size: 11px; text-transform: uppercase; }
-    .notes { margin: 12px 0; padding: 8px; border: 1px solid #ccc; min-height: 40px; }
-    .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
-    .sig-box { width: 30%; text-align: center; }
-    .sig-box .role { font-weight: 700; font-size: 11px; margin-bottom: 60px; }
-    .sig-box .name { border-top: 1px solid #333; padding-top: 4px; font-weight: 600; }
-</style></head><body>`);
-        win.document.write(clone.innerHTML);
-        win.document.write('</body></html>');
+</style></head><body>
+<div class="print-wrapper">
+    ${html}
+</div>
+</body></html>`);
         win.document.close();
-        setTimeout(() => { win.print(); }, 400);
+        // Wait for images to load before printing
+        const imgs = win.document.querySelectorAll('img');
+        const loadPromises = Array.from(imgs).map(img =>
+            img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+        );
+        await Promise.all(loadPromises);
+        setTimeout(() => { win.print(); }, 200);
     };
 
     // View existing document
