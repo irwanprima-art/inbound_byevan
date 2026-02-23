@@ -72,6 +72,11 @@ func AutoMigrate() {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
 	log.Println("[DB] Auto-migration complete")
+
+	// Drop old unique index on berita_acaras.doc_number (conflicts with soft-deleted records)
+	if err := DB.Exec("DROP INDEX IF EXISTS idx_berita_acaras_doc_number").Error; err != nil {
+		log.Printf("[DB] Warning: could not drop old unique index: %v", err)
+	}
 }
 
 // SeedDefaultUsers creates default accounts if none exist

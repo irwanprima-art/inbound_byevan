@@ -232,7 +232,7 @@ type Schedule struct {
 type BeritaAcara struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	DocType   string         `gorm:"column:doc_type" json:"doc_type" binding:"required"`
-	DocNumber string         `gorm:"column:doc_number;uniqueIndex" json:"doc_number"`
+	DocNumber string         `gorm:"column:doc_number;index" json:"doc_number"`
 	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
 	Checker   string         `gorm:"column:checker" json:"checker"`
 	Kepada    string         `gorm:"column:kepada" json:"kepada"`
