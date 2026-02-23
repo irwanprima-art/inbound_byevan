@@ -422,16 +422,7 @@ export default function BeritaAcaraPage() {
                     <div id="berita-acara-print" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
                         {/* Header with logo */}
                         <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" style={{ height: 52 }}>
-                                <defs>
-                                    <linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style={{ stopColor: '#e8490f', stopOpacity: 1 }} />
-                                        <stop offset="100%" style={{ stopColor: '#f0a500', stopOpacity: 1 }} />
-                                    </linearGradient>
-                                </defs>
-                                <path d="M 60,20 A 42,42 0 1,1 24,68" fill="none" stroke="url(#og)" strokeWidth="9" strokeLinecap="round" />
-                                <text x="120" y="72" fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif" fontWeight="300" fontSize="42" fill="#2c2c2c" letterSpacing="1">Jet Commerce</text>
-                            </svg>
+                            <img src={`${window.location.origin}/logo-jc.png`} alt="Logo" style={{ height: 52 }} />
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>{docForPreview.doc_type}</div>
                                 <div style={{ fontSize: 12, color: '#555' }}>No: {docForPreview.doc_number}</div>
