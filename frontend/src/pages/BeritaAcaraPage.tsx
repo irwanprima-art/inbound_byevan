@@ -23,7 +23,9 @@ const DOC_TYPES = [
 interface SkuItem {
     sku: string;
     serial_number: string;
-    qty: number;
+    qty: number;       // used for non-barang-kurang types
+    qty_po: number;    // used for Pemberitahuan Barang Kurang
+    qty_actual: number;
     note: string;
 }
 
@@ -53,6 +55,8 @@ export default function BeritaAcaraPage() {
     const [items, setItems] = useState<SkuItem[]>([]);
     const [skuInput, setSkuInput] = useState('');
     const skuRef = useRef<any>(null);
+    const docType = Form.useWatch('doc_type', form);
+    const isBarangKurang = docType === 'Pemberitahuan Barang Kurang';
 
     // Preview
     const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -80,7 +84,7 @@ export default function BeritaAcaraPage() {
         if (existing) {
             setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i));
         } else {
-            setItems([...items, { sku, serial_number: '', qty: 1, note: '' }]);
+            setItems([...items, { sku, serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]);
         }
         setSkuInput('');
         setTimeout(() => skuRef.current?.focus(), 50);
@@ -276,31 +280,42 @@ export default function BeritaAcaraPage() {
                                         columns={[
                                             { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
                                             { title: 'SKU', dataIndex: 'sku', key: 'sku' },
-                                            {
-                                                title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80,
-                                                render: (v: number, _: any, i: number) => (
-                                                    <Input
-                                                        type="number" min={1} value={v} size="small" style={{ width: 70 }}
-                                                        onChange={e => handleItemChange(i, 'qty', parseInt(e.target.value) || 1)}
-                                                    />
-                                                ),
-                                            },
+                                            ...(isBarangKurang ? [
+                                                {
+                                                    title: 'Qty PO', dataIndex: 'qty_po', key: 'qty_po', width: 90,
+                                                    render: (v: number, _: any, i: number) => (
+                                                        <Input type="number" min={0} value={v} size="small" style={{ width: 75 }}
+                                                            onChange={e => handleItemChange(i, 'qty_po', parseInt(e.target.value) || 0)} />
+                                                    ),
+                                                },
+                                                {
+                                                    title: 'Qty Actual', dataIndex: 'qty_actual', key: 'qty_actual', width: 100,
+                                                    render: (v: number, _: any, i: number) => (
+                                                        <Input type="number" min={0} value={v} size="small" style={{ width: 75 }}
+                                                            onChange={e => handleItemChange(i, 'qty_actual', parseInt(e.target.value) || 0)} />
+                                                    ),
+                                                },
+                                            ] : [
+                                                {
+                                                    title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80,
+                                                    render: (v: number, _: any, i: number) => (
+                                                        <Input type="number" min={1} value={v} size="small" style={{ width: 70 }}
+                                                            onChange={e => handleItemChange(i, 'qty', parseInt(e.target.value) || 1)} />
+                                                    ),
+                                                },
+                                            ]),
                                             {
                                                 title: 'Serial Number', dataIndex: 'serial_number', key: 'serial_number',
                                                 render: (v: string, _: any, i: number) => (
-                                                    <Input
-                                                        value={v} size="small" placeholder="Opsional"
-                                                        onChange={e => handleItemChange(i, 'serial_number', e.target.value)}
-                                                    />
+                                                    <Input value={v} size="small" placeholder="Opsional"
+                                                        onChange={e => handleItemChange(i, 'serial_number', e.target.value)} />
                                                 ),
                                             },
                                             {
                                                 title: 'Catatan', dataIndex: 'note', key: 'note',
                                                 render: (v: string, _: any, i: number) => (
-                                                    <Input
-                                                        value={v} size="small" placeholder="Opsional"
-                                                        onChange={e => handleItemChange(i, 'note', e.target.value)}
-                                                    />
+                                                    <Input value={v} size="small" placeholder="Opsional"
+                                                        onChange={e => handleItemChange(i, 'note', e.target.value)} />
                                                 ),
                                             },
                                             {
@@ -399,7 +414,14 @@ export default function BeritaAcaraPage() {
                                 <tr>
                                     <th style={printTh}>No</th>
                                     <th style={printTh}>SKU</th>
-                                    <th style={printTh}>Qty</th>
+                                    {docForPreview.doc_type === 'Pemberitahuan Barang Kurang' ? (
+                                        <>
+                                            <th style={printTh}>Qty PO</th>
+                                            <th style={printTh}>Qty Actual</th>
+                                        </>
+                                    ) : (
+                                        <th style={printTh}>Qty</th>
+                                    )}
                                     <th style={printTh}>Serial Number</th>
                                     <th style={printTh}>Catatan</th>
                                 </tr>
@@ -409,7 +431,14 @@ export default function BeritaAcaraPage() {
                                     <tr key={i}>
                                         <td style={printTd}>{i + 1}</td>
                                         <td style={printTd}>{item.sku}</td>
-                                        <td style={printTd}>{item.qty}</td>
+                                        {docForPreview.doc_type === 'Pemberitahuan Barang Kurang' ? (
+                                            <>
+                                                <td style={printTd}>{item.qty_po ?? '-'}</td>
+                                                <td style={printTd}>{item.qty_actual ?? '-'}</td>
+                                            </>
+                                        ) : (
+                                            <td style={printTd}>{item.qty}</td>
+                                        )}
                                         <td style={printTd}>{item.serial_number || '-'}</td>
                                         <td style={printTd}>{item.note || '-'}</td>
                                     </tr>
