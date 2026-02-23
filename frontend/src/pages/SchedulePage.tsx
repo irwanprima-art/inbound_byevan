@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Select, message, Typography, Space, Popconfirm, Tooltip } from 'antd';
 import {
-    LeftOutlined, RightOutlined, PlusOutlined, DeleteOutlined,
-    CopyOutlined, ReloadOutlined,
+    LeftOutlined, RightOutlined,
+    CopyOutlined, ReloadOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 import { schedulesApi, employeesApi } from '../api/client';
 import dayjs from 'dayjs';
