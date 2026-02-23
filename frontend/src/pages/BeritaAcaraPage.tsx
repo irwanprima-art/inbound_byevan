@@ -177,7 +177,7 @@ export default function BeritaAcaraPage() {
         if (!win) return;
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara</title>
 <style>
-    @page { size: A4 portrait; margin: 16mm; }
+    @page { size: A4 portrait; margin: 24mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
