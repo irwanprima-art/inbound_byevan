@@ -139,12 +139,14 @@ export default function BeritaAcaraPage() {
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial, sans-serif; padding: 32px; color: #1a1a1a; font-size: 12px; }
-    .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 12px; }
-    .header h2 { font-size: 18px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-    .header .doc-no { font-size: 13px; color: #555; }
-    .meta { display: flex; justify-content: space-between; margin-bottom: 16px; }
-    .meta-item { margin-bottom: 6px; }
-    .meta-label { font-weight: 700; display: inline-block; width: 100px; }
+    .doc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; }
+    .doc-header .logo { height: 52px; }
+    .doc-header .doc-info { text-align: right; }
+    .doc-header h2 { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1a1a1a; margin-bottom: 4px; }
+    .doc-header .doc-no { font-size: 12px; color: #555; }
+    .meta { margin-bottom: 16px; }
+    .meta div { margin-bottom: 4px; }
+    .meta strong { display: inline-block; width: 80px; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; }
     th, td { border: 1px solid #333; padding: 6px 10px; text-align: left; }
     th { background: #eee; font-weight: 700; font-size: 11px; text-transform: uppercase; }
@@ -367,18 +369,29 @@ export default function BeritaAcaraPage() {
             >
                 {docForPreview && (
                     <div id="berita-acara-print" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
-                        <div className="header" style={{ textAlign: 'center', marginBottom: 20, borderBottom: '2px solid #333', paddingBottom: 12 }}>
-                            <h2 style={{ fontSize: 18, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-                                {docForPreview.doc_type}
-                            </h2>
-                            <div style={{ fontSize: 13, color: '#555' }}>No: {docForPreview.doc_number}</div>
+                        {/* Header with logo */}
+                        <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" style={{ height: 52 }}>
+                                <defs>
+                                    <linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style={{ stopColor: '#e8490f', stopOpacity: 1 }} />
+                                        <stop offset="100%" style={{ stopColor: '#f0a500', stopOpacity: 1 }} />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 60,20 A 42,42 0 1,1 24,68" fill="none" stroke="url(#og)" strokeWidth="9" strokeLinecap="round" />
+                                <text x="120" y="72" fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif" fontWeight="300" fontSize="42" fill="#2c2c2c" letterSpacing="1">Jet Commerce</text>
+                            </svg>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>{docForPreview.doc_type}</div>
+                                <div style={{ fontSize: 12, color: '#555' }}>No: {docForPreview.doc_number}</div>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: 16 }}>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 100 }}>Tanggal</strong>: {docForPreview.date}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 100 }}>Kepada</strong>: {docForPreview.kepada}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 100 }}>Dari</strong>: {docForPreview.dari}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 100 }}>Checker</strong>: {docForPreview.checker}</div>
+                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {docForPreview.date}</div>
+                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {docForPreview.kepada}</div>
+                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {docForPreview.dari}</div>
+                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Checker</strong>: {docForPreview.checker}</div>
                         </div>
 
                         <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
