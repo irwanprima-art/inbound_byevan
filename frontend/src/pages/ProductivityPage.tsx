@@ -239,7 +239,7 @@ export default function ProductivityPage() {
         const fVas = (filterDate || filterMonth) ? vasList.filter(d => matchDate(d.date || '')) : vasList;
         const fDcc = (filterDate || filterMonth) ? dccList.filter(d => matchDate(d.date || '')) : dccList;
         const fDamage = (filterDate || filterMonth) ? damageList.filter(d => matchDate(d.date || '')) : damageList;
-        const fQcr = (filterDate || filterMonth) ? qcrList.filter(d => matchDate(d.return_date || d.date || '')) : qcrList;
+        const fQcr = (filterDate || filterMonth) ? qcrList.filter(d => matchDate(d.qc_date || d.date || '')) : qcrList;
         let fProject = (filterDate || filterMonth) ? projectList.filter(d => matchDate(d.date || '')) : projectList;
 
         // Build employee map from ALL sources
