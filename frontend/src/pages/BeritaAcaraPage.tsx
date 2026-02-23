@@ -537,6 +537,7 @@ export default function BeritaAcaraPage() {
                             </div>
                             <div>Landmark Pluit Tower B2, 7th Floor, Pluit, Penjaringan – Jakarta Utara</div>
                             <div>DKI Jakarta, 14450</div>
+                            <div style={{ marginTop: 6, fontSize: 8, color: '#aaa' }}>Printed: {dayjs().format('DD/MM/YYYY HH:mm')}</div>
                         </div>
                     </div>
                 )}
