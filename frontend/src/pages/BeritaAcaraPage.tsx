@@ -151,15 +151,41 @@ export default function BeritaAcaraPage() {
     };
 
     // Print the preview
-    const handlePrint = () => {
+    const handlePrint = async () => {
         const printContent = document.getElementById('berita-acara-print');
         if (!printContent) return;
+
+        // Convert logo to base64 so it renders in the print window
+        let logoBase64 = '';
+        try {
+            const resp = await fetch('/logo-jc.png');
+            const blob = await resp.blob();
+            logoBase64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+        } catch { /* fallback: no logo */ }
+
         const win = window.open('', '_blank');
         if (!win) return;
+
+        // Clone content and replace logo src with base64
+        const clone = printContent.cloneNode(true) as HTMLElement;
+        if (logoBase64) {
+            const img = clone.querySelector('img[alt="Logo"]') as HTMLImageElement;
+            if (img) img.src = logoBase64;
+        }
+
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara</title>
 <style>
+    @page { size: A4 portrait; margin: 16mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 32px; color: #1a1a1a; font-size: 12px; }
+    html, body { height: 100%; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
+    .print-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+    .print-content { flex: 1; }
+    .print-footer { margin-top: auto; padding-top: 12px; border-top: 1.5px solid #d0d0d0; }
     .doc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; }
     .doc-header .logo { height: 52px; }
     .doc-header .doc-info { text-align: right; }
@@ -176,12 +202,11 @@ export default function BeritaAcaraPage() {
     .sig-box { width: 30%; text-align: center; }
     .sig-box .role { font-weight: 700; font-size: 11px; margin-bottom: 60px; }
     .sig-box .name { border-top: 1px solid #333; padding-top: 4px; font-weight: 600; }
-    @media print { body { padding: 16px; } }
 </style></head><body>`);
-        win.document.write(printContent.innerHTML);
+        win.document.write(clone.innerHTML);
         win.document.write('</body></html>');
         win.document.close();
-        setTimeout(() => { win.print(); }, 300);
+        setTimeout(() => { win.print(); }, 400);
     };
 
     // View existing document
@@ -419,85 +444,87 @@ export default function BeritaAcaraPage() {
                 title="Preview Berita Acara"
             >
                 {docForPreview && (
-                    <div id="berita-acara-print" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
-                        {/* Header with logo */}
-                        <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
-                            <img src={`${window.location.origin}/logo-jc.png`} alt="Logo" style={{ height: 52 }} />
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>{docForPreview.doc_type}</div>
-                                <div style={{ fontSize: 12, color: '#555' }}>No: {docForPreview.doc_number}</div>
+                    <div id="berita-acara-print" className="print-wrapper" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <div className="print-content" style={{ flex: 1 }}>
+                            {/* Header with logo */}
+                            <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
+                                <img src={`${window.location.origin}/logo-jc.png`} alt="Logo" style={{ height: 52 }} />
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>{docForPreview.doc_type}</div>
+                                    <div style={{ fontSize: 12, color: '#555' }}>No: {docForPreview.doc_number}</div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {docForPreview.date}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {docForPreview.kepada}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {docForPreview.dari}</div>
-                            <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Checker</strong>: {docForPreview.checker}</div>
-                        </div>
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {docForPreview.date}</div>
+                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {docForPreview.kepada}</div>
+                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {docForPreview.dari}</div>
+                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Checker</strong>: {docForPreview.checker}</div>
+                            </div>
 
-                        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
-                            <thead>
-                                <tr>
-                                    <th style={printTh}>No</th>
-                                    <th style={printTh}>SKU</th>
-                                    {docForPreview.doc_type === 'Pemberitahuan Barang Kurang' ? (
-                                        <>
-                                            <th style={printTh}>Qty PO</th>
-                                            <th style={printTh}>Qty Actual</th>
-                                        </>
-                                    ) : (
-                                        <th style={printTh}>Qty</th>
-                                    )}
-                                    <th style={printTh}>Serial Number</th>
-                                    <th style={printTh}>Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(docForPreview.items || []).map((item: SkuItem, i: number) => (
-                                    <tr key={i}>
-                                        <td style={printTd}>{i + 1}</td>
-                                        <td style={printTd}>{item.sku}</td>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={printTh}>No</th>
+                                        <th style={printTh}>SKU</th>
                                         {docForPreview.doc_type === 'Pemberitahuan Barang Kurang' ? (
                                             <>
-                                                <td style={printTd}>{item.qty_po ?? '-'}</td>
-                                                <td style={printTd}>{item.qty_actual ?? '-'}</td>
+                                                <th style={printTh}>Qty PO</th>
+                                                <th style={printTh}>Qty Actual</th>
                                             </>
                                         ) : (
-                                            <td style={printTd}>{item.qty}</td>
+                                            <th style={printTh}>Qty</th>
                                         )}
-                                        <td style={printTd}>{item.serial_number || '-'}</td>
-                                        <td style={printTd}>{item.note || '-'}</td>
+                                        <th style={printTh}>Serial Number</th>
+                                        <th style={printTh}>Catatan</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {(docForPreview.items || []).map((item: SkuItem, i: number) => (
+                                        <tr key={i}>
+                                            <td style={printTd}>{i + 1}</td>
+                                            <td style={printTd}>{item.sku}</td>
+                                            {docForPreview.doc_type === 'Pemberitahuan Barang Kurang' ? (
+                                                <>
+                                                    <td style={printTd}>{item.qty_po ?? '-'}</td>
+                                                    <td style={printTd}>{item.qty_actual ?? '-'}</td>
+                                                </>
+                                            ) : (
+                                                <td style={printTd}>{item.qty}</td>
+                                            )}
+                                            <td style={printTd}>{item.serial_number || '-'}</td>
+                                            <td style={printTd}>{item.note || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
 
-                        {docForPreview.notes && (
-                            <div style={{ margin: '12px 0', padding: 8, border: '1px solid #ccc' }}>
-                                <strong>Catatan:</strong> {docForPreview.notes}
-                            </div>
-                        )}
+                            {docForPreview.notes && (
+                                <div style={{ margin: '12px 0', padding: 8, border: '1px solid #ccc' }}>
+                                    <strong>Catatan:</strong> {docForPreview.notes}
+                                </div>
+                            )}
 
-                        {/* Signatures */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48 }}>
-                            <div style={{ width: '30%', textAlign: 'center' }}>
-                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Checker</div>
-                                <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{docForPreview.checker}</div>
-                            </div>
-                            <div style={{ width: '30%', textAlign: 'center' }}>
-                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Supervisor</div>
-                                <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>Evan Budi Setiawan Pasaribu</div>
-                            </div>
-                            <div style={{ width: '30%', textAlign: 'center' }}>
-                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Driver</div>
-                                <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>&nbsp;</div>
+                            {/* Signatures */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48 }}>
+                                <div style={{ width: '30%', textAlign: 'center' }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Checker</div>
+                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{docForPreview.checker}</div>
+                                </div>
+                                <div style={{ width: '30%', textAlign: 'center' }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Supervisor</div>
+                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>Evan Budi Setiawan Pasaribu</div>
+                                </div>
+                                <div style={{ width: '30%', textAlign: 'center' }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Driver</div>
+                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>&nbsp;</div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div style={{
-                            marginTop: 48,
+                        {/* Footer - pinned to bottom */}
+                        <div className="print-footer" style={{
+                            marginTop: 'auto',
                             paddingTop: 12,
                             borderTop: '1.5px solid #d0d0d0',
                             textAlign: 'left',
