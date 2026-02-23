@@ -57,6 +57,7 @@ export default function BeritaAcaraPage() {
     const skuRef = useRef<any>(null);
     const docType = Form.useWatch('doc_type', form);
     const isBarangKurang = docType === 'Pemberitahuan Barang Kurang';
+    const isPenolakanBarang = docType === 'Penolakan Barang';
 
     // Preview
     const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -313,7 +314,26 @@ export default function BeritaAcaraPage() {
                                             },
                                             {
                                                 title: 'Catatan', dataIndex: 'note', key: 'note',
-                                                render: (v: string, _: any, i: number) => (
+                                                render: (v: string, _: any, i: number) => isPenolakanBarang ? (
+                                                    <Select
+                                                        value={v || undefined}
+                                                        size="small"
+                                                        placeholder="Pilih alasan"
+                                                        allowClear
+                                                        style={{ width: '100%', minWidth: 180 }}
+                                                        onChange={(val: string) => handleItemChange(i, 'note', val || '')}
+                                                        options={[
+                                                            { value: 'Wrapping Sobek', label: 'Wrapping Sobek' },
+                                                            { value: 'Barang Basah', label: 'Barang Basah' },
+                                                            { value: 'Barang Sobek', label: 'Barang Sobek' },
+                                                            { value: 'Produk Expired/NED', label: 'Produk Expired/NED' },
+                                                            { value: 'Tidak ada di PO', label: 'Tidak ada di PO' },
+                                                            { value: 'Lebih dari PO', label: 'Lebih dari PO' },
+                                                            { value: 'Fisik Tidak Sesuai', label: 'Fisik Tidak Sesuai' },
+                                                            { value: 'Barang Penyok', label: 'Barang Penyok' },
+                                                        ]}
+                                                    />
+                                                ) : (
                                                     <Input value={v} size="small" placeholder="Opsional"
                                                         onChange={e => handleItemChange(i, 'note', e.target.value)} />
                                                 ),
