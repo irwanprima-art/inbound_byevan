@@ -500,7 +500,7 @@ export default function BeritaAcaraPage() {
                             marginTop: 48,
                             paddingTop: 12,
                             borderTop: '1.5px solid #d0d0d0',
-                            textAlign: 'center',
+                            textAlign: 'left',
                             fontSize: 9,
                             color: '#888',
                             lineHeight: 1.6,
