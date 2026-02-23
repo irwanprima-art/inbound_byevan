@@ -70,14 +70,14 @@ func main() {
 	api.POST("/auth/login", loginLimiter.Middleware(), handlers.Login)
 
 	// Public clock routes (no auth needed for clock in/out kiosk)
-	// NOTE: IP restriction temporarily disabled — re-enable clockGuard when ready
-	// clockGuard := middleware.IPWhitelist()
+	// IP restriction: only allowed from warehouse network
+	clockGuard := middleware.IPWhitelist()
 	clockEmployees := handlers.NewResource[models.Employee]("employees")
 	clockAttendances := handlers.NewResource[models.Attendance]("attendances")
 	api.GET("/clock/employees", clockEmployees.List)
 	api.GET("/clock/attendances", clockAttendances.List)
-	api.POST("/clock/attendances", clockAttendances.Create)
-	api.PUT("/clock/attendances/:id", clockAttendances.Update)
+	api.POST("/clock/attendances", clockGuard, clockAttendances.Create)
+	api.PUT("/clock/attendances/:id", clockGuard, clockAttendances.Update)
 
 	// Protected routes
 	protected := api.Group("")

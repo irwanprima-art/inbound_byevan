@@ -17,7 +17,7 @@ func IPWhitelist() gin.HandlerFunc {
 	// Parse allowed CIDRs
 	raw := os.Getenv("CLOCK_ALLOWED_CIDRS")
 	if raw == "" {
-		raw = "192.168.6.0/24,192.168.0.0/24,172.16.0.0/12,127.0.0.0/8"
+		raw = "103.237.134.111/32,192.168.6.0/24,192.168.0.0/24,172.16.0.0/12,127.0.0.0/8"
 	}
 	var nets []*net.IPNet
 	for _, cidr := range strings.Split(raw, ",") {
