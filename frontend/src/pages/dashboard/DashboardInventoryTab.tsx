@@ -22,7 +22,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
     const fDccList = useMemo(() => dccList.filter(d => matchesDateRange(d.date)), [dccList, matchesDateRange]);
     const fDamages = useMemo(() => damages.filter(d => matchesDateRange(d.date)), [damages, matchesDateRange]);
     const fSohList = useMemo(() => sohList.filter(s => matchesDateRange(s.date)), [sohList, matchesDateRange]);
-    const fQcReturns = useMemo(() => qcReturns.filter(q => matchesDateRange(q.date)), [qcReturns, matchesDateRange]);
+    const fQcReturns = useMemo(() => qcReturns.filter(q => matchesDateRange(q.qc_date || q.date)), [qcReturns, matchesDateRange]);
 
     // Accuracy calculations
     const totalSysQty = fDccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);
