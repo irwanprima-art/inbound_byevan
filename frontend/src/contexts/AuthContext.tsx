@@ -60,7 +60,7 @@ export const ROLE_ACCESS: Record<string, { pages: string[] | 'all' }> = {
     supervisor: { pages: 'all' },
     leader: { pages: 'all' },
     admin_inbound: {
-        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'inbound-unloading', 'vas', 'clock-inout', 'productivity'],
+        pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'inbound-unloading', 'vas', 'berita-acara', 'clock-inout', 'productivity'],
     },
     admin_inventory: {
         pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'clock-inout', 'productivity'],
