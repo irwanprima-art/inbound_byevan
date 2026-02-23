@@ -29,22 +29,24 @@ interface SkuItem {
     note: string;
 }
 
-// Generate doc number: MMYY-XXXX/WH-JC/YYYY
-function generateDocNumber(existingDocs: any[]): string {
+// Generate doc number: MMYY-XXXX/WH-JC/YYYY (per doc_type)
+function generateDocNumber(existingDocs: any[], docType: string): string {
     const now = dayjs();
     const prefix = now.format('MMYY');
     const year = now.format('YYYY');
 
-    // Find the highest sequence number for this month's prefix
+    // Find the highest sequence number for this month + same doc type
     let maxSeq = 0;
-    existingDocs.forEach(d => {
-        const dn = d.doc_number || '';
-        if (dn.startsWith(prefix + '-')) {
-            const seqStr = dn.split('-')[1]?.split('/')[0];
-            const seq = parseInt(seqStr) || 0;
-            if (seq > maxSeq) maxSeq = seq;
-        }
-    });
+    existingDocs
+        .filter(d => d.doc_type === docType)
+        .forEach(d => {
+            const dn = d.doc_number || '';
+            if (dn.startsWith(prefix + '-')) {
+                const seqStr = dn.split('-')[1]?.split('/')[0];
+                const seq = parseInt(seqStr) || 0;
+                if (seq > maxSeq) maxSeq = seq;
+            }
+        });
     const nextSeq = (maxSeq + 1).toString().padStart(4, '0');
     return `${prefix}-${nextSeq}/WH-JC/${year}`;
 }
@@ -117,7 +119,7 @@ export default function BeritaAcaraPage() {
         }
         if (items.length === 0) { message.warning('Tambahkan minimal 1 SKU!'); return; }
 
-        const docNumber = generateDocNumber(docs);
+        const docNumber = generateDocNumber(docs, vals.doc_type);
         const payload = {
             doc_type: vals.doc_type,
             doc_number: docNumber,
