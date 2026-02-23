@@ -243,3 +243,23 @@ type BeritaAcara struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// StockOpname represents stock opname records (same structure as Dcc)
+type StockOpname struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Date        FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	PhyInv      string         `gorm:"column:phy_inv" json:"phy_inv"`
+	Zone        string         `gorm:"column:zone" json:"zone"`
+	Location    string         `gorm:"column:location" json:"location" binding:"required"`
+	Owner       string         `gorm:"column:owner" json:"owner"`
+	Sku         string         `gorm:"column:sku" json:"sku" binding:"required"`
+	Brand       string         `gorm:"column:brand" json:"brand"`
+	Description string         `gorm:"column:description" json:"description"`
+	SysQty      int            `gorm:"column:sys_qty" json:"sys_qty"`
+	PhyQty      int            `gorm:"column:phy_qty" json:"phy_qty"`
+	Variance    int            `gorm:"column:variance" json:"variance"`
+	Operator    string         `gorm:"column:operator" json:"operator"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}

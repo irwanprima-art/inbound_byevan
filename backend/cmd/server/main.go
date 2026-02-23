@@ -134,6 +134,9 @@ func main() {
 	beritaAcara := handlers.NewResource[models.BeritaAcara]("berita-acara")
 	beritaAcara.RegisterRoutes(protected.Group("/berita-acara"))
 
+	stockOpnames := handlers.NewResource[models.StockOpname]("stock-opnames")
+	stockOpnames.RegisterRoutes(protected.Group("/stock-opnames"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

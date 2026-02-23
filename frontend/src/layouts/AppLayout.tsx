@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Menu, Typography, Avatar, Dropdown, Space, Button } from 'antd';
 import {
     DashboardOutlined, InboxOutlined, SwapOutlined, ToolOutlined,
-    CheckCircleOutlined, WarningOutlined, DatabaseOutlined, RollbackOutlined,
+    CheckCircleOutlined, WarningOutlined, DatabaseOutlined, RollbackOutlined, AuditOutlined,
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined,
@@ -26,6 +26,7 @@ import ProductivityPage from '../pages/ProductivityPage';
 import UnloadingPage from '../pages/UnloadingPage';
 import SchedulePage from '../pages/SchedulePage';
 import BeritaAcaraPage from '../pages/BeritaAcaraPage';
+import StockOpnamePage from '../pages/StockOpnamePage';
 import SettingsPage from '../pages/SettingsPage';
 
 const { Header, Sider, Content } = Layout;
@@ -55,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/locations', icon: <EnvironmentOutlined />, label: 'Master Location', group: 'inventory' },
     { key: '/soh', icon: <DatabaseOutlined />, label: 'Stock on Hand', group: 'inventory' },
     { key: '/dcc', icon: <CheckCircleOutlined />, label: 'Daily Cycle Count', group: 'inventory' },
+    { key: '/stock-opname', icon: <AuditOutlined />, label: 'Stock Opname', group: 'inventory' },
     { key: '/damages', icon: <WarningOutlined />, label: 'Project Damage', group: 'inventory' },
     { key: '/qc-returns', icon: <RollbackOutlined />, label: 'QC Return', group: 'inventory' },
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', group: 'manpower' },
@@ -70,6 +72,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/unloading': 'inbound-unloading',
     '/vas': 'vas',
     '/dcc': 'daily-cycle-count',
+    '/stock-opname': 'stock-opname',
     '/damages': 'project-damage',
     '/soh': 'stock-on-hand',
     '/qc-returns': 'qc-return',
@@ -89,6 +92,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/unloading': <UnloadingPage />,
     '/vas': <VasPage />,
     '/dcc': <DccPage />,
+    '/stock-opname': <StockOpnamePage />,
     '/damages': <DamagePage />,
     '/soh': <SohPage />,
     '/qc-returns': <QcReturnPage />,
@@ -109,6 +113,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/unloading': <CarOutlined />,
     '/vas': <ToolOutlined />,
     '/dcc': <CheckCircleOutlined />,
+    '/stock-opname': <AuditOutlined />,
     '/damages': <WarningOutlined />,
     '/soh': <DatabaseOutlined />,
     '/qc-returns': <RollbackOutlined />,
