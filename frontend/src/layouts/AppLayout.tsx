@@ -5,7 +5,7 @@ import {
     CheckCircleOutlined, WarningOutlined, DatabaseOutlined, RollbackOutlined,
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
-    CloseOutlined, CarOutlined, CalendarOutlined,
+    CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -25,6 +25,7 @@ import EmployeesPage from '../pages/EmployeesPage';
 import ProductivityPage from '../pages/ProductivityPage';
 import UnloadingPage from '../pages/UnloadingPage';
 import SchedulePage from '../pages/SchedulePage';
+import BeritaAcaraPage from '../pages/BeritaAcaraPage';
 import SettingsPage from '../pages/SettingsPage';
 
 const { Header, Sider, Content } = Layout;
@@ -50,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
     { key: '/vas', icon: <ToolOutlined />, label: 'VAS', group: 'inbound' },
+    { key: '/berita-acara', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inbound' },
     { key: '/locations', icon: <EnvironmentOutlined />, label: 'Master Location', group: 'inventory' },
     { key: '/soh', icon: <DatabaseOutlined />, label: 'Stock on Hand', group: 'inventory' },
     { key: '/dcc', icon: <CheckCircleOutlined />, label: 'Daily Cycle Count', group: 'inventory' },
@@ -76,6 +78,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/employees': 'employees',
     '/productivity': 'productivity',
     '/schedule': 'schedule',
+    '/berita-acara': 'berita-acara',
 };
 
 // Map route key → component
@@ -94,6 +97,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/employees': <EmployeesPage />,
     '/productivity': <ProductivityPage />,
     '/schedule': <SchedulePage />,
+    '/berita-acara': <BeritaAcaraPage />,
     '/settings': <SettingsPage />,
 };
 
@@ -113,6 +117,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/employees': <IdcardOutlined />,
     '/productivity': <LineChartOutlined />,
     '/schedule': <CalendarOutlined />,
+    '/berita-acara': <FileTextOutlined />,
 };
 
 const LABEL_MAP: Record<string, string> = {};

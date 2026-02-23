@@ -227,3 +227,19 @@ type Schedule struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// BeritaAcara represents official warehouse report documents
+type BeritaAcara struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	DocType   string         `gorm:"column:doc_type" json:"doc_type" binding:"required"`
+	DocNumber string         `gorm:"column:doc_number;uniqueIndex" json:"doc_number"`
+	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Checker   string         `gorm:"column:checker" json:"checker"`
+	Kepada    string         `gorm:"column:kepada" json:"kepada"`
+	Dari      string         `gorm:"column:dari" json:"dari"`
+	Items     string         `gorm:"column:items;type:text" json:"items"`
+	Notes     string         `gorm:"column:notes" json:"notes"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}

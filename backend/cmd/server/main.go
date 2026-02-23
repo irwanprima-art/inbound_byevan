@@ -131,6 +131,9 @@ func main() {
 	schedules := handlers.NewResource[models.Schedule]("schedules")
 	schedules.RegisterRoutes(protected.Group("/schedules"))
 
+	beritaAcara := handlers.NewResource[models.BeritaAcara]("berita-acara")
+	beritaAcara.RegisterRoutes(protected.Group("/berita-acara"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
