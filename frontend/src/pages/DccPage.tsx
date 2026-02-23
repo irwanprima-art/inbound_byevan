@@ -80,6 +80,38 @@ const columnMap: Record<string, string> = {
 
 const numberFields = ['sys_qty', 'phy_qty', 'variance'];
 
+// Skip rows where every important string field is blank
+const parseCSVRow = (row: string[], headers?: string[]): Record<string, unknown> | null => {
+    if (!headers) return null;
+    const get = (key: string) => {
+        const idx = headers.findIndex(h => {
+            const n = h.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            return n === key || h === key;
+        });
+        return idx >= 0 ? (row[idx] ?? '').toString().trim() : '';
+    };
+    const sku = get('sku');
+    const date = get('date');
+    // Skip truly blank rows
+    if (!sku && !date) return null;
+    const sysQty = parseInt(get('sys_qty')) || 0;
+    const phyQty = parseInt(get('phy_qty')) || 0;
+    return {
+        date: get('date'),
+        phy_inv: get('phy_inv') || get('phy__inventory_') || get('phy_inventory'),
+        zone: get('zone'),
+        location: get('location'),
+        owner: get('owner'),
+        sku,
+        brand: get('brand'),
+        description: get('description'),
+        sys_qty: sysQty,
+        phy_qty: phyQty,
+        variance: phyQty - sysQty,
+        operator: get('operator'),
+    };
+};
+
 export default function DccPage() {
     return (
         <DataPage
@@ -90,6 +122,7 @@ export default function DccPage() {
             csvHeaders={csvHeaders}
             columnMap={columnMap}
             numberFields={numberFields}
+            parseCSVRow={parseCSVRow as any}
             dateField="date"
             computeSearchText={(item: any) => {
                 const v = parseInt(item.variance) || 0;
