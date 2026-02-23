@@ -103,22 +103,28 @@ export default function BeritaAcaraPage() {
 
     // Save & Print
     const handleSaveAndPrint = async () => {
+        let vals: any;
         try {
-            const vals = await form.validateFields();
-            if (items.length === 0) { message.warning('Tambahkan minimal 1 SKU!'); return; }
+            vals = await form.validateFields();
+        } catch {
+            message.error('Lengkapi semua field yang wajib!');
+            return;
+        }
+        if (items.length === 0) { message.warning('Tambahkan minimal 1 SKU!'); return; }
 
-            const docNumber = generateDocNumber(docs);
-            const payload = {
-                doc_type: vals.doc_type,
-                doc_number: docNumber,
-                date: dayjs(vals.date).format('YYYY-MM-DD'),
-                checker: vals.checker,
-                kepada: vals.kepada,
-                dari: 'PT. Global Jet Ecommerce',
-                items: JSON.stringify(items),
-                notes: vals.notes || '',
-            };
+        const docNumber = generateDocNumber(docs);
+        const payload = {
+            doc_type: vals.doc_type,
+            doc_number: docNumber,
+            date: dayjs(vals.date).format('YYYY-MM-DD'),
+            checker: vals.checker,
+            kepada: vals.kepada,
+            dari: 'PT. Global Jet Ecommerce',
+            items: JSON.stringify(items),
+            notes: vals.notes || '',
+        };
 
+        try {
             await beritaAcaraApi.create(payload);
             message.success('Berita Acara tersimpan!');
 
@@ -131,7 +137,10 @@ export default function BeritaAcaraPage() {
             form.setFieldsValue({ dari: 'PT. Global Jet Ecommerce', date: dayjs() });
             setItems([]);
             fetchData();
-        } catch { message.error('Lengkapi semua field yang wajib!'); }
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message || 'Gagal menyimpan Berita Acara ke server';
+            message.error(msg);
+        }
     };
 
     // Print the preview
