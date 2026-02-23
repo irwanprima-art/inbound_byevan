@@ -63,6 +63,7 @@ export const attendancesApi = createResourceApi('attendances');
 export const employeesApi = createResourceApi('employees');
 export const productivityApi = createResourceApi('project-productivities');
 export const unloadingsApi = createResourceApi('unloadings');
+export const schedulesApi = createResourceApi('schedules');
 
 // User management API (custom endpoints)
 export const usersApi = {

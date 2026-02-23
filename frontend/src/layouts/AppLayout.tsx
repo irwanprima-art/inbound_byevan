@@ -5,7 +5,7 @@ import {
     CheckCircleOutlined, WarningOutlined, DatabaseOutlined, RollbackOutlined,
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
-    CloseOutlined, CarOutlined,
+    CloseOutlined, CarOutlined, CalendarOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -24,6 +24,7 @@ import AttendancePage from '../pages/AttendancePage';
 import EmployeesPage from '../pages/EmployeesPage';
 import ProductivityPage from '../pages/ProductivityPage';
 import UnloadingPage from '../pages/UnloadingPage';
+import SchedulePage from '../pages/SchedulePage';
 import SettingsPage from '../pages/SettingsPage';
 
 const { Header, Sider, Content } = Layout;
@@ -57,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', group: 'manpower' },
     { key: '/employees', icon: <IdcardOutlined />, label: 'Employees', group: 'manpower' },
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
+    { key: '/schedule', icon: <CalendarOutlined />, label: 'Schedule', group: 'manpower' },
 ];
 
 const PAGE_ID_MAP: Record<string, string> = {
@@ -73,6 +75,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/attendance': 'attendance',
     '/employees': 'employees',
     '/productivity': 'productivity',
+    '/schedule': 'schedule',
 };
 
 // Map route key → component
@@ -90,6 +93,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/attendance': <AttendancePage />,
     '/employees': <EmployeesPage />,
     '/productivity': <ProductivityPage />,
+    '/schedule': <SchedulePage />,
     '/settings': <SettingsPage />,
 };
 
@@ -108,6 +112,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/attendance': <ClockCircleOutlined />,
     '/employees': <IdcardOutlined />,
     '/productivity': <LineChartOutlined />,
+    '/schedule': <CalendarOutlined />,
 };
 
 const LABEL_MAP: Record<string, string> = {};

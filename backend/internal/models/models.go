@@ -213,3 +213,17 @@ type User struct {
 	Password string `gorm:"not null" json:"-"`
 	Role     string `gorm:"not null" json:"role"`
 }
+
+// Schedule represents manpower weekly schedule
+type Schedule struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Nik       string         `gorm:"column:nik" json:"nik" binding:"required"`
+	Name      string         `gorm:"column:name" json:"name"`
+	Jobdesc   string         `gorm:"column:jobdesc" json:"jobdesc"`
+	ClockIn   string         `gorm:"column:clock_in" json:"clock_in"`
+	ClockOut  string         `gorm:"column:clock_out" json:"clock_out"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}

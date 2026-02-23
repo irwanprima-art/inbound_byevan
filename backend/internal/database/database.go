@@ -65,6 +65,7 @@ func AutoMigrate() {
 		&models.ProjectProductivity{},
 		&models.Unloading{},
 		&models.User{},
+		&models.Schedule{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)

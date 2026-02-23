@@ -128,6 +128,9 @@ func main() {
 	unloadings := handlers.NewResource[models.Unloading]("unloadings")
 	unloadings.RegisterRoutes(protected.Group("/unloadings"))
 
+	schedules := handlers.NewResource[models.Schedule]("schedules")
+	schedules.RegisterRoutes(protected.Group("/schedules"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
