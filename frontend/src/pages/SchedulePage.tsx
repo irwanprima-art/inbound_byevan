@@ -98,7 +98,11 @@ export default function SchedulePage() {
             }
             nikMap[nik].shifts[s.date] = { id: s.id, clock_in: s.clock_in || 'Off', clock_out: s.clock_out || '' };
         });
-        return Object.values(nikMap).sort((a, b) => a.name.localeCompare(b.name));
+        return Object.values(nikMap).sort((a, b) => {
+            const aMinId = Math.min(...Object.values(a.shifts).map(s => s.id || Infinity));
+            const bMinId = Math.min(...Object.values(b.shifts).map(s => s.id || Infinity));
+            return aMinId - bMinId;
+        });
     }, [schedules, weekDays]);
 
     // Available employees not yet in this week's schedule
