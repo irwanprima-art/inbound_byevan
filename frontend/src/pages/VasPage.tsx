@@ -8,7 +8,7 @@ import {
     EditOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, PlusOutlined,
     CloseOutlined,
 } from '@ant-design/icons';
-import { vasApi } from '../api/client';
+import { vasApi, employeesApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -60,12 +60,16 @@ export default function VasPage() {
     const [addSkuTaskId, setAddSkuTaskId] = useState<string | null>(null);
     const [addSkuForm] = Form.useForm();
 
+    // ─── Employees for operator dropdown ────
+    const [employees, setEmployees] = useState<any[]>([]);
+
     // ─── Data fetching ─────────────────────────
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await vasApi.list();
-            setData(res.data || []);
+            const [vasRes, empRes] = await Promise.all([vasApi.list(), employeesApi.list()]);
+            setData(vasRes.data || []);
+            setEmployees((empRes.data || []).filter((e: any) => e.is_active !== 'Inactive'));
         } catch {
             message.error('Gagal memuat data');
         } finally {
@@ -435,7 +439,7 @@ export default function VasPage() {
                         </Col>
                         <Col xs={12} md={4}>
                             <Form.Item name="operator" label="Operator" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                                <Input placeholder="Nama operator" />
+                                <Select showSearch placeholder="Pilih operator" optionFilterProp="label" options={employees.map(e => ({ label: e.name, value: e.name }))} />
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={4} style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -738,7 +742,7 @@ export default function VasPage() {
                         { value: 'Gimmick', label: 'Gimmick' },
                     ]} /></Form.Item>
                     <Form.Item name="qty" label="Qty"><InputNumber style={{ width: '100%' }} min={1} /></Form.Item>
-                    <Form.Item name="operator" label="Operator"><Input /></Form.Item>
+                    <Form.Item name="operator" label="Operator"><Select showSearch optionFilterProp="label" options={employees.map(e => ({ label: e.name, value: e.name }))} /></Form.Item>
                 </Form>
             </Modal>
 
