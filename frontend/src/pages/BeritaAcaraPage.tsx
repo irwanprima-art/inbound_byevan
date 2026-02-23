@@ -494,6 +494,24 @@ export default function BeritaAcaraPage() {
                                 <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>&nbsp;</div>
                             </div>
                         </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            marginTop: 48,
+                            paddingTop: 12,
+                            borderTop: '1.5px solid #d0d0d0',
+                            textAlign: 'center',
+                            fontSize: 9,
+                            color: '#888',
+                            lineHeight: 1.6,
+                            letterSpacing: 0.3,
+                        }}>
+                            <div style={{ fontWeight: 700, fontSize: 10, color: '#555', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                                PT. Global Jet Ecommerce
+                            </div>
+                            <div>Landmark Pluit Tower B2, 7th Floor, Pluit, Penjaringan – Jakarta Utara</div>
+                            <div>DKI Jakarta, 14450</div>
+                        </div>
                     </div>
                 )}
             </Modal>
