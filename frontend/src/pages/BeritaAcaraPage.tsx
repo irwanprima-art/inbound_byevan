@@ -35,13 +35,18 @@ function generateDocNumber(existingDocs: any[]): string {
     const prefix = now.format('MMYY');
     const year = now.format('YYYY');
 
-    // Count existing docs with the same prefix this month
-    const thisMonthDocs = existingDocs.filter(d => {
+    // Find the highest sequence number for this month's prefix
+    let maxSeq = 0;
+    existingDocs.forEach(d => {
         const dn = d.doc_number || '';
-        return dn.startsWith(prefix);
+        if (dn.startsWith(prefix + '-')) {
+            const seqStr = dn.split('-')[1]?.split('/')[0];
+            const seq = parseInt(seqStr) || 0;
+            if (seq > maxSeq) maxSeq = seq;
+        }
     });
-    const seq = (thisMonthDocs.length + 1).toString().padStart(4, '0');
-    return `${prefix}-${seq}/WH-JC/${year}`;
+    const nextSeq = (maxSeq + 1).toString().padStart(4, '0');
+    return `${prefix}-${nextSeq}/WH-JC/${year}`;
 }
 
 export default function BeritaAcaraPage() {
