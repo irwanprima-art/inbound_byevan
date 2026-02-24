@@ -130,10 +130,9 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
         },
     ] : [];
 
-    // ========== DAILY HEADCOUNT (filtered by month) ==========
+    // ========== DAILY HEADCOUNT (dates as columns, divisions as rows) ==========
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
-    // Month options for the filter dropdown
     const monthOptions = useMemo(() => {
         return sortedMonths.map(m => {
             const [yyyy, mm] = m.split('-');
@@ -141,14 +140,13 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
         });
     }, [sortedMonths]);
 
-    // Default to latest month if none selected
     const activeMonth = selectedMonth || lastMonth;
 
-    // Build daily data: date → { divisi → count }
-    const dailyData = useMemo(() => {
-        if (!activeMonth) return [];
+    // Build daily data: divisi → date → count
+    const { dailyRows, dailyColumns } = useMemo(() => {
+        if (!activeMonth) return { dailyRows: [], dailyColumns: [] };
 
-        const dateDivMap: Record<string, Record<string, number>> = {};
+        const divDateMap: Record<string, Record<string, number>> = {};
         const allDates = new Set<string>();
 
         attData.forEach((r: any) => {
@@ -160,75 +158,92 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
 
             const dateKey = r.date;
             allDates.add(dateKey);
-            if (!dateDivMap[dateKey]) dateDivMap[dateKey] = {};
-            dateDivMap[dateKey][rowKey] = (dateDivMap[dateKey][rowKey] || 0) + 1;
+            if (!divDateMap[rowKey]) divDateMap[rowKey] = {};
+            divDateMap[rowKey][dateKey] = (divDateMap[rowKey][dateKey] || 0) + 1;
         });
 
         const sortedDates = Array.from(allDates).sort();
-        const rows = sortedDates.map(date => {
-            const row: any = { key: date, date };
-            const dayName = dayjs(date).format('ddd');
-            row.day = dayName;
-            DIVISIONS.forEach(div => {
-                row[div] = dateDivMap[date]?.[div] || 0;
+
+        // Build rows: each division is a row, dates are columns
+        const rows = DIVISIONS.map(div => {
+            const row: any = { key: div, divisi: div };
+            let total = 0;
+            sortedDates.forEach(date => {
+                const count = divDateMap[div]?.[date] || 0;
+                row[date] = count;
+                total += count;
             });
-            row.total = DIVISIONS.reduce((sum, div) => sum + (row[div] || 0), 0);
+            row._total = total;
             return row;
         });
 
-        // Add total row
-        if (rows.length > 0) {
-            const totalRow: any = { key: '_total', date: 'Total', day: '', isTotal: true };
-            DIVISIONS.forEach(div => {
-                totalRow[div] = rows.reduce((sum, r) => sum + (r[div] || 0), 0);
-            });
-            totalRow.total = rows.reduce((sum, r) => sum + (r.total || 0), 0);
-            rows.push(totalRow);
-        }
+        // Actual (total) row
+        const totRow: any = { key: '_actual', divisi: 'Actual', isTotal: true, _total: 0 };
+        sortedDates.forEach(date => {
+            totRow[date] = DIVISIONS.reduce((sum, div) => sum + (divDateMap[div]?.[date] || 0), 0);
+            totRow._total += totRow[date];
+        });
+        rows.push(totRow);
 
-        return rows;
+        // Build columns: Divisi | Total | date1 | date2 | ...
+        const DAY_NAMES: Record<string, string> = {
+            '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+        };
+
+        const dateCols = sortedDates.map(date => {
+            const d = dayjs(date);
+            const dayNum = d.format('D');
+            const dayOfWeek = d.day();
+            const dayName = DAY_NAMES[String(dayOfWeek)] || '';
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+            return {
+                title: (
+                    <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
+                        <div style={{ fontSize: 11, color: isWeekend ? '#f87171' : 'rgba(255,255,255,0.45)' }}>{dayName}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: isWeekend ? '#f87171' : '#fff' }}>{dayNum}</div>
+                    </div>
+                ),
+                dataIndex: date,
+                key: date,
+                width: 42,
+                align: 'center' as const,
+                render: (v: number, rec: any) => {
+                    if (!v && !rec.isTotal) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+                    return (
+                        <span style={{
+                            fontWeight: rec.isTotal ? 700 : 400,
+                            color: rec.isTotal ? '#60a5fa' : isWeekend ? '#f87171' : '#fff',
+                        }}>
+                            {v || 0}
+                        </span>
+                    );
+                },
+            };
+        });
+
+        const cols = [
+            {
+                title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 180, fixed: 'left' as const,
+                render: (v: string, rec: any) => (
+                    <span style={{ fontWeight: rec.isTotal ? 700 : 500, color: rec.isTotal ? '#60a5fa' : '#fff' }}>{v}</span>
+                ),
+            },
+            {
+                title: 'Total', dataIndex: '_total', key: '_total', width: 65, fixed: 'left' as const,
+                align: 'center' as const,
+                render: (v: number, rec: any) => (
+                    <span style={{ fontWeight: 700, color: rec.isTotal ? '#60a5fa' : '#10b981' }}>
+                        {(v || 0).toLocaleString()}
+                    </span>
+                ),
+            },
+            ...dateCols,
+        ];
+
+        return { dailyRows: rows, dailyColumns: cols };
     }, [attData, activeMonth]);
 
-    const dailyColumns = [
-        {
-            title: 'Tanggal', dataIndex: 'date', key: 'date', width: 120, fixed: 'left' as const,
-            render: (v: string, rec: any) => {
-                if (rec.isTotal) return <span style={{ fontWeight: 700, color: '#60a5fa' }}>{v}</span>;
-                return <span style={{ color: '#fff' }}>{dayjs(v).format('DD MMM YYYY')}</span>;
-            },
-        },
-        {
-            title: 'Hari', dataIndex: 'day', key: 'day', width: 60,
-            render: (v: string, rec: any) => (
-                <span style={{
-                    color: rec.isTotal ? '#60a5fa' : (v === 'Sun' || v === 'Sat') ? '#f87171' : 'rgba(255,255,255,0.6)',
-                    fontWeight: rec.isTotal ? 700 : 400,
-                }}>{v}</span>
-            ),
-        },
-        ...DIVISIONS.map(div => ({
-            title: div === 'Bongkaran/Project/Tambahan' ? 'Bongkaran/Proj' : div,
-            dataIndex: div,
-            key: div,
-            width: 100,
-            align: 'center' as const,
-            render: (v: number, rec: any) => (
-                <span style={{ fontWeight: rec.isTotal ? 700 : 400, color: rec.isTotal ? '#60a5fa' : '#fff' }}>
-                    {(v || 0).toLocaleString()}
-                </span>
-            ),
-        })),
-        {
-            title: 'Total', dataIndex: 'total', key: 'total', width: 80, align: 'center' as const,
-            render: (v: number, rec: any) => (
-                <span style={{ fontWeight: 700, color: rec.isTotal ? '#60a5fa' : '#10b981' }}>
-                    {(v || 0).toLocaleString()}
-                </span>
-            ),
-        },
-    ];
-
-    // Active month label for title
     const activeMonthLabel = activeMonth
         ? (() => { const [yyyy, mm] = activeMonth.split('-'); return `${MONTH_LABELS[mm] || mm} ${yyyy}`; })()
         : '';
@@ -263,7 +278,7 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
             </Card>
 
             <Card
-                title={`📅 Daily Headcount — ${activeMonthLabel}`}
+                title={`📅 Daily Headcount per Divisi — ${activeMonthLabel}`}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                 styles={{ header: { color: '#fff' } }}
                 extra={
@@ -282,18 +297,14 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
                 }
             >
                 <ResizableTable
-                    dataSource={dailyData}
+                    dataSource={dailyRows}
                     columns={dailyColumns}
                     rowKey="key"
                     size="small"
-                    scroll={{ x: 'max-content', y: 500 }}
+                    scroll={{ x: 'max-content' }}
                     pagination={false}
                     onRow={(record: any) => ({
-                        style: record.isTotal
-                            ? { background: 'rgba(99,102,241,0.15)' }
-                            : (record.day === 'Sun' || record.day === 'Sat')
-                                ? { background: 'rgba(248,113,113,0.05)' }
-                                : undefined,
+                        style: record.isTotal ? { background: 'rgba(99,102,241,0.15)' } : undefined,
                     })}
                 />
             </Card>
