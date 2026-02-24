@@ -460,11 +460,7 @@ export default function BeritaAcaraInventoryPage() {
                                         </div>
 
                                         {/* Signatures on summary page */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48 }}>
-                                            <SigBlock label="PIC" name={previewDoc.checker} />
-                                            <SigBlock label="Supervisor" name="Evan Budi Setiawan Pasaribu" />
-                                            <SigBlock label="Mengetahui" name="" />
-                                        </div>
+                                        <SignatureBlock pic={previewDoc.checker} kepada={previewDoc.kepada} />
 
                                         {/* Page 2: Lampiran */}
                                         <div className="page-break" style={{ pageBreakBefore: 'always', paddingTop: 16 }}>
@@ -539,11 +535,7 @@ export default function BeritaAcaraInventoryPage() {
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48 }}>
-                                        <SigBlock label="PIC" name={previewDoc.checker} />
-                                        <SigBlock label="Supervisor" name="Evan Budi Setiawan Pasaribu" />
-                                        <SigBlock label="Mengetahui" name="" />
-                                    </div>
+                                    <SignatureBlock pic={previewDoc.checker} kepada={previewDoc.kepada} />
                                 </>
                             )}
                         </div>
@@ -562,11 +554,36 @@ export default function BeritaAcaraInventoryPage() {
     );
 }
 
-function SigBlock({ label, name }: { label: string; name: string }) {
+function SignatureBlock({ pic, kepada }: { pic: string; kepada?: string }) {
+    const sigStyle: React.CSSProperties = { width: '45%', textAlign: 'center', marginBottom: 24 };
+    const labelStyle: React.CSSProperties = { fontSize: 11, marginBottom: 60 };
+    const lineStyle: React.CSSProperties = { borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600, fontSize: 11 };
+    const roleStyle: React.CSSProperties = { fontSize: 10, color: '#555', marginTop: 2 };
+
     return (
-        <div style={{ width: '30%', textAlign: 'center' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>{label}</div>
-            <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{name || '\u00a0'}</div>
+        <div style={{ marginTop: 48 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                {/* Row 1 */}
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Dibuat oleh,</div>
+                    <div style={lineStyle}>({pic})</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Diperiksa Oleh,</div>
+                    <div style={lineStyle}>(Evan Budi Setiawan Pasaribu)</div>
+                    <div style={roleStyle}>Warehouse, Supervisor</div>
+                </div>
+                {/* Row 2 */}
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Mengetahui,</div>
+                    <div style={lineStyle}>(Muhamad Irwan Prima)</div>
+                    <div style={roleStyle}>Supply Chain, Manager</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Mengetahui,</div>
+                    <div style={lineStyle}>({kepada || '\u00a0'})</div>
+                </div>
+            </div>
         </div>
     );
 }
