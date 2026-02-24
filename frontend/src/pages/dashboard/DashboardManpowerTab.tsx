@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, Select, Space } from 'antd';
+import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
 
@@ -51,6 +52,24 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
     };
 
+    // ========== HELPER: Build Plan per month from schedule + addMp ==========
+    const monthlyPlanMap = useMemo(() => {
+        const planMap: Record<string, number> = {};
+        schedData.forEach((s: any) => {
+            const mk = getMonthKey(s.date);
+            if (!mk) return;
+            const clockIn = (s.clock_in || '').trim();
+            if (!clockIn || clockIn.toLowerCase() === 'off') return;
+            planMap[mk] = (planMap[mk] || 0) + 1;
+        });
+        addMpData.forEach((a: any) => {
+            const mk = getMonthKey(a.date);
+            if (!mk) return;
+            planMap[mk] = (planMap[mk] || 0) + (a.additional_mp || 0);
+        });
+        return planMap;
+    }, [schedData, addMpData]);
+
     // ========== MONTHLY HEADCOUNT (unfiltered) ==========
     const monthDivMap: Record<string, Record<string, number>> = {};
     const allMonths = new Set<string>();
@@ -66,6 +85,9 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         if (!monthDivMap[rowKey]) monthDivMap[rowKey] = {};
         monthDivMap[rowKey][mk] = (monthDivMap[rowKey][mk] || 0) + 1;
     });
+
+    // Also add months from schedule to allMonths
+    Object.keys(monthlyPlanMap).forEach(mk => allMonths.add(mk));
 
     const sortedMonths = Array.from(allMonths).sort();
 
@@ -83,6 +105,26 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
     });
     tableRows.push(actualRow);
 
+    // Plan row for monthly
+    const monthlyPlanRow: any = { key: '_plan', divisi: 'Plan', isPlan: true };
+    sortedMonths.forEach(m => {
+        monthlyPlanRow[m] = monthlyPlanMap[m] || 0;
+    });
+    tableRows.push(monthlyPlanRow);
+
+    // Actual vs Plan % row for monthly
+    const monthlyPctRow: any = { key: '_avp', divisi: 'Actual vs Plan', isPct: true };
+    sortedMonths.forEach(m => {
+        const actual = actualRow[m] || 0;
+        const plan = monthlyPlanMap[m] || 0;
+        if (plan === 0) {
+            monthlyPctRow[m] = '-';
+        } else {
+            monthlyPctRow[m] = ((actual / plan) * 100).toFixed(1) + '%';
+        }
+    });
+    tableRows.push(monthlyPctRow);
+
     const lastMonth = sortedMonths[sortedMonths.length - 1];
     const prevMonth = sortedMonths.length >= 2 ? sortedMonths[sortedMonths.length - 2] : null;
 
@@ -94,11 +136,25 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             key: m,
             width: 80,
             align: 'center' as const,
-            render: (v: number, rec: any) => (
-                <span style={{ fontWeight: rec.isTotal ? 700 : 400, color: rec.isTotal ? '#60a5fa' : '#fff' }}>
-                    {(v || 0).toLocaleString()}
-                </span>
-            ),
+            render: (v: any, rec: any) => {
+                if (rec.isPct) {
+                    const strVal = String(v || '-');
+                    const numVal = parseFloat(strVal);
+                    let color = 'rgba(255,255,255,0.3)';
+                    if (!isNaN(numVal)) {
+                        color = numVal >= 100 ? '#10b981' : numVal >= 80 ? '#fbbf24' : '#f87171';
+                    }
+                    return <span style={{ fontWeight: 600, fontSize: 11, color }}>{strVal}</span>;
+                }
+                if (rec.isPlan) {
+                    return <span style={{ fontWeight: 600, color: '#c084fc' }}>{(v || 0).toLocaleString()}</span>;
+                }
+                return (
+                    <span style={{ fontWeight: rec.isTotal ? 700 : 400, color: rec.isTotal ? '#60a5fa' : '#fff' }}>
+                        {(v || 0).toLocaleString()}
+                    </span>
+                );
+            },
         };
     });
 
@@ -109,6 +165,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             width: 70,
             align: 'center' as const,
             render: (_: any, rec: any) => {
+                if (rec.isPct || rec.isPlan) return null;
                 const curr = rec[lastMonth] || 0;
                 const prev = rec[prevMonth] || 0;
                 const diff = curr - prev;
@@ -123,6 +180,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             width: 80,
             align: 'center' as const,
             render: (_: any, rec: any) => {
+                if (rec.isPct || rec.isPlan) return null;
                 const curr = rec[lastMonth] || 0;
                 const prev = rec[prevMonth] || 0;
                 if (prev === 0) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
@@ -147,8 +205,8 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
     // Build daily data: divisi → date → count (from attendance)
     // Build plan data: date → total count (from schedule)
-    const { dailyRows, dailyColumns } = useMemo(() => {
-        if (!activeMonth) return { dailyRows: [], dailyColumns: [] };
+    const { dailyRows, dailyColumns, chartData } = useMemo(() => {
+        if (!activeMonth) return { dailyRows: [], dailyColumns: [], chartData: [] };
 
         const divDateMap: Record<string, Record<string, number>> = {};
         const allDates = new Set<string>();
@@ -172,7 +230,6 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         schedData.forEach((s: any) => {
             const mk = getMonthKey(s.date);
             if (mk !== activeMonth) return;
-            // Skip "Off" schedules — clock_in is empty or 'Off' when person is off
             const clockIn = (s.clock_in || '').trim();
             if (!clockIn || clockIn.toLowerCase() === 'off') return;
 
@@ -238,6 +295,21 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         }
         rows.push(pctRow);
 
+        // Build chart data
+        const DAY_SHORT: Record<string, string> = {
+            '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+        };
+        const cData = sortedDates.map(date => {
+            const d = dayjs(date);
+            const actual = totRow[date] || 0;
+            const plan = planDateMap[date] || 0;
+            return {
+                name: `${d.format('D')}-${DAY_SHORT[String(d.day())] || ''}`,
+                Actual: actual,
+                Plan: plan,
+            };
+        });
+
         // Build columns
         const DAY_NAMES: Record<string, string> = {
             '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
@@ -262,7 +334,6 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                 width: 42,
                 align: 'center' as const,
                 render: (v: any, rec: any) => {
-                    // Actual vs Plan % row
                     if (rec.isPct) {
                         const strVal = String(v || '-');
                         const numVal = parseFloat(strVal);
@@ -272,11 +343,9 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         }
                         return <span style={{ fontSize: 10, fontWeight: 600, color }}>{strVal}</span>;
                     }
-                    // Plan row
                     if (rec.isPlan) {
                         return <span style={{ fontWeight: 600, color: '#c084fc' }}>{v || 0}</span>;
                     }
-                    // Normal / Total
                     if (!v && !rec.isTotal) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
                     return (
                         <span style={{
@@ -323,8 +392,8 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             ...dateCols,
         ];
 
-        return { dailyRows: rows, dailyColumns: cols };
-    }, [attData, schedData, activeMonth]);
+        return { dailyRows: rows, dailyColumns: cols, chartData: cData };
+    }, [attData, schedData, addMpData, activeMonth]);
 
     const activeMonthLabel = activeMonth
         ? (() => { const [yyyy, mm] = activeMonth.split('-'); return `${MONTH_LABELS[mm] || mm} ${yyyy}`; })()
@@ -343,7 +412,10 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         {
                             title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 200, fixed: 'left' as const,
                             render: (v: string, rec: any) => (
-                                <span style={{ fontWeight: rec.isTotal ? 700 : 500, color: rec.isTotal ? '#60a5fa' : '#fff' }}>{v}</span>
+                                <span style={{
+                                    fontWeight: rec.isTotal || rec.isPlan || rec.isPct ? 700 : 500,
+                                    color: rec.isTotal ? '#60a5fa' : rec.isPlan ? '#c084fc' : rec.isPct ? '#fbbf24' : '#fff',
+                                }}>{v}</span>
                             ),
                         },
                         ...monthCols,
@@ -354,13 +426,20 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     scroll={{ x: 'max-content' }}
                     pagination={false}
                     onRow={(record: any) => ({
-                        style: record.isTotal ? { background: 'rgba(99,102,241,0.15)' } : undefined,
+                        style: record.isTotal
+                            ? { background: 'rgba(99,102,241,0.15)' }
+                            : record.isPlan
+                                ? { background: 'rgba(192,132,252,0.08)' }
+                                : record.isPct
+                                    ? { background: 'rgba(251,191,36,0.08)' }
+                                    : undefined,
                     })}
                 />
             </Card>
 
+            {/* Actual vs Plan Chart */}
             <Card
-                title={`📅 Daily Headcount per Divisi — ${activeMonthLabel}`}
+                title={`� Actual vs Plan — ${activeMonthLabel}`}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                 styles={{ header: { color: '#fff' } }}
                 extra={
@@ -377,6 +456,62 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         />
                     </Space>
                 }
+            >
+                {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={320}>
+                        <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }}
+                                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }}
+                                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                                tickLine={false}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    background: '#1e2340',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: 8,
+                                    color: '#fff',
+                                }}
+                                labelStyle={{ color: '#fff', fontWeight: 600 }}
+                            />
+                            <Legend
+                                wrapperStyle={{ color: '#fff', fontSize: 12 }}
+                            />
+                            <Bar
+                                dataKey="Actual"
+                                fill="#6366f1"
+                                radius={[4, 4, 0, 0]}
+                                barSize={20}
+                                label={{ position: 'top', fill: 'rgba(255,255,255,0.6)', fontSize: 10 }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="Plan"
+                                stroke="#ef4444"
+                                strokeWidth={2.5}
+                                dot={{ fill: '#ef4444', r: 3 }}
+                                activeDot={{ r: 5, fill: '#ef4444' }}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)' }}>
+                        Tidak ada data untuk bulan ini
+                    </div>
+                )}
+            </Card>
+
+            <Card
+                title={`📅 Daily Headcount per Divisi — ${activeMonthLabel}`}
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                styles={{ header: { color: '#fff' } }}
             >
                 <ResizableTable
                     dataSource={dailyRows}
