@@ -208,28 +208,55 @@ export default function BeritaAcaraInventoryPage() {
         const el = document.getElementById('ba-inventory-print');
         if (!el) return;
         const html = el.innerHTML;
+
+        // Build header and footer HTML that will repeat on every page
+        const headerHtml = document.getElementById('ba-print-header')?.innerHTML || '';
+        const footerHtml = document.getElementById('ba-print-footer')?.innerHTML || '';
+
         const win = window.open('', '_blank');
         if (!win) return;
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara Inventory</title>
 <style>
-    @page { size: A4 portrait; margin: 12mm 14mm; }
+    @page { size: A4 portrait; margin: 18mm 16mm 22mm 16mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
-    .print-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
-    .print-content { flex: 1 0 auto; }
-    .print-footer { flex-shrink: 0; margin-top: auto; padding-top: 12px; border-top: 1.5px solid #d0d0d0; text-align: left; font-size: 9px; color: #888; line-height: 1.6; }
-    .doc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; }
-    .doc-header img { height: 52px; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    th, td { border: 1px solid #333; padding: 5px 8px; text-align: left; font-size: 11px; }
-    th { background: #eee; font-weight: 700; text-transform: uppercase; }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
-    .summary-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; text-align: center; }
-    .summary-box .label { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
-    .summary-box .value { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-top: 2px; }
+
+    /* Repeating header/footer via table layout */
+    .page-table { width: 100%; border-collapse: collapse; }
+    .page-table td { padding: 0; border: none; vertical-align: top; }
+    .page-header { padding-bottom: 8px; }
+    .page-footer { padding-top: 8px; }
+    .page-header, .page-footer { border: none; }
+
+    .doc-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
+    .doc-header img { height: 48px; }
+    .print-footer-inner { border-top: 1.5px solid #d0d0d0; padding-top: 8px; text-align: left; font-size: 8px; color: #888; line-height: 1.5; }
+
+    .content-area table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .content-area th, .content-area td { border: 1px solid #333; padding: 5px 8px; text-align: left; font-size: 10px; }
+    .content-area th { background: #eee; font-weight: 700; text-transform: uppercase; font-size: 9px; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .summary-box { border: 1px solid #ccc; border-radius: 6px; padding: 8px; text-align: center; }
+    .summary-box .label { font-size: 9px; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-box .value { font-size: 16px; font-weight: 700; color: #1a1a1a; margin-top: 2px; }
+
     .page-break { page-break-before: always; }
-</style></head><body><div class="print-wrapper">${html}</div></body></html>`);
+
+    /* Hide the duplicate header/footer source in preview */
+    #ba-print-header, #ba-print-footer { display: none; }
+    /* Hide inline preview-only header in print output */
+    .content-area > .preview-only { display: none; }
+</style></head><body>
+
+<table class="page-table">
+    <thead><tr><td class="page-header">${headerHtml}</td></tr></thead>
+    <tfoot><tr><td class="page-footer">${footerHtml}</td></tr></tfoot>
+    <tbody><tr><td class="content-area">${html}</td></tr></tbody>
+</table>
+
+</body></html>`);
         win.document.close();
         const imgs = win.document.querySelectorAll('img');
         await Promise.all(Array.from(imgs).map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })));
@@ -401,10 +428,35 @@ export default function BeritaAcaraInventoryPage() {
                 title="Preview Berita Acara Inventory"
             >
                 {previewDoc && (
-                    <div id="ba-inventory-print" className="print-wrapper" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
-                        <div className="print-content" style={{ flex: 1 }}>
-                            {/* Header */}
-                            <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
+                    <>
+                        {/* Hidden header source for print (thead) */}
+                        <div id="ba-print-header" style={{ display: 'none' }}>
+                            <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '2px solid #e0e0e0' }}>
+                                <img src={LOGO_BASE64} alt="Logo" style={{ height: 48 }} />
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 3 }}>
+                                        Berita Acara — {previewDoc.doc_type}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#555' }}>No: {previewDoc.doc_number}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Hidden footer source for print (tfoot) */}
+                        <div id="ba-print-footer" style={{ display: 'none' }}>
+                            <div className="print-footer-inner" style={{ borderTop: '1.5px solid #d0d0d0', paddingTop: 8, textAlign: 'left', fontSize: 8, color: '#888', lineHeight: 1.5 }}>
+                                <div style={{ fontWeight: 700, fontSize: 9, color: '#555', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 1.5 }}>PT. Global Jet Ecommerce</div>
+                                <div>Landmark Pluit Tower B2, 7th Floor, Pluit, Penjaringan – Jakarta Utara</div>
+                                <div>DKI Jakarta, 14450</div>
+                                <div style={{ marginTop: 4, fontSize: 7, color: '#aaa' }}>Printed: {dayjs().format('DD/MM/YYYY HH:mm')}</div>
+                            </div>
+                        </div>
+
+                        {/* Main content (visible in preview + print body) */}
+                        <div id="ba-inventory-print" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
+
+                            {/* Preview-only header (shown in modal, hidden in print via CSS) */}
+                            <div className="preview-only doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
                                 <img src={LOGO_BASE64} alt="Logo" style={{ height: 52 }} />
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>
@@ -415,11 +467,11 @@ export default function BeritaAcaraInventoryPage() {
                             </div>
 
                             {/* Meta */}
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {previewDoc.date}</div>
-                                {previewDoc.kepada && <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {previewDoc.kepada}</div>}
-                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {previewDoc.dari}</div>
-                                <div style={{ marginBottom: 4 }}><strong style={{ display: 'inline-block', width: 80 }}>PIC</strong>: {previewDoc.checker}</div>
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {previewDoc.date}</div>
+                                {previewDoc.kepada && <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {previewDoc.kepada}</div>}
+                                <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {previewDoc.dari}</div>
+                                <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>PIC</strong>: {previewDoc.checker}</div>
                             </div>
 
                             {/* Stock Opname: Summary page */}
@@ -466,12 +518,8 @@ export default function BeritaAcaraInventoryPage() {
 
                                         {/* Page 2: Lampiran */}
                                         <div className="page-break" style={{ pageBreakBefore: 'always', paddingTop: 16 }}>
-                                            <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
-                                                <img src={LOGO_BASE64} alt="Logo" style={{ height: 52 }} />
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Lampiran — Stock Opname Detail</div>
-                                                    <div style={{ fontSize: 11, color: '#555' }}>No: {previewDoc.doc_number} | {previewDoc.date}</div>
-                                                </div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
+                                                Lampiran — Stock Opname Detail | No: {previewDoc.doc_number} | {previewDoc.date}
                                             </div>
 
                                             <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0' }}>
@@ -554,14 +602,16 @@ export default function BeritaAcaraInventoryPage() {
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="print-footer" style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1.5px solid #d0d0d0', textAlign: 'left', fontSize: 9, color: '#888', lineHeight: 1.6 }}>
-                            <div style={{ fontWeight: 700, fontSize: 10, color: '#555', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 1.5 }}>PT. Global Jet Ecommerce</div>
-                            <div>Landmark Pluit Tower B2, 7th Floor, Pluit, Penjaringan – Jakarta Utara</div>
-                            <div>DKI Jakarta, 14450</div>
-                            <div style={{ marginTop: 6, fontSize: 8, color: '#aaa' }}>Printed: {dayjs().format('DD/MM/YYYY HH:mm')}</div>
+                        {/* Preview-only footer (visible in modal) */}
+                        <div style={{ background: '#fff', color: '#1a1a1a', padding: '0 24px 16px', borderRadius: '0 0 8px 8px' }}>
+                            <div style={{ paddingTop: 12, borderTop: '1.5px solid #d0d0d0', textAlign: 'left', fontSize: 9, color: '#888', lineHeight: 1.6 }}>
+                                <div style={{ fontWeight: 700, fontSize: 10, color: '#555', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 1.5 }}>PT. Global Jet Ecommerce</div>
+                                <div>Landmark Pluit Tower B2, 7th Floor, Pluit, Penjaringan – Jakarta Utara</div>
+                                <div>DKI Jakarta, 14450</div>
+                                <div style={{ marginTop: 6, fontSize: 8, color: '#aaa' }}>Printed: {dayjs().format('DD/MM/YYYY HH:mm')}</div>
+                            </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </Modal>
         </div>
