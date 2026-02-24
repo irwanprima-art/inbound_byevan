@@ -172,9 +172,9 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         schedData.forEach((s: any) => {
             const mk = getMonthKey(s.date);
             if (mk !== activeMonth) return;
-            // Skip "Off" schedules
-            const jobdesc = (s.jobdesc || '').trim().toLowerCase();
-            if (jobdesc === 'off' || jobdesc === '') return;
+            // Skip "Off" schedules — clock_in is empty or 'Off' when person is off
+            const clockIn = (s.clock_in || '').trim();
+            if (!clockIn || clockIn.toLowerCase() === 'off') return;
 
             const dateKey = s.date;
             allDates.add(dateKey);
