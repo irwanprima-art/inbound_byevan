@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, Select, Space } from 'antd';
-import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
 
