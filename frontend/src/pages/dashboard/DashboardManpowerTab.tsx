@@ -6,9 +6,10 @@ import dayjs from 'dayjs';
 interface Props {
     attData: any[];
     empData: any[];
+    schedData: any[];
 }
 
-export default function DashboardManpowerTab({ attData, empData }: Props) {
+export default function DashboardManpowerTab({ attData, empData, schedData }: Props) {
     // Build employee status map: nik -> status (Reguler/Tambahan)
     const empStatusMap: Record<string, string> = {};
     empData.forEach((e: any) => {
@@ -31,7 +32,7 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
         return d.isValid() ? d.format('YYYY-MM') : null;
     };
 
-    // Classify a single attendance row into a division key
+    // Classify a single row (attendance or schedule) into a division key
     const classifyRow = (r: any): string | null => {
         const nik = (r.nik || '').toLowerCase();
         const empStatus = empStatusMap[nik] || '';
@@ -41,6 +42,12 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
         if (empStatus === 'Tambahan') return 'Bongkaran/Project/Tambahan';
         if (empStatus === 'Reguler' && DIVISIONS.includes(divisi)) return divisi;
         return null;
+    };
+
+    const MONTH_LABELS: Record<string, string> = {
+        '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+        '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+        '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
     };
 
     // ========== MONTHLY HEADCOUNT (unfiltered) ==========
@@ -60,11 +67,6 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
     });
 
     const sortedMonths = Array.from(allMonths).sort();
-    const MONTH_LABELS: Record<string, string> = {
-        '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
-        '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
-        '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
-    };
 
     const tableRows = DIVISIONS.map(div => {
         const row: any = { key: div, divisi: div };
@@ -142,13 +144,15 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
 
     const activeMonth = selectedMonth || lastMonth;
 
-    // Build daily data: divisi → date → count
+    // Build daily data: divisi → date → count (from attendance)
+    // Build plan data: date → total count (from schedule)
     const { dailyRows, dailyColumns } = useMemo(() => {
         if (!activeMonth) return { dailyRows: [], dailyColumns: [] };
 
         const divDateMap: Record<string, Record<string, number>> = {};
         const allDates = new Set<string>();
 
+        // Actual from attendance
         attData.forEach((r: any) => {
             const mk = getMonthKey(r.date);
             if (mk !== activeMonth) return;
@@ -162,9 +166,23 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
             divDateMap[rowKey][dateKey] = (divDateMap[rowKey][dateKey] || 0) + 1;
         });
 
+        // Plan from schedule — count per date (only non-Off entries)
+        const planDateMap: Record<string, number> = {};
+        schedData.forEach((s: any) => {
+            const mk = getMonthKey(s.date);
+            if (mk !== activeMonth) return;
+            // Skip "Off" schedules
+            const jobdesc = (s.jobdesc || '').trim().toLowerCase();
+            if (jobdesc === 'off' || jobdesc === '') return;
+
+            const dateKey = s.date;
+            allDates.add(dateKey);
+            planDateMap[dateKey] = (planDateMap[dateKey] || 0) + 1;
+        });
+
         const sortedDates = Array.from(allDates).sort();
 
-        // Build rows: each division is a row, dates are columns
+        // Division rows
         const rows = DIVISIONS.map(div => {
             const row: any = { key: div, divisi: div };
             let total = 0;
@@ -185,7 +203,32 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
         });
         rows.push(totRow);
 
-        // Build columns: Divisi | Total | date1 | date2 | ...
+        // Plan row
+        const planRow: any = { key: '_plan', divisi: 'Plan', isPlan: true, _total: 0 };
+        sortedDates.forEach(date => {
+            planRow[date] = planDateMap[date] || 0;
+            planRow._total += planRow[date];
+        });
+        rows.push(planRow);
+
+        // Actual vs Plan % row
+        const pctRow: any = { key: '_avp', divisi: 'Actual vs Plan', isPct: true, _total: '' };
+        sortedDates.forEach(date => {
+            const actual = totRow[date] || 0;
+            const plan = planDateMap[date] || 0;
+            if (plan === 0) {
+                pctRow[date] = '-';
+            } else {
+                pctRow[date] = ((actual / plan) * 100).toFixed(1) + '%';
+            }
+        });
+        // Overall %
+        if (planRow._total > 0) {
+            pctRow._total = ((totRow._total / planRow._total) * 100).toFixed(1) + '%';
+        }
+        rows.push(pctRow);
+
+        // Build columns
         const DAY_NAMES: Record<string, string> = {
             '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
         };
@@ -208,7 +251,22 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
                 key: date,
                 width: 42,
                 align: 'center' as const,
-                render: (v: number, rec: any) => {
+                render: (v: any, rec: any) => {
+                    // Actual vs Plan % row
+                    if (rec.isPct) {
+                        const strVal = String(v || '-');
+                        const numVal = parseFloat(strVal);
+                        let color = 'rgba(255,255,255,0.3)';
+                        if (!isNaN(numVal)) {
+                            color = numVal >= 100 ? '#10b981' : numVal >= 80 ? '#fbbf24' : '#f87171';
+                        }
+                        return <span style={{ fontSize: 10, fontWeight: 600, color }}>{strVal}</span>;
+                    }
+                    // Plan row
+                    if (rec.isPlan) {
+                        return <span style={{ fontWeight: 600, color: '#c084fc' }}>{v || 0}</span>;
+                    }
+                    // Normal / Total
                     if (!v && !rec.isTotal) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
                     return (
                         <span style={{
@@ -226,23 +284,37 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
             {
                 title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 180, fixed: 'left' as const,
                 render: (v: string, rec: any) => (
-                    <span style={{ fontWeight: rec.isTotal ? 700 : 500, color: rec.isTotal ? '#60a5fa' : '#fff' }}>{v}</span>
+                    <span style={{
+                        fontWeight: rec.isTotal || rec.isPlan || rec.isPct ? 700 : 500,
+                        color: rec.isTotal ? '#60a5fa' : rec.isPlan ? '#c084fc' : rec.isPct ? '#fbbf24' : '#fff',
+                    }}>{v}</span>
                 ),
             },
             {
                 title: 'Total', dataIndex: '_total', key: '_total', width: 65, fixed: 'left' as const,
                 align: 'center' as const,
-                render: (v: number, rec: any) => (
-                    <span style={{ fontWeight: 700, color: rec.isTotal ? '#60a5fa' : '#10b981' }}>
-                        {(v || 0).toLocaleString()}
-                    </span>
-                ),
+                render: (v: any, rec: any) => {
+                    if (rec.isPct) {
+                        const strVal = String(v || '-');
+                        const numVal = parseFloat(strVal);
+                        let color = 'rgba(255,255,255,0.3)';
+                        if (!isNaN(numVal)) {
+                            color = numVal >= 100 ? '#10b981' : numVal >= 80 ? '#fbbf24' : '#f87171';
+                        }
+                        return <span style={{ fontWeight: 700, fontSize: 11, color }}>{strVal}</span>;
+                    }
+                    return (
+                        <span style={{ fontWeight: 700, color: rec.isTotal ? '#60a5fa' : rec.isPlan ? '#c084fc' : '#10b981' }}>
+                            {typeof v === 'number' ? v.toLocaleString() : v}
+                        </span>
+                    );
+                },
             },
             ...dateCols,
         ];
 
         return { dailyRows: rows, dailyColumns: cols };
-    }, [attData, activeMonth]);
+    }, [attData, schedData, activeMonth]);
 
     const activeMonthLabel = activeMonth
         ? (() => { const [yyyy, mm] = activeMonth.split('-'); return `${MONTH_LABELS[mm] || mm} ${yyyy}`; })()
@@ -304,7 +376,13 @@ export default function DashboardManpowerTab({ attData, empData }: Props) {
                     scroll={{ x: 'max-content' }}
                     pagination={false}
                     onRow={(record: any) => ({
-                        style: record.isTotal ? { background: 'rgba(99,102,241,0.15)' } : undefined,
+                        style: record.isTotal
+                            ? { background: 'rgba(99,102,241,0.15)' }
+                            : record.isPlan
+                                ? { background: 'rgba(192,132,252,0.08)' }
+                                : record.isPct
+                                    ? { background: 'rgba(251,191,36,0.08)' }
+                                    : undefined,
                     })}
                 />
             </Card>

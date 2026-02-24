@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi } from '../api/client';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
 import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
@@ -45,6 +45,7 @@ export default function DashboardPage() {
     // Manpower group data
     const [attData, setAttData] = useState<any[]>([]);
     const [empData, setEmpData] = useState<any[]>([]);
+    const [schedData, setSchedData] = useState<any[]>([]);
 
     // Track if auto-refresh is active
     const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -71,11 +72,12 @@ export default function DashboardPage() {
                 setQcReturns(q.data || []);
                 setLocations(loc.data || []);
             } else if (group === 'manpower') {
-                const [att, emp] = await Promise.all([
-                    attendancesApi.list(), employeesApi.list(),
+                const [att, emp, sch] = await Promise.all([
+                    attendancesApi.list(), employeesApi.list(), schedulesApi.list(),
                 ]);
                 setAttData(att.data || []);
                 setEmpData(emp.data || []);
+                setSchedData(sch.data || []);
             }
             setLoadedGroups(prev => new Set(prev).add(group));
         } catch {
@@ -190,6 +192,7 @@ export default function DashboardPage() {
                             <DashboardManpowerTab
                                 attData={attData}
                                 empData={empData}
+                                schedData={schedData}
                             />
                         ),
                     },
