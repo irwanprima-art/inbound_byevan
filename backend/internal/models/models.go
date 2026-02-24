@@ -263,3 +263,14 @@ type StockOpname struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// AdditionalMp represents additional manpower entries per date
+type AdditionalMp struct {
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	AdditionalMp int            `gorm:"column:additional_mp" json:"additional_mp"`
+	Tasks        string         `gorm:"column:tasks;type:text" json:"tasks"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}

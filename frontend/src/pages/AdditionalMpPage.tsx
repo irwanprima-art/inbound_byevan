@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Select, Space, Typography, message } from 'antd';
-import { LeftOutlined, RightOutlined, ReloadOutlined } from '@ant-design/icons';
-import { schedulesApi, employeesApi } from '../api/client';
+import { Button, Select, Space, Typography, message, Modal, DatePicker, InputNumber, Input, Popconfirm } from 'antd';
+import { LeftOutlined, RightOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { additionalMpApi } from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
+const { TextArea } = Input;
 
 const MONTH_LABELS: Record<string, string> = {
     '01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
@@ -12,18 +14,33 @@ const MONTH_LABELS: Record<string, string> = {
     '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Desember',
 };
 
+const DAY_NAMES: Record<number, string> = {
+    0: 'Minggu', 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu',
+};
+
+const CAN_EDIT_ROLES = ['supervisor', 'leader'];
+
 export default function AdditionalMpPage() {
-    const [schedData, setSchedData] = useState<any[]>([]);
-    const [empData, setEmpData] = useState<any[]>([]);
+    const { user } = useAuth();
+    const canEdit = CAN_EDIT_ROLES.includes(user?.role || '');
+
+    const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(dayjs().format('YYYY-MM'));
+
+    // Modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [formDate, setFormDate] = useState<dayjs.Dayjs | null>(null);
+    const [formMp, setFormMp] = useState<number>(0);
+    const [formTasks, setFormTasks] = useState<string>('');
+    const [saving, setSaving] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [sch, emp] = await Promise.all([schedulesApi.list(), employeesApi.list()]);
-            setSchedData(sch.data || []);
-            setEmpData(emp.data || []);
+            const res = await additionalMpApi.list();
+            setData(res.data || []);
         } catch {
             message.error('Gagal memuat data');
         } finally {
@@ -39,71 +56,94 @@ export default function AdditionalMpPage() {
         return () => clearInterval(interval);
     }, [fetchData]);
 
-    // Build employee status map: nik -> status
-    const empStatusMap = useMemo(() => {
-        const map: Record<string, string> = {};
-        empData.forEach((e: any) => {
-            if (e.nik) map[e.nik.toLowerCase()] = (e.status || '').trim();
-        });
-        return map;
-    }, [empData]);
+    // Filter data by month
+    const filteredData = useMemo(() => {
+        return data
+            .filter((d: any) => {
+                const dk = dayjs(d.date, 'YYYY-MM-DD');
+                return dk.isValid() && dk.format('YYYY-MM') === currentMonth;
+            })
+            .sort((a: any, b: any) => a.date.localeCompare(b.date));
+    }, [data, currentMonth]);
 
-    // Month options from schedule data
+    // Month options
     const monthOptions = useMemo(() => {
         const months = new Set<string>();
-        schedData.forEach((s: any) => {
-            const d = dayjs(s.date, 'YYYY-MM-DD');
-            if (d.isValid()) months.add(d.format('YYYY-MM'));
+        // Add current month always
+        months.add(currentMonth);
+        data.forEach((d: any) => {
+            const dk = dayjs(d.date, 'YYYY-MM-DD');
+            if (dk.isValid()) months.add(dk.format('YYYY-MM'));
         });
-        const sorted = Array.from(months).sort();
-        return sorted.map(m => {
+        return Array.from(months).sort().map(m => {
             const [yyyy, mm] = m.split('-');
             return { label: `${MONTH_LABELS[mm] || mm} ${yyyy}`, value: m };
         });
-    }, [schedData]);
+    }, [data, currentMonth]);
 
-    // Filter & aggregate: only Tambahan employees, group by date
-    const tableData = useMemo(() => {
-        const dateMap: Record<string, { count: number; tasks: Set<string> }> = {};
+    // Open modal for Add
+    const openAdd = () => {
+        setEditingId(null);
+        setFormDate(dayjs());
+        setFormMp(0);
+        setFormTasks('');
+        setModalOpen(true);
+    };
 
-        schedData.forEach((s: any) => {
-            const d = dayjs(s.date, 'YYYY-MM-DD');
-            if (!d.isValid()) return;
-            if (d.format('YYYY-MM') !== currentMonth) return;
+    // Open modal for Edit
+    const openEdit = (record: any) => {
+        setEditingId(record.id);
+        setFormDate(dayjs(record.date, 'YYYY-MM-DD'));
+        setFormMp(record.additional_mp || 0);
+        setFormTasks(record.tasks || '');
+        setModalOpen(true);
+    };
 
-            const nik = (s.nik || '').toLowerCase();
-            const empStatus = empStatusMap[nik] || '';
-            if (empStatus !== 'Tambahan') return;
+    // Save
+    const handleSave = async () => {
+        if (!formDate) {
+            message.warning('Pilih tanggal');
+            return;
+        }
+        setSaving(true);
+        try {
+            const payload = {
+                date: formDate.format('YYYY-MM-DD'),
+                additional_mp: formMp,
+                tasks: formTasks.trim(),
+            };
+            if (editingId) {
+                await additionalMpApi.update(editingId, payload);
+                message.success('Data berhasil diupdate');
+            } else {
+                await additionalMpApi.create(payload);
+                message.success('Data berhasil ditambahkan');
+            }
+            setModalOpen(false);
+            fetchData();
+        } catch {
+            message.error('Gagal menyimpan data');
+        } finally {
+            setSaving(false);
+        }
+    };
 
-            // Skip Off entries
-            const jobdesc = (s.jobdesc || '').trim();
-            if (!jobdesc || jobdesc.toLowerCase() === 'off') return;
-
-            const dateKey = s.date;
-            if (!dateMap[dateKey]) dateMap[dateKey] = { count: 0, tasks: new Set() };
-            dateMap[dateKey].count += 1;
-            dateMap[dateKey].tasks.add(jobdesc);
-        });
-
-        return Object.entries(dateMap)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([date, { count, tasks }]) => ({
-                key: date,
-                date,
-                additionalMp: count,
-                tasks: Array.from(tasks),
-            }));
-    }, [schedData, empStatusMap, currentMonth]);
+    // Delete
+    const handleDelete = async (id: number) => {
+        try {
+            await additionalMpApi.delete(id);
+            message.success('Data berhasil dihapus');
+            fetchData();
+        } catch {
+            message.error('Gagal menghapus data');
+        }
+    };
 
     const prevMonth = () => setCurrentMonth(dayjs(currentMonth + '-01').subtract(1, 'month').format('YYYY-MM'));
     const nextMonth = () => setCurrentMonth(dayjs(currentMonth + '-01').add(1, 'month').format('YYYY-MM'));
     const thisMonth = () => setCurrentMonth(dayjs().format('YYYY-MM'));
 
-    const totalMp = tableData.reduce((sum, r) => sum + r.additionalMp, 0);
-
-    const DAY_NAMES: Record<number, string> = {
-        0: 'Minggu', 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu',
-    };
+    const totalMp = filteredData.reduce((sum: number, r: any) => sum + (r.additional_mp || 0), 0);
 
     const [yyyy, mm] = currentMonth.split('-');
     const monthLabel = `${MONTH_LABELS[mm] || mm} ${yyyy}`;
@@ -123,19 +163,20 @@ export default function AdditionalMpPage() {
                     <Button icon={<RightOutlined />} onClick={nextMonth} size="small" />
                     <Button size="small" onClick={thisMonth}>Bulan Ini</Button>
                     <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
+                    {canEdit && (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Tambah</Button>
+                    )}
                 </Space>
             </div>
 
             {/* Summary */}
-            <div style={{
-                display: 'flex', gap: 16, marginBottom: 20,
-            }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
                 <div style={{
                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                     borderRadius: 12, padding: '16px 24px', minWidth: 160,
                 }}>
                     <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Total Hari</div>
-                    <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>{tableData.length}</div>
+                    <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>{filteredData.length}</div>
                 </div>
                 <div style={{
                     background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
@@ -150,7 +191,7 @@ export default function AdditionalMpPage() {
                 }}>
                     <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Rata-rata/Hari</div>
                     <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>
-                        {tableData.length > 0 ? (totalMp / tableData.length).toFixed(1) : 0}
+                        {filteredData.length > 0 ? (totalMp / filteredData.length).toFixed(1) : 0}
                     </div>
                 </div>
             </div>
@@ -177,22 +218,24 @@ export default function AdditionalMpPage() {
                                 <th style={thStyle}>Hari</th>
                                 <th style={{ ...thStyle, textAlign: 'center' }}>Additional MP</th>
                                 <th style={thStyle}>Task</th>
+                                {canEdit && <th style={{ ...thStyle, textAlign: 'center', width: 100 }}>Aksi</th>}
                             </tr>
                         </thead>
                         <tbody>
-                            {tableData.length === 0 ? (
+                            {filteredData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: 40 }}>
-                                        Tidak ada data MP tambahan untuk bulan ini
+                                    <td colSpan={canEdit ? 5 : 4} style={{ ...tdStyle, textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: 40 }}>
+                                        Tidak ada data untuk bulan ini
                                     </td>
                                 </tr>
                             ) : (
-                                tableData.map((row) => {
+                                filteredData.map((row: any) => {
                                     const d = dayjs(row.date);
                                     const dayOfWeek = d.day();
                                     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                                    const tasks = (row.tasks || '').split('\n').filter((t: string) => t.trim());
                                     return (
-                                        <tr key={row.key} style={{
+                                        <tr key={row.id} style={{
                                             borderBottom: '1px solid rgba(255,255,255,0.04)',
                                             background: isWeekend ? 'rgba(248,113,113,0.05)' : undefined,
                                         }}>
@@ -209,29 +252,55 @@ export default function AdditionalMpPage() {
                                                 ...tdStyle, textAlign: 'center', width: 130,
                                                 fontWeight: 700, fontSize: 16, color: '#c084fc',
                                             }}>
-                                                {row.additionalMp}
+                                                {row.additional_mp || 0}
                                             </td>
                                             <td style={tdStyle}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                    {row.tasks.map((task, i) => (
+                                                    {tasks.map((task: string, i: number) => (
                                                         <span key={i} style={{ color: 'rgba(255,255,255,0.85)' }}>
                                                             {i + 1}. {task}
                                                         </span>
                                                     ))}
                                                 </div>
                                             </td>
+                                            {canEdit && (
+                                                <td style={{ ...tdStyle, textAlign: 'center', width: 100 }}>
+                                                    <Space size={4}>
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            icon={<EditOutlined />}
+                                                            onClick={() => openEdit(row)}
+                                                            style={{ color: '#60a5fa' }}
+                                                        />
+                                                        <Popconfirm
+                                                            title="Hapus data ini?"
+                                                            onConfirm={() => handleDelete(row.id)}
+                                                            okText="Ya"
+                                                            cancelText="Batal"
+                                                        >
+                                                            <Button
+                                                                type="text"
+                                                                size="small"
+                                                                icon={<DeleteOutlined />}
+                                                                style={{ color: '#f87171' }}
+                                                            />
+                                                        </Popconfirm>
+                                                    </Space>
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })
                             )}
-                            {tableData.length > 0 && (
+                            {filteredData.length > 0 && (
                                 <tr style={{ background: 'rgba(99,102,241,0.15)', borderTop: '2px solid rgba(99,102,241,0.3)' }}>
                                     <td style={{ ...tdStyle, fontWeight: 700, color: '#60a5fa' }} colSpan={2}>Total</td>
                                     <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, fontSize: 16, color: '#60a5fa' }}>
                                         {totalMp}
                                     </td>
-                                    <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                                        {tableData.length} hari kerja
+                                    <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.4)', fontSize: 12 }} colSpan={canEdit ? 2 : 1}>
+                                        {filteredData.length} hari
                                     </td>
                                 </tr>
                             )}
@@ -239,6 +308,51 @@ export default function AdditionalMpPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Add/Edit Modal */}
+            <Modal
+                title={editingId ? '✏️ Edit Data' : '➕ Tambah Additional MP'}
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={handleSave}
+                confirmLoading={saving}
+                okText="Simpan"
+                cancelText="Batal"
+                width={500}
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Tanggal</label>
+                        <DatePicker
+                            value={formDate}
+                            onChange={(val) => setFormDate(val)}
+                            style={{ width: '100%' }}
+                            format="DD MMM YYYY"
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Total Additional MP</label>
+                        <InputNumber
+                            value={formMp}
+                            onChange={(val) => setFormMp(val || 0)}
+                            min={0}
+                            style={{ width: '100%' }}
+                            placeholder="Jumlah MP tambahan"
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                            Task List <span style={{ color: 'rgba(0,0,0,0.4)', fontWeight: 400 }}>(satu task per baris)</span>
+                        </label>
+                        <TextArea
+                            value={formTasks}
+                            onChange={(e) => setFormTasks(e.target.value)}
+                            rows={5}
+                            placeholder={`Bongkaran Makuku 5 Wingbox\nPecakang Mattel\nProject ABC`}
+                        />
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

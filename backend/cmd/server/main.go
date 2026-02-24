@@ -137,6 +137,9 @@ func main() {
 	stockOpnames := handlers.NewResource[models.StockOpname]("stock-opnames")
 	stockOpnames.RegisterRoutes(protected.Group("/stock-opnames"))
 
+	additionalMp := handlers.NewResource[models.AdditionalMp]("additional-mp")
+	additionalMp.RegisterRoutes(protected.Group("/additional-mp"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
