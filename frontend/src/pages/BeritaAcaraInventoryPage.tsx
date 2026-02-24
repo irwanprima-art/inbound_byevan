@@ -71,7 +71,7 @@ function calcSummary(items: SkuItem[]): SOSummary {
         totalVariance += item.variance || 0;
         if ((item.variance || 0) === 0) matched++; else unmatched++;
     });
-    const accuracy = totalSysQty > 0 ? ((totalSysQty - Math.abs(totalVariance)) / totalSysQty) * 100 : 100;
+    const accuracy = totalSysQty > 0 ? (totalPhyQty / totalSysQty) * 100 : 100;
     return { totalSku: skuSet.size, totalSysQty, totalPhyQty, totalVariance, accuracy, matched, unmatched };
 }
 
