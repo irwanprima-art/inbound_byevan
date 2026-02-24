@@ -63,14 +63,16 @@ function generateDocNumber(existingDocs: any[], docType: string): string {
 
 function calcSummary(items: SkuItem[]): SOSummary {
     let totalSysQty = 0, totalPhyQty = 0, totalVariance = 0, matched = 0, unmatched = 0;
+    const skuSet = new Set<string>();
     items.forEach(item => {
+        skuSet.add(item.sku);
         totalSysQty += item.sys_qty || 0;
         totalPhyQty += item.phy_qty || 0;
         totalVariance += item.variance || 0;
         if ((item.variance || 0) === 0) matched++; else unmatched++;
     });
     const accuracy = totalSysQty > 0 ? ((totalSysQty - Math.abs(totalVariance)) / totalSysQty) * 100 : 100;
-    return { totalSku: items.length, totalSysQty, totalPhyQty, totalVariance, accuracy, matched, unmatched };
+    return { totalSku: skuSet.size, totalSysQty, totalPhyQty, totalVariance, accuracy, matched, unmatched };
 }
 
 export default function BeritaAcaraInventoryPage() {
