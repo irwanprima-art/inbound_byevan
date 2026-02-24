@@ -131,7 +131,7 @@ export default function AdditionalMpPage() {
     // Delete
     const handleDelete = async (id: number) => {
         try {
-            await additionalMpApi.delete(id);
+            await additionalMpApi.remove(id);
             message.success('Data berhasil dihapus');
             fetchData();
         } catch {
