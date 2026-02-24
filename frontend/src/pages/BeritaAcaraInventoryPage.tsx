@@ -482,6 +482,13 @@ export default function BeritaAcaraInventoryPage() {
                                 return (
                                     <>
                                         <div style={{ marginBottom: 12 }}>
+                                            {/* Introductory paragraph */}
+                                            <div style={{ fontSize: 11, lineHeight: 1.8, marginBottom: 16, textAlign: 'justify' }}>
+                                                <p style={{ marginBottom: 8 }}>Pada tanggal tersebut di atas, tim PT. Global Jet Ecommerce telah melaksanakan kegiatan <strong>Stock Opname</strong> terhadap seluruh SKU yang tercatat dalam sistem warehouse.</p>
+                                                <p style={{ marginBottom: 8 }}>Kegiatan ini bertujuan untuk melakukan verifikasi dan validasi antara jumlah stok yang tercatat pada sistem (<em>system quantity</em>) dengan jumlah fisik aktual di lapangan (<em>physical quantity</em>), guna memastikan akurasi data inventori serta mengidentifikasi adanya selisih (<em>variance</em>) yang memerlukan tindak lanjut.</p>
+                                                <p>Berikut adalah ringkasan hasil perhitungan stock opname:</p>
+                                            </div>
+
                                             <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
                                                 Summary Accuracy Stock Opname
                                             </div>
