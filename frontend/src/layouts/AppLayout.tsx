@@ -28,6 +28,7 @@ import SchedulePage from '../pages/SchedulePage';
 import AdditionalMpPage from '../pages/AdditionalMpPage';
 import BeritaAcaraPage from '../pages/BeritaAcaraPage';
 import StockOpnamePage from '../pages/StockOpnamePage';
+import BeritaAcaraInventoryPage from '../pages/BeritaAcaraInventoryPage';
 import SettingsPage from '../pages/SettingsPage';
 
 const { Header, Sider, Content } = Layout;
@@ -60,6 +61,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/stock-opname', icon: <AuditOutlined />, label: 'Stock Opname', group: 'inventory' },
     { key: '/damages', icon: <WarningOutlined />, label: 'Project Damage', group: 'inventory' },
     { key: '/qc-returns', icon: <RollbackOutlined />, label: 'QC Return', group: 'inventory' },
+    { key: '/berita-acara-inventory', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inventory' },
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', group: 'manpower' },
     { key: '/employees', icon: <IdcardOutlined />, label: 'Employees', group: 'manpower' },
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
@@ -85,6 +87,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/schedule': 'schedule',
     '/additional-mp': 'additional-mp',
     '/berita-acara': 'berita-acara',
+    '/berita-acara-inventory': 'berita-acara-inventory',
 };
 
 // Map route key → component
@@ -106,6 +109,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/schedule': <SchedulePage />,
     '/additional-mp': <AdditionalMpPage />,
     '/berita-acara': <BeritaAcaraPage />,
+    '/berita-acara-inventory': <BeritaAcaraInventoryPage />,
     '/settings': <SettingsPage />,
 };
 
@@ -128,6 +132,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/schedule': <CalendarOutlined />,
     '/additional-mp': <TeamOutlined />,
     '/berita-acara': <FileTextOutlined />,
+    '/berita-acara-inventory': <FileTextOutlined />,
 };
 
 const LABEL_MAP: Record<string, string> = {};
