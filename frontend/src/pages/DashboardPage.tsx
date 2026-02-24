@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi } from '../api/client';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
 import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
@@ -46,6 +46,7 @@ export default function DashboardPage() {
     const [attData, setAttData] = useState<any[]>([]);
     const [empData, setEmpData] = useState<any[]>([]);
     const [schedData, setSchedData] = useState<any[]>([]);
+    const [addMpData, setAddMpData] = useState<any[]>([]);
 
     // Track if auto-refresh is active
     const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -72,12 +73,13 @@ export default function DashboardPage() {
                 setQcReturns(q.data || []);
                 setLocations(loc.data || []);
             } else if (group === 'manpower') {
-                const [att, emp, sch] = await Promise.all([
-                    attendancesApi.list(), employeesApi.list(), schedulesApi.list(),
+                const [att, emp, sch, addMp] = await Promise.all([
+                    attendancesApi.list(), employeesApi.list(), schedulesApi.list(), additionalMpApi.list(),
                 ]);
                 setAttData(att.data || []);
                 setEmpData(emp.data || []);
                 setSchedData(sch.data || []);
+                setAddMpData(addMp.data || []);
             }
             setLoadedGroups(prev => new Set(prev).add(group));
         } catch {
@@ -193,6 +195,7 @@ export default function DashboardPage() {
                                 attData={attData}
                                 empData={empData}
                                 schedData={schedData}
+                                addMpData={addMpData}
                             />
                         ),
                     },

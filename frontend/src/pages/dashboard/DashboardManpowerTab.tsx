@@ -7,9 +7,10 @@ interface Props {
     attData: any[];
     empData: any[];
     schedData: any[];
+    addMpData: any[];
 }
 
-export default function DashboardManpowerTab({ attData, empData, schedData }: Props) {
+export default function DashboardManpowerTab({ attData, empData, schedData, addMpData }: Props) {
     // Build employee status map: nik -> status (Reguler/Tambahan)
     const empStatusMap: Record<string, string> = {};
     empData.forEach((e: any) => {
@@ -178,6 +179,15 @@ export default function DashboardManpowerTab({ attData, empData, schedData }: Pr
             const dateKey = s.date;
             allDates.add(dateKey);
             planDateMap[dateKey] = (planDateMap[dateKey] || 0) + 1;
+        });
+
+        // Add additional MP to plan
+        addMpData.forEach((a: any) => {
+            const mk = getMonthKey(a.date);
+            if (mk !== activeMonth) return;
+            const dateKey = a.date;
+            allDates.add(dateKey);
+            planDateMap[dateKey] = (planDateMap[dateKey] || 0) + (a.additional_mp || 0);
         });
 
         const sortedDates = Array.from(allDates).sort();
