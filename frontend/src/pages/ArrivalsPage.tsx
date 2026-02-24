@@ -46,29 +46,36 @@ export default function ArrivalsPage() {
         return () => clearInterval(interval);
     }, [fetchAll]);
 
-    // Build lookup: receipt_no → { receiveQty, putawayQty } from transactions
+    // Build lookup: receipt_no → { receiveQty, putawayQty, firstReceiveTime, lastPutawayTime } from transactions
     const txLookup = useMemo(() => {
-        const map: Record<string, { receiveQty: number; putawayQty: number }> = {};
+        const map: Record<string, { receiveQty: number; putawayQty: number; firstReceiveTime: string | null; lastPutawayTime: string | null }> = {};
         transData.forEach((tx: any) => {
             const key = (tx.receipt_no || '').trim().toLowerCase();
             if (!key) return;
-            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0 };
+            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
             const qty = parseInt(tx.qty) || 0;
             const type = (tx.operate_type || '').trim().toLowerCase();
+            const txTime = tx.time_transaction || '';
             if (type === 'receive' || type === 'receiving') {
                 map[key].receiveQty += qty;
+                if (txTime && (!map[key].firstReceiveTime || txTime < map[key].firstReceiveTime!)) {
+                    map[key].firstReceiveTime = txTime;
+                }
             } else if (type === 'putaway') {
                 map[key].putawayQty += qty;
+                if (txTime && (!map[key].lastPutawayTime || txTime > map[key].lastPutawayTime!)) {
+                    map[key].lastPutawayTime = txTime;
+                }
             }
         });
         return map;
     }, [transData]);
 
-    // Compute enriched data with Receive Qty, Putaway Qty, Pending Qty, Status
+    // Compute enriched data with Receive Qty, Putaway Qty, Pending Qty, First Receive, Last Putaway, Status
     const enrichedData = useMemo(() => {
         return data.map((row: any) => {
             const key = (row.receipt_no || '').trim().toLowerCase();
-            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0 };
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
             const poQty = parseInt(row.po_qty) || 0;
             const receiveQty = tx.receiveQty;
             const putawayQty = tx.putawayQty;
@@ -81,7 +88,15 @@ export default function ArrivalsPage() {
                 status = 'Pending Putaway';
             }
 
-            return { ...row, receive_qty: receiveQty, putaway_qty: putawayQty, pending_qty: pendingQty, status };
+            return {
+                ...row,
+                receive_qty: receiveQty,
+                putaway_qty: putawayQty,
+                pending_qty: pendingQty,
+                first_receive: tx.firstReceiveTime || '-',
+                last_putaway: tx.lastPutawayTime || '-',
+                status,
+            };
         });
     }, [data, txLookup]);
 
@@ -128,6 +143,8 @@ export default function ArrivalsPage() {
         { title: 'Receive Qty', dataIndex: 'receive_qty', key: 'receive_qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v.toLocaleString()}</span> },
         { title: 'Putaway Qty', dataIndex: 'putaway_qty', key: 'putaway_qty', width: 100, render: (v: number) => <span style={{ color: '#a78bfa' }}>{v.toLocaleString()}</span> },
         { title: 'Pending Qty', dataIndex: 'pending_qty', key: 'pending_qty', width: 100, render: (v: number) => v > 0 ? <span style={{ color: '#f87171', fontWeight: 600 }}>{v}</span> : <span style={{ color: '#4ade80' }}>0</span> },
+        { title: 'First Receive', dataIndex: 'first_receive', key: 'first_receive', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#60a5fa' }}>{v}</span> },
+        { title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span> },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
         { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
@@ -207,7 +224,7 @@ export default function ArrivalsPage() {
 
     // CSV Export
     const handleExport = () => {
-        const headers = ['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'operator', 'note', 'status'];
+        const headers = ['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             enrichedData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { LOGO_BASE64 } from '../assets/logoBase64';
 import {
     Button, Input, Select, DatePicker, Form, Table, Typography, Space, message,
     Card, Tabs, Popconfirm, Modal, Divider,
@@ -155,29 +156,14 @@ export default function BeritaAcaraPage() {
         const printContent = document.getElementById('berita-acara-print');
         if (!printContent) return;
 
-        // Convert logo to base64 so it renders in the about:blank print window
-        let logoDataUrl = '';
-        try {
-            const resp = await fetch('/logo-jc.png');
-            const blob = await resp.blob();
-            logoDataUrl = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
-            });
-        } catch { /* fallback: no logo */ }
-
-        // Get innerHTML and replace logo src with base64
-        let html = printContent.innerHTML;
-        if (logoDataUrl) {
-            html = html.replace(/src="[^"]*logo-jc\.png[^"]*"/, `src="${logoDataUrl}"`);
-        }
+        // Logo is already base64 embedded, just get the HTML
+        const html = printContent.innerHTML;
 
         const win = window.open('', '_blank');
         if (!win) return;
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara</title>
 <style>
-    @page { size: A4 portrait; margin: 24mm; }
+    @page { size: A4 portrait; margin: 12mm 14mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
@@ -447,7 +433,7 @@ export default function BeritaAcaraPage() {
                         <div className="print-content" style={{ flex: 1 }}>
                             {/* Header with logo */}
                             <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
-                                <img src={`${window.location.origin}/logo-jc.png`} alt="Logo" style={{ height: 52 }} />
+                                <img src={LOGO_BASE64} alt="Logo" style={{ height: 52 }} />
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>{docForPreview.doc_type}</div>
                                     <div style={{ fontSize: 12, color: '#555' }}>No: {docForPreview.doc_number}</div>

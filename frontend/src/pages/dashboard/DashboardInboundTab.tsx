@@ -57,29 +57,39 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const navigate = useNavigate();
 
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
-    const fTransactions = transactions;
+    const fTransactions = useMemo(() => transactions.filter((t: any) => matchesDateRange(t.date)), [transactions, matchesDateRange]);
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
 
     // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
     const txLookup = useMemo(() => {
-        const map: Record<string, { receiveQty: number; putawayQty: number }> = {};
-        transactions.forEach((tx: any) => {
+        const map: Record<string, { receiveQty: number; putawayQty: number; firstReceiveTime: string | null; lastPutawayTime: string | null }> = {};
+        fTransactions.forEach((tx: any) => {
             const key = (tx.receipt_no || '').trim().toLowerCase();
             if (!key) return;
-            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0 };
+            if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
             const qty = parseInt(tx.qty) || 0;
             const type = (tx.operate_type || '').trim().toLowerCase();
-            if (type === 'receive' || type === 'receiving') map[key].receiveQty += qty;
-            else if (type === 'putaway') map[key].putawayQty += qty;
+            const txTime = tx.time_transaction || '';
+            if (type === 'receive' || type === 'receiving') {
+                map[key].receiveQty += qty;
+                if (txTime && (!map[key].firstReceiveTime || txTime < map[key].firstReceiveTime!)) {
+                    map[key].firstReceiveTime = txTime;
+                }
+            } else if (type === 'putaway') {
+                map[key].putawayQty += qty;
+                if (txTime && (!map[key].lastPutawayTime || txTime > map[key].lastPutawayTime!)) {
+                    map[key].lastPutawayTime = txTime;
+                }
+            }
         });
         return map;
-    }, [transactions]);
+    }, [fTransactions]);
 
-    // Enriched arrivals: attach receive/putaway/pending/status from transactions
+    // Enriched arrivals: attach receive/putaway/pending/first_receive/last_putaway/status
     const enrichedArrivals = useMemo(() => {
         return fArrivals.map((row: any) => {
             const key = (row.receipt_no || '').trim().toLowerCase();
-            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0 };
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
             const poQty = parseInt(row.po_qty) || 0;
             const receiveQty = tx.receiveQty;
             const putawayQty = tx.putawayQty;
@@ -87,7 +97,15 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             let status = 'Pending Receive';
             if (receiveQty >= poQty && putawayQty >= poQty) status = 'Completed';
             else if (receiveQty >= poQty) status = 'Pending Putaway';
-            return { ...row, receive_qty: receiveQty, putaway_qty: putawayQty, pending_qty: pendingQty, status };
+            return {
+                ...row,
+                receive_qty: receiveQty,
+                putaway_qty: putawayQty,
+                pending_qty: pendingQty,
+                first_receive: tx.firstReceiveTime || null,
+                last_putaway: tx.lastPutawayTime || null,
+                status,
+            };
         });
     }, [fArrivals, txLookup]);
 
@@ -102,83 +120,41 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const completedCount = enrichedArrivals.filter((a: any) => a.status === 'Completed').length;
     const pctCompleted = enrichedArrivals.length > 0 ? ((completedCount / enrichedArrivals.length) * 100).toFixed(1) : '0.0';
 
-    const receiveTx = fTransactions.filter((t: any) => ['receive', 'receiving'].includes((t.operate_type || '').toLowerCase()));
-    const putawayTx = fTransactions.filter((t: any) => (t.operate_type || '').toLowerCase() === 'putaway');
-
-    const parseToMin = (raw: string): number | null => {
-        if (!raw) return null;
-        const s = raw.trim();
-        const spaceIdx = s.lastIndexOf(' ');
-        if (spaceIdx > 0) {
-            const datePart = s.substring(0, spaceIdx);
-            const timePart = s.substring(spaceIdx + 1);
-            const tp = timePart.split(':').map(Number);
-            if (tp.length < 2 || isNaN(tp[0]) || isNaN(tp[1])) return null;
-            const dp = datePart.split('/').map(Number);
-            if (dp.length === 3 && !isNaN(dp[0]) && !isNaN(dp[1]) && !isNaN(dp[2])) {
-                const d = new Date(dp[2], dp[0] - 1, dp[1]);
-                const dayMin = Math.floor(d.getTime() / 60000);
-                return dayMin + tp[0] * 60 + tp[1];
-            }
-            return tp[0] * 60 + tp[1];
-        }
-        const tp = s.split(':').map(Number);
-        if (tp.length < 2 || isNaN(tp[0]) || isNaN(tp[1])) return null;
-        return tp[0] * 60 + tp[1];
-    };
-
+    // Avg Kedatangan → Putaway: average diff between arrival_time and last_putaway per receipt_no
     const calcAvgKedatanganPutaway = () => {
-        const arrivalMap: Record<string, number> = {};
-        fArrivals.forEach(a => {
-            const key = (a.receipt_no || '').trim().toLowerCase();
-            const t = parseToMin(a.arrival_time);
-            if (key && t !== null) {
-                if (arrivalMap[key] === undefined || t < arrivalMap[key]) arrivalMap[key] = t;
-            }
-        });
-        const putawayMap: Record<string, number> = {};
-        putawayTx.forEach(t => {
-            const key = (t.receipt_no || '').trim().toLowerCase();
-            const tm = parseToMin(t.time_transaction);
-            if (key && tm !== null) {
-                if (putawayMap[key] === undefined || tm > putawayMap[key]) putawayMap[key] = tm;
-            }
-        });
         const diffs: number[] = [];
-        Object.keys(arrivalMap).forEach(key => {
-            if (putawayMap[key] !== undefined) {
-                const diff = putawayMap[key] - arrivalMap[key];
-                if (diff > 0) diffs.push(diff);
-            }
+        // Group by receipt_no to get one diff per receipt
+        const seen = new Set<string>();
+        enrichedArrivals.forEach((a: any) => {
+            const key = (a.receipt_no || '').trim().toLowerCase();
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            if (!a.arrival_time || !a.last_putaway) return;
+            const arrTime = dayjs(a.arrival_time);
+            const putTime = dayjs(a.last_putaway);
+            if (!arrTime.isValid() || !putTime.isValid()) return;
+            const diffMin = putTime.diff(arrTime, 'minute');
+            if (diffMin > 0) diffs.push(diffMin);
         });
         if (diffs.length === 0) return '-';
         const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
         return `${Math.floor(avg / 60)}h ${Math.round(avg % 60)}m`;
     };
 
+    // Avg Receive → Putaway: average diff between first_receive and last_putaway per receipt_no
     const calcAvgReceivePutaway = () => {
-        const receiveMap: Record<string, number> = {};
-        receiveTx.forEach(t => {
-            const key = (t.receipt_no || '').trim().toLowerCase();
-            const tm = parseToMin(t.time_transaction);
-            if (key && tm !== null) {
-                if (receiveMap[key] === undefined || tm < receiveMap[key]) receiveMap[key] = tm;
-            }
-        });
-        const putawayMap: Record<string, number> = {};
-        putawayTx.forEach(t => {
-            const key = (t.receipt_no || '').trim().toLowerCase();
-            const tm = parseToMin(t.time_transaction);
-            if (key && tm !== null) {
-                if (putawayMap[key] === undefined || tm > putawayMap[key]) putawayMap[key] = tm;
-            }
-        });
         const diffs: number[] = [];
-        Object.keys(receiveMap).forEach(key => {
-            if (putawayMap[key] !== undefined) {
-                const diff = putawayMap[key] - receiveMap[key];
-                if (diff > 0) diffs.push(diff);
-            }
+        const seen = new Set<string>();
+        enrichedArrivals.forEach((a: any) => {
+            const key = (a.receipt_no || '').trim().toLowerCase();
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            if (!a.first_receive || !a.last_putaway) return;
+            const recTime = dayjs(a.first_receive);
+            const putTime = dayjs(a.last_putaway);
+            if (!recTime.isValid() || !putTime.isValid()) return;
+            const diffMin = putTime.diff(recTime, 'minute');
+            if (diffMin > 0) diffs.push(diffMin);
         });
         if (diffs.length === 0) return '-';
         const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
