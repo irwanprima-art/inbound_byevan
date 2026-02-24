@@ -452,11 +452,9 @@ export default function BeritaAcaraInventoryPage() {
                             </div>
                         </div>
 
-                        {/* Main content (visible in preview + print body) */}
-                        <div id="ba-inventory-print" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8 }}>
-
-                            {/* Preview-only header (shown in modal, hidden in print via CSS) */}
-                            <div className="preview-only doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
+                        {/* Preview-only header (shown in modal only, NOT included in print innerHTML) */}
+                        <div style={{ background: '#fff', color: '#1a1a1a', padding: '24px 24px 0', borderRadius: '8px 8px 0 0' }}>
+                            <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '2px solid #e0e0e0' }}>
                                 <img src={LOGO_BASE64} alt="Logo" style={{ height: 52 }} />
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>
@@ -465,6 +463,10 @@ export default function BeritaAcaraInventoryPage() {
                                     <div style={{ fontSize: 12, color: '#555' }}>No: {previewDoc.doc_number}</div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Main content (print body - no header/footer, those come from thead/tfoot) */}
+                        <div id="ba-inventory-print" style={{ background: '#fff', color: '#1a1a1a', padding: '0 24px 24px' }}>
 
                             {/* Meta */}
                             <div style={{ marginBottom: 20 }}>
