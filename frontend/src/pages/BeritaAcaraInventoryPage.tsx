@@ -485,17 +485,29 @@ export default function BeritaAcaraInventoryPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {(previewDoc.items || []).map((item: SkuItem, i: number) => (
-                                                        <tr key={i}>
-                                                            <td style={printTd}>{i + 1}</td>
-                                                            <td style={printTd}>{item.sku}</td>
-                                                            <td style={printTd}>{item.description || '-'}</td>
-                                                            <td style={{ ...printTd, textAlign: 'center' }}>{item.sys_qty}</td>
-                                                            <td style={{ ...printTd, textAlign: 'center' }}>{item.phy_qty}</td>
-                                                            <td style={{ ...printTd, textAlign: 'center', color: item.variance !== 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{item.variance}</td>
-                                                            <td style={printTd}>{item.note || (item.variance !== 0 ? 'Qty tidak sesuai' : 'OK')}</td>
-                                                        </tr>
-                                                    ))}
+                                                    {(() => {
+                                                        const grouped: Record<string, { sku: string; description: string; sys_qty: number; phy_qty: number; variance: number }> = {};
+                                                        (previewDoc.items || []).forEach((item: SkuItem) => {
+                                                            const key = item.sku;
+                                                            if (!grouped[key]) {
+                                                                grouped[key] = { sku: item.sku, description: item.description || '', sys_qty: 0, phy_qty: 0, variance: 0 };
+                                                            }
+                                                            grouped[key].sys_qty += item.sys_qty || 0;
+                                                            grouped[key].phy_qty += item.phy_qty || 0;
+                                                        });
+                                                        Object.values(grouped).forEach(g => { g.variance = g.phy_qty - g.sys_qty; });
+                                                        return Object.values(grouped).map((g, i) => (
+                                                            <tr key={i}>
+                                                                <td style={printTd}>{i + 1}</td>
+                                                                <td style={printTd}>{g.sku}</td>
+                                                                <td style={printTd}>{g.description || '-'}</td>
+                                                                <td style={{ ...printTd, textAlign: 'center' }}>{g.sys_qty}</td>
+                                                                <td style={{ ...printTd, textAlign: 'center' }}>{g.phy_qty}</td>
+                                                                <td style={{ ...printTd, textAlign: 'center', color: g.variance !== 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{g.variance}</td>
+                                                                <td style={printTd}>{g.variance !== 0 ? 'Qty tidak sesuai' : 'OK'}</td>
+                                                            </tr>
+                                                        ));
+                                                    })()}
                                                 </tbody>
                                             </table>
                                         </div>
