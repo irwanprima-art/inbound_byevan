@@ -21,6 +21,8 @@ const DOC_TYPES = [
     { label: 'Pengembalian Barang', value: 'Pengembalian Barang' },
 ];
 
+const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
+
 interface SkuItem {
     sku: string;
     serial_number: string;
@@ -75,7 +77,7 @@ export default function BeritaAcaraPage() {
         setLoading(true);
         try {
             const res = await beritaAcaraApi.list();
-            const data = res.data || [];
+            const data = (res.data || []).filter((d: any) => INBOUND_TYPE_SET.has(d.doc_type));
             data.sort((a: any, b: any) => b.id - a.id);
             setDocs(data);
         } catch { message.error('Gagal memuat data'); }

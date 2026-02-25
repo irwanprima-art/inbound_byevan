@@ -259,6 +259,7 @@ export default function ProductivityPage() {
 
         const inspection: RankItem[] = [];
         const receive: RankItem[] = [];
+        const putaway: RankItem[] = [];
         const vas: RankItem[] = [];
         const dcc: RankItem[] = [];
         const qc: RankItem[] = [];
@@ -269,10 +270,15 @@ export default function ProductivityPage() {
             fArrivals.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key) arrQty += (parseInt(d.po_qty) || 0); });
             if (arrQty > 0) inspection.push({ ...emp, value: arrQty, detail: `${arrQty.toLocaleString()} pcs inspected` });
 
-            // Receive & Putaway
-            let txQty = 0;
-            fTransactions.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key) txQty += (parseInt(d.qty) || 0); });
-            if (txQty > 0) receive.push({ ...emp, value: txQty, detail: `${txQty.toLocaleString()} pcs received/putaway` });
+            // Receive
+            let rxQty = 0;
+            fTransactions.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key && (d.operate_type || '').trim().toLowerCase() === 'receive') rxQty += (parseInt(d.qty) || 0); });
+            if (rxQty > 0) receive.push({ ...emp, value: rxQty, detail: `${rxQty.toLocaleString()} pcs received` });
+
+            // Putaway
+            let paQty = 0;
+            fTransactions.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key && (d.operate_type || '').trim().toLowerCase() === 'putaway') paQty += (parseInt(d.qty) || 0); });
+            if (paQty > 0) putaway.push({ ...emp, value: paQty, detail: `${paQty.toLocaleString()} pcs putaway` });
 
             // VAS
             let vasQty = 0;
@@ -316,7 +322,7 @@ export default function ProductivityPage() {
         }));
 
         // Sort all descending
-        [inspection, receive, vas, dcc, qc, project].forEach(arr => arr.sort((a, b) => b.value - a.value));
+        [inspection, receive, putaway, vas, dcc, qc, project].forEach(arr => arr.sort((a, b) => b.value - a.value));
 
         // Apply search filter
         const q = search.toLowerCase();
@@ -325,7 +331,8 @@ export default function ProductivityPage() {
 
         return [
             { key: 'inspection', title: 'Inspection', subtitle: 'Inbound Arrival', icon: <SearchOutlined />, gradient: 'linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%)', data: filterSearch(inspection) },
-            { key: 'receive', title: 'Receive & Putaway', subtitle: 'Inbound Transaction', icon: <SwapOutlined />, gradient: 'linear-gradient(135deg, #0d4a3a 0%, #10b981 100%)', data: filterSearch(receive) },
+            { key: 'receive', title: 'Receive', subtitle: 'Inbound Transaction', icon: <SwapOutlined />, gradient: 'linear-gradient(135deg, #0d4a3a 0%, #10b981 100%)', data: filterSearch(receive) },
+            { key: 'putaway', title: 'Putaway', subtitle: 'Inbound Transaction', icon: <InboxOutlined />, gradient: 'linear-gradient(135deg, #1a3a5c 0%, #0ea5e9 100%)', data: filterSearch(putaway) },
             { key: 'vas', title: 'Value Added Service', subtitle: 'VAS', icon: <TagsOutlined />, gradient: 'linear-gradient(135deg, #3b1a6b 0%, #8b5cf6 100%)', data: filterSearch(vas) },
             { key: 'dcc', title: 'Daily Cycle Count', subtitle: 'Qty & Location', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #0d4a3a 0%, #059669 100%)', data: filterSearch(dcc) },
             { key: 'qc', title: 'Damage & QC Return', subtitle: 'Project Damage + QC Return', icon: <SafetyOutlined />, gradient: 'linear-gradient(135deg, #3b1a6b 0%, #7c3aed 100%)', data: filterSearch(qc) },
