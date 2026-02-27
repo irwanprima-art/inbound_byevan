@@ -113,11 +113,20 @@ export default function PublicAgingPage() {
         }))
         .sort((a, b) => criticalNotes.indexOf(a.ed_note) - criticalNotes.indexOf(b.ed_note) || a.brand.localeCompare(b.brand));
 
+    // Latest update date
+    const latestUpdate = sohList.reduce((latest: string, s: any) => {
+        if (s.update_date && s.update_date > latest) return s.update_date;
+        return latest;
+    }, '');
+
     return (
         <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#6366f1', borderRadius: 8, fontFamily: "'Inter', sans-serif", colorBgContainer: '#1a1f3a', colorBgElevated: '#1e2340', colorBorder: 'rgba(255,255,255,0.08)', colorText: 'rgba(255,255,255,0.85)' }, components: { Table: { headerBg: '#0d1117', headerColor: 'rgba(255,255,255,0.7)', rowHoverBg: 'rgba(99,102,241,0.08)', borderColor: 'rgba(255,255,255,0.06)' } } }}>
             <div style={{ background: '#0d1117', minHeight: '100vh', padding: 24 }}>
                 <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-                    <Title level={3} style={{ color: '#fff', marginBottom: 24 }}>📅 Aging Stock Report</Title>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                        <Title level={3} style={{ color: '#fff', margin: 0 }}>📅 Aging Stock Report</Title>
+                        {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
+                    </div>
 
                     <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
                         <ResizableTable dataSource={edRowsWithTotal} columns={[

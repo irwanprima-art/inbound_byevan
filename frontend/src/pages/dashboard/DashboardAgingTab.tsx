@@ -127,11 +127,16 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
             const order = criticalNotes;
             return order.indexOf(a.ed_note) - order.indexOf(b.ed_note) || a.brand.localeCompare(b.brand);
         });
+    // Latest update date
+    const latestUpdate = sohList.reduce((latest: string, s: any) => {
+        if (s.update_date && s.update_date > latest) return s.update_date;
+        return latest;
+    }, '');
 
     return (
         <>
             <Card
-                title="📅 ED Note by Brand"
+                title={<span>📅 ED Note by Brand {latestUpdate && <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginLeft: 12 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</span>}</span>}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
             >
