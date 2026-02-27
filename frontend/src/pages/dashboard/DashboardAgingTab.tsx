@@ -74,6 +74,12 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     const edRows = Object.entries(edMap)
         .map(([brand, cats]) => ({ brand, ...cats, key: `ed_${brand}` }))
         .sort((a, b) => a.brand.localeCompare(b.brand));
+    // Total row for ED Note
+    const edTotal: Record<string, any> = { brand: 'TOTAL', key: 'ed_TOTAL', _isTotal: true };
+    edCats.forEach(cat => {
+        edTotal[cat] = edRows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0);
+    });
+    const edRowsWithTotal = [edTotal, ...edRows];
 
     // Aging Note pivot
     const agingMap: Record<string, Record<string, number>> = {};
@@ -96,6 +102,12 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     const agingRows = Object.entries(agingMap)
         .map(([brand, cats]) => ({ brand, ...cats, key: `aging_${brand}` }))
         .sort((a, b) => a.brand.localeCompare(b.brand));
+    // Total row for Aging Note
+    const agingTotal: Record<string, any> = { brand: 'TOTAL', key: 'aging_TOTAL', _isTotal: true };
+    agingCats.forEach(cat => {
+        agingTotal[cat] = agingRows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0);
+    });
+    const agingRowsWithTotal = [agingTotal, ...agingRows];
 
     // Critical ED items
     const criticalNotes = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month'];
@@ -122,19 +134,22 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
             >
                 <ResizableTable
-                    dataSource={edRows}
+                    dataSource={edRowsWithTotal}
                     columns={[
-                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140 },
+                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                         ...edCats.map(cat => ({
                             title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
                             dataIndex: cat, key: cat, width: 130,
-                            render: (v: number) => v ? <span style={{ color: edNoteColor(cat), fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                            render: (v: number, r: any) => v ? <span style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
                         })),
                     ]}
                     rowKey="key"
                     size="small"
                     scroll={{ x: 'max-content', y: 500 }}
                     pagination={false}
+                    onRow={(record: any) => ({
+                        style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined,
+                    })}
                 />
             </Card>
 
@@ -167,18 +182,21 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
             >
                 <ResizableTable
-                    dataSource={agingRows}
+                    dataSource={agingRowsWithTotal}
                     columns={[
-                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140 },
+                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                         ...agingCats.map(cat => ({
                             title: cat, dataIndex: cat, key: cat, width: 120,
-                            render: (v: number) => v ? <span style={{ color: '#60a5fa', fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                            render: (v: number, r: any) => v ? <span style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
                         })),
                     ]}
                     rowKey="key"
                     size="small"
                     scroll={{ x: 'max-content', y: 500 }}
                     pagination={false}
+                    onRow={(record: any) => ({
+                        style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined,
+                    })}
                 />
             </Card>
         </>
