@@ -27,14 +27,13 @@ const calcWeek = (dateStr: string): string => {
     return `Week ${weekNum} ${monthName}`;
 };
 
-// Auto-calculate: ED Note based on (Exp Date - WH Arrival Date) in days
-const calcEdNote = (expDateStr: string, whArrivalStr: string): string => {
+// Auto-calculate: ED Note based on (Exp Date - Update Date) remaining days
+const calcEdNote = (expDateStr: string, updateDateStr: string): string => {
     if (!expDateStr || !expDateStr.trim()) return 'No Expiry Date';
     const expDate = parseDate(expDateStr);
     if (!expDate) return 'No Expiry Date';
-    const whArrival = parseDate(whArrivalStr);
-    if (!whArrival) return '-';
-    const diffDays = expDate.diff(whArrival, 'day');
+    const refDate = parseDate(updateDateStr) || dayjs();
+    const diffDays = expDate.diff(refDate, 'day');
     if (diffDays < 0) return 'Expired';
     if (diffDays <= 30) return 'NED 1 Month';
     if (diffDays <= 60) return 'NED 2 Month';
@@ -214,7 +213,7 @@ export default function SohPage() {
         const rows = filteredData.map(r => [
             r.location, locCategoryMap[r.location] || r.location_category || '', r.sku, r.sku_category, r.brand, r.zone,
             r.location_type, r.owner, r.status, r.qty, r.wh_arrival_date, r.receipt_no, r.mfg_date, r.exp_date, r.batch_no, r.update_date,
-            calcWeek(r.update_date || r.wh_arrival_date), calcEdNote(r.exp_date, r.wh_arrival_date), calcAgingNote(r.wh_arrival_date),
+            calcWeek(r.update_date || r.wh_arrival_date), calcEdNote(r.exp_date, r.update_date), calcAgingNote(r.wh_arrival_date),
         ].map(v => `"${v}"`).join(','));
         const blob = new Blob([hdr.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
         const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'stock_on_hand.csv'; a.click();
@@ -253,7 +252,7 @@ export default function SohPage() {
         {
             title: 'ED Note', key: 'ed_note', width: 140,
             render: (_: any, r: any) => {
-                const note = calcEdNote(r.exp_date, r.wh_arrival_date);
+                const note = calcEdNote(r.exp_date, r.update_date);
                 return note !== '-' ? <Tag color={edNoteColor(note)}>{note}</Tag> : '-';
             },
         },
