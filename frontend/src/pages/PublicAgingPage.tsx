@@ -201,10 +201,80 @@ export default function PublicAgingPage() {
             { title: 'W2W Diff', dataIndex: 'total_diff', key: 'total_diff', width: 100, render: diffRender },
         ];
         w2wCats.forEach(cat => {
+            const bg = edNoteColor(cat);
             w2wColumns.push(
-                { title: <span style={{ fontSize: 11 }}>{cat}<br />{lastWeek}</span>, dataIndex: `${cat}_prev`, key: `${cat}_prev`, width: 110, render: qtyRender },
-                { title: <span style={{ fontSize: 11 }}>{cat}<br />{currWeek}</span>, dataIndex: `${cat}_curr`, key: `${cat}_curr`, width: 110, render: qtyRender },
-                { title: <span style={{ fontSize: 11 }}>{cat}<br />Diff</span>, dataIndex: `${cat}_diff`, key: `${cat}_diff`, width: 90, render: diffRender },
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>{cat}<br />{lastWeek}</span>, dataIndex: `${cat}_prev`, key: `${cat}_prev`, width: 110, render: qtyRender },
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>{cat}<br />{currWeek}</span>, dataIndex: `${cat}_curr`, key: `${cat}_curr`, width: 110, render: qtyRender },
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block', opacity: 0.7 }}>{cat}<br />Diff</span>, dataIndex: `${cat}_diff`, key: `${cat}_diff`, width: 90, render: diffRender },
+            );
+        });
+    }
+
+    // === Aging Note W2W Movement ===
+    const agingNoteColors: Record<string, string> = { 'Under 2025': '#6b7280', 'Q1 2025': '#3b82f6', 'Q2 2025': '#8b5cf6', 'Q3 2025': '#ec4899', 'Q4 2025': '#f97316', 'Q1 2026': '#06b6d4', 'Q2 2026': '#10b981', 'Q3 2026': '#eab308', 'Q4 2026': '#ef4444' };
+    const getAgingColor = (cat: string) => agingNoteColors[cat] || '#6366f1';
+    let agingW2wRows: any[] = [];
+    let agingW2wColumns: any[] = [];
+    if (lastWeek && currWeek && lastWeek !== currWeek) {
+        const agingWeekData: Record<string, Record<string, Record<string, number>>> = {};
+        [lastWeek, currWeek].forEach(w => { agingWeekData[w] = {}; });
+        sellable.forEach((s: any) => {
+            const w = calcWeek(s.update_date);
+            if (w !== lastWeek && w !== currWeek) return;
+            const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
+            const aging = calcAgingNote(s.wh_arrival_date);
+            if (aging === '-') return;
+            const qty = Number(s.qty) || 0;
+            if (!agingWeekData[w][brand]) agingWeekData[w][brand] = {};
+            agingWeekData[w][brand][aging] = (agingWeekData[w][brand][aging] || 0) + qty;
+            agingWeekData[w][brand]['_total'] = (agingWeekData[w][brand]['_total'] || 0) + qty;
+        });
+
+        const allAgingBrands = [...new Set([...Object.keys(agingWeekData[lastWeek] || {}), ...Object.keys(agingWeekData[currWeek] || {})])].sort();
+        agingW2wRows = allAgingBrands.map(brand => {
+            const row: any = { brand, key: `aw2w_${brand}` };
+            const prev = agingWeekData[lastWeek]?.[brand] || {};
+            const curr = agingWeekData[currWeek]?.[brand] || {};
+            row.total_prev = prev['_total'] || 0;
+            row.total_curr = curr['_total'] || 0;
+            row.total_diff = (curr['_total'] || 0) - (prev['_total'] || 0);
+            agingCats.forEach(cat => {
+                row[`${cat}_prev`] = prev[cat] || 0;
+                row[`${cat}_curr`] = curr[cat] || 0;
+                row[`${cat}_diff`] = (curr[cat] || 0) - (prev[cat] || 0);
+            });
+            return row;
+        });
+        const agingTotalRow: any = { brand: 'TOTAL', key: 'aw2w_TOTAL', _isTotal: true };
+        agingTotalRow.total_prev = agingW2wRows.reduce((s, r) => s + r.total_prev, 0);
+        agingTotalRow.total_curr = agingW2wRows.reduce((s, r) => s + r.total_curr, 0);
+        agingTotalRow.total_diff = agingTotalRow.total_curr - agingTotalRow.total_prev;
+        agingCats.forEach(cat => {
+            agingTotalRow[`${cat}_prev`] = agingW2wRows.reduce((s, r) => s + r[`${cat}_prev`], 0);
+            agingTotalRow[`${cat}_curr`] = agingW2wRows.reduce((s, r) => s + r[`${cat}_curr`], 0);
+            agingTotalRow[`${cat}_diff`] = agingTotalRow[`${cat}_curr`] - agingTotalRow[`${cat}_prev`];
+        });
+        agingW2wRows = [agingTotalRow, ...agingW2wRows];
+
+        const aDiffRender = (v: number) => {
+            if (!v) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+            const color = v > 0 ? '#22c55e' : v < 0 ? '#ef4444' : 'rgba(255,255,255,0.5)';
+            return <span style={{ color, fontWeight: 600 }}>{v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString()}</span>;
+        };
+        const aQtyRender = (v: number) => v ? <span style={{ fontWeight: 500 }}>{v.toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+
+        agingW2wColumns = [
+            { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 160, fixed: 'left' as const, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+            { title: `Total ${lastWeek}`, dataIndex: 'total_prev', key: 'total_prev', width: 110, render: aQtyRender },
+            { title: `Total ${currWeek}`, dataIndex: 'total_curr', key: 'total_curr', width: 110, render: aQtyRender },
+            { title: 'W2W Diff', dataIndex: 'total_diff', key: 'total_diff', width: 100, render: aDiffRender },
+        ];
+        agingCats.forEach(cat => {
+            const bg = getAgingColor(cat);
+            agingW2wColumns.push(
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>{cat}<br />{lastWeek}</span>, dataIndex: `${cat}_prev`, key: `${cat}_prev`, width: 110, render: aQtyRender },
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>{cat}<br />{currWeek}</span>, dataIndex: `${cat}_curr`, key: `${cat}_curr`, width: 110, render: aQtyRender },
+                { title: <span style={{ fontSize: 11, background: bg, color: '#fff', padding: '2px 6px', borderRadius: 4, display: 'inline-block', opacity: 0.7 }}>{cat}<br />Diff</span>, dataIndex: `${cat}_diff`, key: `${cat}_diff`, width: 90, render: aDiffRender },
             );
         });
     }
@@ -272,6 +342,18 @@ export default function PublicAgingPage() {
                         ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
                             onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                     </Card>
+
+                    {agingW2wRows.length > 0 && (
+                        <Card
+                            title={`📊 Aging Note W2W Movement (${lastWeek} → ${currWeek})`}
+                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                        >
+                            <ResizableTable dataSource={agingW2wRows} columns={agingW2wColumns} rowKey="key" size="small"
+                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        </Card>
+                    )}
 
                     <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
                         <Text style={{ color: 'rgba(255,255,255,0.25)' }}>Warehouse Report & Monitoring System</Text>
