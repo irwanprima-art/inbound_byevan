@@ -64,9 +64,9 @@ export default function PublicSohPage() {
         setLoading(true);
         try {
             const [sohRes, locRes] = await Promise.all([publicApi.sohList(), publicApi.locationsList()]);
-            setData((sohRes.data?.data || []) as SohRecord[]);
+            setData((sohRes.data || []) as SohRecord[]);
             const map: Record<string, string> = {};
-            ((locRes.data?.data || []) as any[]).forEach((loc: any) => { if (loc.location && loc.location_category) map[loc.location] = loc.location_category; });
+            ((locRes.data || []) as any[]).forEach((loc: any) => { if (loc.location && loc.location_category) map[loc.location] = loc.location_category; });
             setLocCategoryMap(map);
         } catch { message.error('Gagal memuat data'); }
         setLoading(false);

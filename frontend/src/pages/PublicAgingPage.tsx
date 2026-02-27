@@ -48,8 +48,8 @@ export default function PublicAgingPage() {
         (async () => {
             try {
                 const [s, l] = await Promise.all([publicApi.sohList(), publicApi.locationsList()]);
-                setSohList(s.data?.data || []);
-                setLocations(l.data?.data || []);
+                setSohList(s.data || []);
+                setLocations(l.data || []);
             } catch { /* ignore */ }
             setLoading(false);
         })();
