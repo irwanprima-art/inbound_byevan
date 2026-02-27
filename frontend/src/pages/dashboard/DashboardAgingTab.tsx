@@ -152,6 +152,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                                         onClick={() => {
                                             const params = new URLSearchParams();
                                             params.set('edNote', cat);
+                                            params.set('locCategory', 'Sellable');
                                             if (!isTotalRow) params.set('brand', brand);
                                             navigate(`/soh?${params.toString()}`);
                                         }}
@@ -216,6 +217,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                                         onClick={() => {
                                             const params = new URLSearchParams();
                                             params.set('agingNote', cat);
+                                            params.set('locCategory', 'Sellable');
                                             if (!isTotalRow) params.set('brand', brand);
                                             navigate(`/soh?${params.toString()}`);
                                         }}
