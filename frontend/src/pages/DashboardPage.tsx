@@ -3,6 +3,7 @@ import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi } from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
 import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
@@ -22,8 +23,10 @@ const TAB_GROUPS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+    const { user } = useAuth();
+    const isKeyAccount = user?.role === 'key_account';
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
-    const [activeTab, setActiveTab] = useState('inbound');
+    const [activeTab, setActiveTab] = useState(isKeyAccount ? 'aging_stock' : 'inbound');
 
     // Per-group loading state
     const [loadedGroups, setLoadedGroups] = useState<Set<string>>(new Set());
@@ -199,7 +202,7 @@ export default function DashboardPage() {
                             />
                         ),
                     },
-                ]}
+                ].filter(item => !isKeyAccount || item.key === 'aging_stock')}
             />
         </div>
     );

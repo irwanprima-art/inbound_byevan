@@ -99,6 +99,7 @@ func SeedDefaultUsers() {
 		{"leader", "SEED_PASSWORD_LEADER", "leader"},
 		{"admin.inbound", "SEED_PASSWORD_ADMIN_INBOUND", "admin_inbound"},
 		{"admin.inventory", "SEED_PASSWORD_ADMIN_INVENTORY", "admin_inventory"},
+		{"key.account", "SEED_PASSWORD_KEY_ACCOUNT", "key_account"},
 	}
 
 	log.Println("═══════════════════════════════════════════════")

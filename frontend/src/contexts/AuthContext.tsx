@@ -65,6 +65,9 @@ export const ROLE_ACCESS: Record<string, { pages: string[] | 'all' }> = {
     admin_inventory: {
         pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'master-item', 'stock-opname', 'clock-inout', 'productivity'],
     },
+    key_account: {
+        pages: ['dashboard', 'stock-on-hand'],
+    },
 };
 
 export function hasPageAccess(role: string, pageId: string): boolean {

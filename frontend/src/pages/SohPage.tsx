@@ -117,8 +117,9 @@ export default function SohPage() {
     });
     const [form] = Form.useForm();
 
-    const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
-    const canEdit = user?.role !== 'admin_inventory';
+    const isKeyAccount = user?.role === 'key_account';
+    const canDelete = !isKeyAccount && (user?.role === 'admin' || user?.role === 'supervisor');
+    const canEdit = !isKeyAccount && user?.role !== 'admin_inventory';
     const isSupervisor = user?.role === 'supervisor';
 
     const fetchData = useCallback(async () => {
