@@ -67,6 +67,7 @@ export const schedulesApi = createResourceApi('schedules');
 export const beritaAcaraApi = createResourceApi('berita-acara');
 export const stockOpnamesApi = createResourceApi('stock-opnames');
 export const additionalMpApi = createResourceApi('additional-mp');
+export const masterItemsApi = createResourceApi('master-items');
 
 // User management API (custom endpoints)
 export const usersApi = {

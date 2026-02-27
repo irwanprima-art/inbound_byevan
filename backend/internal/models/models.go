@@ -152,6 +152,19 @@ type Location struct {
 	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// MasterItem represents master item / SKU data
+type MasterItem struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Sku         string         `gorm:"column:sku" json:"sku" binding:"required"`
+	Description string         `gorm:"column:description" json:"description"`
+	Brand       string         `gorm:"column:brand" json:"brand"`
+	SkuCategory string         `gorm:"column:sku_category" json:"sku_category"`
+	Price       float64        `gorm:"column:price" json:"price"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Attendance represents manpower attendance data
 type Attendance struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`

@@ -6,6 +6,7 @@ import {
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
+    ShoppingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -28,6 +29,7 @@ import SchedulePage from '../pages/SchedulePage';
 import AdditionalMpPage from '../pages/AdditionalMpPage';
 import BeritaAcaraPage from '../pages/BeritaAcaraPage';
 import StockOpnamePage from '../pages/StockOpnamePage';
+import MasterItemPage from '../pages/MasterItemPage';
 import BeritaAcaraInventoryPage from '../pages/BeritaAcaraInventoryPage';
 import SettingsPage from '../pages/SettingsPage';
 
@@ -56,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/vas', icon: <ToolOutlined />, label: 'VAS', group: 'inbound' },
     { key: '/berita-acara', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inbound' },
     { key: '/locations', icon: <EnvironmentOutlined />, label: 'Master Location', group: 'inventory' },
+    { key: '/master-items', icon: <ShoppingOutlined />, label: 'Master Item', group: 'inventory' },
     { key: '/soh', icon: <DatabaseOutlined />, label: 'Stock on Hand', group: 'inventory' },
     { key: '/dcc', icon: <CheckCircleOutlined />, label: 'Daily Cycle Count', group: 'inventory' },
     { key: '/stock-opname', icon: <AuditOutlined />, label: 'Stock Opname', group: 'inventory' },
@@ -81,6 +84,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/soh': 'stock-on-hand',
     '/qc-returns': 'qc-return',
     '/locations': 'master-location',
+    '/master-items': 'master-item',
     '/attendance': 'attendance',
     '/employees': 'employees',
     '/productivity': 'productivity',
@@ -103,6 +107,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/soh': <SohPage />,
     '/qc-returns': <QcReturnPage />,
     '/locations': <LocationPage />,
+    '/master-items': <MasterItemPage />,
     '/attendance': <AttendancePage />,
     '/employees': <EmployeesPage />,
     '/productivity': <ProductivityPage />,
@@ -126,6 +131,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/soh': <DatabaseOutlined />,
     '/qc-returns': <RollbackOutlined />,
     '/locations': <EnvironmentOutlined />,
+    '/master-items': <ShoppingOutlined />,
     '/attendance': <ClockCircleOutlined />,
     '/employees': <IdcardOutlined />,
     '/productivity': <LineChartOutlined />,

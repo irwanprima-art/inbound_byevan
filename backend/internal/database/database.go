@@ -69,6 +69,7 @@ func AutoMigrate() {
 		&models.BeritaAcara{},
 		&models.StockOpname{},
 		&models.AdditionalMp{},
+		&models.MasterItem{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)

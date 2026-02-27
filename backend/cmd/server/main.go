@@ -140,6 +140,9 @@ func main() {
 	additionalMp := handlers.NewResource[models.AdditionalMp]("additional-mp")
 	additionalMp.RegisterRoutes(protected.Group("/additional-mp"))
 
+	masterItems := handlers.NewResource[models.MasterItem]("master-items")
+	masterItems.RegisterRoutes(protected.Group("/master-items"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
