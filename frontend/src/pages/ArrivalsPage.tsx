@@ -2,15 +2,18 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select, DatePicker } from 'antd';
 import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
-    DownloadOutlined, UploadOutlined,
+    DownloadOutlined, UploadOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ArrivalsPage() {
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<any[]>([]);
     const [transData, setTransData] = useState<any[]>([]);
@@ -222,6 +225,24 @@ export default function ArrivalsPage() {
         fetchAll();
     };
 
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Inbound Arrival? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await arrivalsApi.sync([]);
+                    message.success('Semua data Inbound Arrival berhasil dihapus');
+                    setSelectedKeys([]);
+                    fetchAll();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
+    };
+
     // CSV Export
     const handleExport = () => {
         const headers = ['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'operator', 'note', 'status'];
@@ -317,6 +338,9 @@ export default function ArrivalsPage() {
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'operator', 'note'], 'Arrivals_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
+                    )}
                 </Space>
             </div>
 

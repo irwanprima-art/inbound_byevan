@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
-    DownloadOutlined, SearchOutlined,
+    DownloadOutlined, SearchOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
@@ -67,6 +67,7 @@ export default function AttendancePage() {
     const [editForm] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
+    const isSupervisor = user?.role === 'supervisor';
 
     const empMap: Record<string, EmpRecord> = {};
     employees.forEach(e => { if (e.nik) empMap[e.nik.toLowerCase()] = e; });
@@ -96,6 +97,24 @@ export default function AttendancePage() {
     };
     const handleBulkDelete = async () => {
         try { await attendancesApi.bulkDelete(selectedKeys); message.success(`${selectedKeys.length} data dihapus`); setSelectedKeys([]); fetchData(); } catch { message.error('Gagal menghapus'); }
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Attendance? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await attendancesApi.sync([]);
+                    message.success('Semua data Attendance berhasil dihapus');
+                    setSelectedKeys([]);
+                    fetchData();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
     };
 
     // Export
@@ -255,6 +274,9 @@ export default function AttendancePage() {
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
                         </Popconfirm>
+                    )}
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
                 </Space>
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
-    UploadOutlined, DownloadOutlined, FileExcelOutlined,
+    UploadOutlined, DownloadOutlined, FileExcelOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,7 @@ export default function MasterItemPage() {
     const { user } = useAuth();
     const role = user?.role || '';
     const readOnly = role === 'admin_inbound';
+    const isSupervisor = role === 'supervisor';
 
     const [data, setData] = useState<MasterItemRecord[]>([]);
     const [loading, setLoading] = useState(false);
@@ -68,6 +69,24 @@ export default function MasterItemPage() {
         message.success(`Deleted ${selectedKeys.length} items`);
         setSelectedKeys([]);
         load();
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Master Item? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await masterItemsApi.sync([]);
+                    message.success('Semua data Master Item berhasil dihapus');
+                    setSelectedKeys([]);
+                    load();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
     };
 
     // CSV helpers
@@ -245,6 +264,9 @@ export default function MasterItemPage() {
                         </Upload>
                     )}
                     <Button icon={<FileExcelOutlined />} onClick={handleExport}>Export</Button>
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
+                    )}
                 </Space>
             </div>
 

@@ -6,12 +6,13 @@ import {
 import {
     PlayCircleOutlined, CheckCircleOutlined, ReloadOutlined, SearchOutlined,
     EditOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, PlusOutlined,
-    CloseOutlined,
+    CloseOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import { vasApi, employeesApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -32,6 +33,8 @@ interface ActiveTask {
 }
 
 export default function VasPage() {
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     // ─── Data table state ───────────────────────
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -318,6 +321,24 @@ export default function VasPage() {
         message.success(`${selectedKeys.length} data dihapus`);
         setSelectedKeys([]);
         fetchData();
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data VAS? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await vasApi.sync([]);
+                    message.success('Semua data VAS berhasil dihapus');
+                    setSelectedKeys([]);
+                    fetchData();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
     };
 
     // ─── Export / Import CSV ──────────────────
@@ -702,6 +723,9 @@ export default function VasPage() {
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'start_time', 'end_time', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type'], 'VAS_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
+                    )}
                 </Space>
             </div>
 

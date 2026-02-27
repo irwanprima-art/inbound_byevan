@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
     PlusOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined,
-    EditOutlined, ReloadOutlined, SearchOutlined,
+    EditOutlined, ReloadOutlined, SearchOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { Resizable } from 'react-resizable';
@@ -81,6 +81,7 @@ export default function DataPage<T extends { id: number }>({
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'supervisor' || user?.role === 'leader';
+    const isSupervisor = user?.role === 'supervisor';
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -163,6 +164,26 @@ export default function DataPage<T extends { id: number }>({
         } catch {
             message.error('Gagal menghapus');
         }
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data ${title}? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await api.sync([]);
+                    message.success(`Semua data ${title} berhasil dihapus`);
+                    setSelectedKeys([]);
+                    fetchData();
+                } catch {
+                    message.error('Gagal menghapus semua data');
+                }
+            },
+        });
     };
 
     // Helper: parse a CSV line respecting quotes
@@ -410,6 +431,11 @@ export default function DataPage<T extends { id: number }>({
                                 Hapus ({selectedKeys.length})
                             </Button>
                         </Popconfirm>
+                    )}
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>
+                            Clear All
+                        </Button>
                     )}
                 </Space>
             </div>

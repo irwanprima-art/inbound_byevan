@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Form, Input, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
-    ReloadOutlined, UploadOutlined, DownloadOutlined, SearchOutlined,
+    ReloadOutlined, UploadOutlined, DownloadOutlined, SearchOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,6 +60,7 @@ export default function LocationPage() {
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
     const canEdit = user?.role !== 'admin_inventory';
+    const isSupervisor = user?.role === 'supervisor';
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -103,6 +104,24 @@ export default function LocationPage() {
     const handleBulkDelete = async () => {
         try { await locationsApi.bulkDelete(selectedKeys); message.success(`${selectedKeys.length} data dihapus`); setSelectedKeys([]); fetchData(); }
         catch { message.error('Gagal menghapus'); }
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Master Location? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await locationsApi.sync([]);
+                    message.success('Semua data Master Location berhasil dihapus');
+                    setSelectedKeys([]);
+                    fetchData();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
     };
 
     // CSV helpers
@@ -258,6 +277,9 @@ export default function LocationPage() {
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
                         </Popconfirm>
+                    )}
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
                 </Space>
             </div>

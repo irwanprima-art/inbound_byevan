@@ -5,12 +5,13 @@ import {
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, SearchOutlined,
-    DownloadOutlined, UploadOutlined, PlusOutlined,
+    DownloadOutlined, UploadOutlined, PlusOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import { unloadingsApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import { useAuth } from '../contexts/AuthContext';
 
 const VEHICLE_OPTIONS = [
     'Blind Van', 'CDD', 'CDE', 'Fuso',
@@ -26,6 +27,8 @@ interface UnloadingRecord {
 }
 
 export default function UnloadingPage() {
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     const [data, setData] = useState<UnloadingRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -118,6 +121,24 @@ export default function UnloadingPage() {
         } catch {
             message.error('Gagal menghapus');
         }
+    };
+
+    const handleClearAll = () => {
+        Modal.confirm({
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Unloading? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await unloadingsApi.sync([]);
+                    message.success('Semua data Unloading berhasil dihapus');
+                    setSelectedKeys([]);
+                    fetchData();
+                } catch { message.error('Gagal menghapus semua data'); }
+            },
+        });
     };
 
     // Export
@@ -273,6 +294,9 @@ export default function UnloadingPage() {
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
                         </Popconfirm>
+                    )}
+                    {isSupervisor && data.length > 0 && (
+                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
                 </Space>
             </div>
