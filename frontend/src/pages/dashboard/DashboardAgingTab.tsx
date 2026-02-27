@@ -66,7 +66,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     const edCats = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month', '3 - 6 Month', '6 - 12 Month', '1yr++', 'No Expiry Date'];
     const edMap: Record<string, Record<string, number>> = {};
     sellable.forEach((s: any) => {
-        const brand = (s.brand || '').trim() || 'Unknown';
+        const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
         const ed = calcEdNote(s.exp_date, s.update_date);
         if (!edMap[brand]) edMap[brand] = {};
         edMap[brand][ed] = (edMap[brand][ed] || 0) + (Number(s.qty) || 0);
@@ -78,7 +78,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     // Aging Note pivot
     const agingMap: Record<string, Record<string, number>> = {};
     sellable.forEach((s: any) => {
-        const brand = (s.brand || '').trim() || 'Unknown';
+        const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
         const aging = calcAgingNote(s.wh_arrival_date);
         if (aging === '-') return;
         if (!agingMap[brand]) agingMap[brand] = {};
@@ -103,7 +103,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
         .filter((s: any) => criticalNotes.includes(calcEdNote(s.exp_date, s.update_date)))
         .map((s: any, i: number) => ({
             key: `crit_${i}`,
-            brand: (s.brand || '').trim() || 'Unknown',
+            brand: ((s.brand || '').trim() || 'Unknown').toUpperCase(),
             sku: s.sku || '-',
             qty: Number(s.qty) || 0,
             exp_date: s.exp_date || '-',
