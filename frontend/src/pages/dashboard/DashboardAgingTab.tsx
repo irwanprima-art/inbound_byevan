@@ -15,11 +15,11 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
         return d.isValid() ? d : null;
     };
 
-    const calcEdNote = (expStr: string, whStr: string) => {
+    const calcEdNote = (expStr: string, updateStr: string) => {
         if (!expStr?.trim()) return 'No Expiry Date';
         const exp = parseDate(expStr); if (!exp) return 'No Expiry Date';
-        const wh = parseDate(whStr); if (!wh) return '-';
-        const diff = exp.diff(wh, 'day');
+        const ref = parseDate(updateStr) || dayjs();
+        const diff = exp.diff(ref, 'day');
         if (diff < 0) return 'Expired';
         if (diff <= 30) return 'NED 1 Month';
         if (diff <= 60) return 'NED 2 Month';
@@ -67,8 +67,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     const edMap: Record<string, Record<string, number>> = {};
     sellable.forEach((s: any) => {
         const brand = (s.brand || '').trim() || 'Unknown';
-        const ed = calcEdNote(s.exp_date, s.wh_arrival_date);
-        if (ed === '-') return;
+        const ed = calcEdNote(s.exp_date, s.update_date);
         if (!edMap[brand]) edMap[brand] = {};
         edMap[brand][ed] = (edMap[brand][ed] || 0) + (Number(s.qty) || 0);
     });
@@ -101,14 +100,14 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
     // Critical ED items
     const criticalNotes = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month'];
     const criticalItems = sellable
-        .filter((s: any) => criticalNotes.includes(calcEdNote(s.exp_date, s.wh_arrival_date)))
+        .filter((s: any) => criticalNotes.includes(calcEdNote(s.exp_date, s.update_date)))
         .map((s: any, i: number) => ({
             key: `crit_${i}`,
             brand: (s.brand || '').trim() || 'Unknown',
             sku: s.sku || '-',
             qty: Number(s.qty) || 0,
             exp_date: s.exp_date || '-',
-            ed_note: calcEdNote(s.exp_date, s.wh_arrival_date),
+            ed_note: calcEdNote(s.exp_date, s.update_date),
         }))
         .sort((a, b) => {
             const order = criticalNotes;
