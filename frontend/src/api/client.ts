@@ -78,4 +78,14 @@ export const usersApi = {
     remove: (id: number) => api.delete(`/users/${id}`),
 };
 
+// Public API (no auth required) for Key Account pages
+const publicAxios = axios.create({
+    baseURL: API_BASE,
+    headers: { 'Content-Type': 'application/json' },
+});
+export const publicApi = {
+    sohList: () => publicAxios.get('/public/soh'),
+    locationsList: () => publicAxios.get('/public/locations'),
+};
+
 export default api;

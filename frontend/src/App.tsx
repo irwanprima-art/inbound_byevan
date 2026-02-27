@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AppLayout from './layouts/AppLayout';
 import LoginPage from './pages/LoginPage';
 import ClockPage from './pages/ClockPage';
+import PublicAgingPage from './pages/PublicAgingPage';
+import PublicSohPage from './pages/PublicSohPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -18,6 +20,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/clock" element={<ClockPage />} />
+      <Route path="/public/aging-stock" element={<PublicAgingPage />} />
+      <Route path="/public/soh" element={<PublicSohPage />} />
       <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
     </Routes>
   );

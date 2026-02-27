@@ -79,6 +79,12 @@ func main() {
 	api.POST("/clock/attendances", clockAttendances.Create)
 	api.PUT("/clock/attendances/:id", clockAttendances.Update)
 
+	// Public read-only routes for Key Account pages (no auth needed)
+	publicSoh := handlers.NewResource[models.Soh]("soh")
+	publicLocations := handlers.NewResource[models.Location]("locations")
+	api.GET("/public/soh", publicSoh.List)
+	api.GET("/public/locations", publicLocations.List)
+
 	// Protected routes
 	protected := api.Group("")
 	protected.Use(middleware.AuthRequired())
