@@ -120,10 +120,99 @@ export default function PublicAgingPage() {
         return latest;
     }, '');
 
+    // === W2W Movement ===
+    const calcWeek = (dateStr: string) => {
+        const d = parseDate(dateStr); if (!d) return '';
+        return `W${Math.ceil(d.date() / 7)} ${d.format('MMM')}`;
+    };
+    // Group sellable by week
+    const weekSet = new Set<string>();
+    sellable.forEach((s: any) => { const w = calcWeek(s.update_date); if (w) weekSet.add(w); });
+    // Sort weeks chronologically
+    const monthOrder: Record<string, number> = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
+    const sortedWeeks = [...weekSet].sort((a, b) => {
+        const [wa, ma] = a.replace('W', '').split(' ');
+        const [wb, mb] = b.replace('W', '').split(' ');
+        const md = (monthOrder[ma] || 0) - (monthOrder[mb] || 0);
+        return md !== 0 ? md : Number(wa) - Number(wb);
+    });
+
+    // Take last 2 weeks
+    const w2wCats = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month', '3 - 6 Month', '6 - 12 Month', '1yr++', 'No Expiry Date'];
+    const lastWeek = sortedWeeks.length >= 2 ? sortedWeeks[sortedWeeks.length - 2] : null;
+    const currWeek = sortedWeeks.length >= 1 ? sortedWeeks[sortedWeeks.length - 1] : null;
+
+    let w2wRows: any[] = [];
+    let w2wColumns: any[] = [];
+    if (lastWeek && currWeek && lastWeek !== currWeek) {
+        // Build per-brand per-edNote totals per week
+        const weekData: Record<string, Record<string, Record<string, number>>> = {};
+        [lastWeek, currWeek].forEach(w => { weekData[w] = {}; });
+        sellable.forEach((s: any) => {
+            const w = calcWeek(s.update_date);
+            if (w !== lastWeek && w !== currWeek) return;
+            const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
+            const ed = calcEdNote(s.exp_date, s.update_date);
+            const qty = Number(s.qty) || 0;
+            if (!weekData[w][brand]) weekData[w][brand] = {};
+            weekData[w][brand][ed] = (weekData[w][brand][ed] || 0) + qty;
+            weekData[w][brand]['_total'] = (weekData[w][brand]['_total'] || 0) + qty;
+        });
+
+        const allBrands = [...new Set([...Object.keys(weekData[lastWeek] || {}), ...Object.keys(weekData[currWeek] || {})])].sort();
+        w2wRows = allBrands.map(brand => {
+            const row: any = { brand, key: `w2w_${brand}` };
+            const prev = weekData[lastWeek]?.[brand] || {};
+            const curr = weekData[currWeek]?.[brand] || {};
+            row[`total_prev`] = prev['_total'] || 0;
+            row[`total_curr`] = curr['_total'] || 0;
+            row[`total_diff`] = (curr['_total'] || 0) - (prev['_total'] || 0);
+            w2wCats.forEach(cat => {
+                row[`${cat}_prev`] = prev[cat] || 0;
+                row[`${cat}_curr`] = curr[cat] || 0;
+                row[`${cat}_diff`] = (curr[cat] || 0) - (prev[cat] || 0);
+            });
+            return row;
+        });
+        // Total row
+        const totalRow: any = { brand: 'TOTAL', key: 'w2w_TOTAL', _isTotal: true };
+        totalRow.total_prev = w2wRows.reduce((s, r) => s + r.total_prev, 0);
+        totalRow.total_curr = w2wRows.reduce((s, r) => s + r.total_curr, 0);
+        totalRow.total_diff = totalRow.total_curr - totalRow.total_prev;
+        w2wCats.forEach(cat => {
+            totalRow[`${cat}_prev`] = w2wRows.reduce((s, r) => s + r[`${cat}_prev`], 0);
+            totalRow[`${cat}_curr`] = w2wRows.reduce((s, r) => s + r[`${cat}_curr`], 0);
+            totalRow[`${cat}_diff`] = totalRow[`${cat}_curr`] - totalRow[`${cat}_prev`];
+        });
+        w2wRows = [totalRow, ...w2wRows];
+
+        const diffRender = (v: number) => {
+            if (!v) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+            const color = v > 0 ? '#22c55e' : v < 0 ? '#ef4444' : 'rgba(255,255,255,0.5)';
+            return <span style={{ color, fontWeight: 600 }}>{v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString()}</span>;
+        };
+        const qtyRender = (v: number) => v ? <span style={{ fontWeight: 500 }}>{v.toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+
+        // Build columns: Brand | Total Prev | Total Curr | W2W Diff | ...per ED Note cat
+        w2wColumns = [
+            { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 160, fixed: 'left' as const, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+            { title: `Total ${lastWeek}`, dataIndex: 'total_prev', key: 'total_prev', width: 110, render: qtyRender },
+            { title: `Total ${currWeek}`, dataIndex: 'total_curr', key: 'total_curr', width: 110, render: qtyRender },
+            { title: 'W2W Diff', dataIndex: 'total_diff', key: 'total_diff', width: 100, render: diffRender },
+        ];
+        w2wCats.forEach(cat => {
+            w2wColumns.push(
+                { title: <span style={{ fontSize: 11 }}>{cat}<br />{lastWeek}</span>, dataIndex: `${cat}_prev`, key: `${cat}_prev`, width: 110, render: qtyRender },
+                { title: <span style={{ fontSize: 11 }}>{cat}<br />{currWeek}</span>, dataIndex: `${cat}_curr`, key: `${cat}_curr`, width: 110, render: qtyRender },
+                { title: <span style={{ fontSize: 11 }}>{cat}<br />Diff</span>, dataIndex: `${cat}_diff`, key: `${cat}_diff`, width: 90, render: diffRender },
+            );
+        });
+    }
+
     return (
         <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#6366f1', borderRadius: 8, fontFamily: "'Inter', sans-serif", colorBgContainer: '#1a1f3a', colorBgElevated: '#1e2340', colorBorder: 'rgba(255,255,255,0.08)', colorText: 'rgba(255,255,255,0.85)' }, components: { Table: { headerBg: '#0d1117', headerColor: 'rgba(255,255,255,0.7)', rowHoverBg: 'rgba(99,102,241,0.08)', borderColor: 'rgba(255,255,255,0.06)' } } }}>
             <div style={{ background: '#0d1117', minHeight: '100vh', padding: 24 }}>
-                <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+                <div style={{ maxWidth: 1800, margin: '0 auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                         <Title level={3} style={{ color: '#fff', margin: 0 }}>📅 Aging Stock Report</Title>
                         {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
@@ -154,6 +243,18 @@ export default function PublicAgingPage() {
                                 { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp_date', width: 120 },
                                 { title: 'ED Note', dataIndex: 'ed_note', key: 'ed_note', width: 140, render: (v: string) => <Tag color={edNoteColor(v)} style={{ border: 'none' }}>{v}</Tag> },
                             ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false} />
+                        </Card>
+                    )}
+
+                    {w2wRows.length > 0 && (
+                        <Card
+                            title={`📊 Week to Week Movement (${lastWeek} → ${currWeek})`}
+                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                        >
+                            <ResizableTable dataSource={w2wRows} columns={w2wColumns} rowKey="key" size="small"
+                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
                     )}
 
