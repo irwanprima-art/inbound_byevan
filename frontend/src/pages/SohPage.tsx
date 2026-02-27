@@ -126,7 +126,8 @@ export default function SohPage() {
         setLoading(true);
         try {
             const [sohRes, locRes] = await Promise.all([sohApi.list(), locationsApi.list()]);
-            setData((sohRes.data || []) as SohRecord[]);
+            const sohData = (sohRes.data || []) as SohRecord[];
+            setData(sohData);
             // Build location -> location_category map from Master Location
             const map: Record<string, string> = {};
             ((locRes.data || []) as any[]).forEach((loc: any) => {
@@ -135,6 +136,17 @@ export default function SohPage() {
                 }
             });
             setLocCategoryMap(map);
+            // Normalize brand filter from URL (dashboard sends UPPERCASED brands)
+            if (filterBrand.length > 0) {
+                const allBrands = [...new Set(sohData.map(r => r.brand).filter(Boolean))];
+                const normalized = filterBrand.map(fb => {
+                    const match = allBrands.find(b => b.toUpperCase() === fb.toUpperCase());
+                    return match || fb;
+                });
+                if (JSON.stringify(normalized) !== JSON.stringify(filterBrand)) {
+                    setFilterBrand(normalized);
+                }
+            }
         } catch { message.error('Gagal memuat data'); }
         setLoading(false);
     }, []);
