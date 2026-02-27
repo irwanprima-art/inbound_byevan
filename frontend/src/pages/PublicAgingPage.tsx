@@ -66,7 +66,8 @@ export default function PublicAgingPage() {
     locations.forEach((loc: any) => { if (loc.location && loc.location_category) locCatMap[loc.location] = loc.location_category; });
     const sellable = sohList.filter((s: any) => {
         const cat = locCatMap[s.location] || s.location_category || '';
-        return cat === 'Sellable' && (Number(s.qty) || 0) > 0;
+        const owner = (s.owner || '').trim();
+        return cat === 'Sellable' && owner === 'JC-ID' && (Number(s.qty) || 0) > 0;
     });
 
     // ED Note pivot
