@@ -1,4 +1,5 @@
 import { Card } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function DashboardAgingTab({ sohList, locations }: Props) {
+    const navigate = useNavigate();
     // Backend returns consistent YYYY-MM-DD via FlexDate
     const parseDate = (s: string) => {
         if (!s) return null;
@@ -140,7 +142,24 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                         ...edCats.map(cat => ({
                             title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
                             dataIndex: cat, key: cat, width: 130,
-                            render: (v: number, r: any) => v ? <span style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                            render: (v: number, r: any) => {
+                                if (!v) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+                                const brand = r.brand;
+                                const isTotalRow = r._isTotal;
+                                return (
+                                    <span
+                                        style={{ color: isTotalRow ? '#fff' : edNoteColor(cat), fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' as const }}
+                                        onClick={() => {
+                                            const params = new URLSearchParams();
+                                            params.set('edNote', cat);
+                                            if (!isTotalRow) params.set('brand', brand);
+                                            navigate(`/soh?${params.toString()}`);
+                                        }}
+                                    >
+                                        {v.toLocaleString()}
+                                    </span>
+                                );
+                            },
                         })),
                     ]}
                     rowKey="key"
@@ -187,7 +206,24 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                         ...agingCats.map(cat => ({
                             title: cat, dataIndex: cat, key: cat, width: 120,
-                            render: (v: number, r: any) => v ? <span style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600 }}>{(v || 0).toLocaleString()}</span> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                            render: (v: number, r: any) => {
+                                if (!v) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+                                const brand = r.brand;
+                                const isTotalRow = r._isTotal;
+                                return (
+                                    <span
+                                        style={{ color: isTotalRow ? '#fff' : '#60a5fa', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' as const }}
+                                        onClick={() => {
+                                            const params = new URLSearchParams();
+                                            params.set('agingNote', cat);
+                                            if (!isTotalRow) params.set('brand', brand);
+                                            navigate(`/soh?${params.toString()}`);
+                                        }}
+                                    >
+                                        {v.toLocaleString()}
+                                    </span>
+                                );
+                            },
                         })),
                     ]}
                     rowKey="key"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, DatePicker, Select } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
@@ -89,6 +90,7 @@ interface SohRecord {
 
 export default function SohPage() {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
     const [data, setData] = useState<SohRecord[]>([]);
     const [locCategoryMap, setLocCategoryMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
@@ -97,10 +99,22 @@ export default function SohPage() {
     const [editRecord, setEditRecord] = useState<SohRecord | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
-    const [filterEdNote, setFilterEdNote] = useState<string[]>([]);
-    const [filterLocCategory, setFilterLocCategory] = useState<string[]>([]);
-    const [filterBrand, setFilterBrand] = useState<string[]>([]);
-    const [filterAgingNote, setFilterAgingNote] = useState<string[]>([]);
+    const [filterEdNote, setFilterEdNote] = useState<string[]>(() => {
+        const v = searchParams.get('edNote');
+        return v ? v.split(',') : [];
+    });
+    const [filterLocCategory, setFilterLocCategory] = useState<string[]>(() => {
+        const v = searchParams.get('locCategory');
+        return v ? v.split(',') : [];
+    });
+    const [filterBrand, setFilterBrand] = useState<string[]>(() => {
+        const v = searchParams.get('brand');
+        return v ? v.split(',') : [];
+    });
+    const [filterAgingNote, setFilterAgingNote] = useState<string[]>(() => {
+        const v = searchParams.get('agingNote');
+        return v ? v.split(',') : [];
+    });
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
@@ -256,7 +270,8 @@ export default function SohPage() {
             if (!filterLocCategory.includes(cat)) return false;
         }
         if (filterBrand.length > 0) {
-            if (!filterBrand.includes(r.brand || '')) return false;
+            const brandUpper = (r.brand || '').toUpperCase();
+            if (!filterBrand.some(fb => fb.toUpperCase() === brandUpper)) return false;
         }
         if (filterAgingNote.length > 0) {
             const note = calcAgingNote(r.wh_arrival_date);
