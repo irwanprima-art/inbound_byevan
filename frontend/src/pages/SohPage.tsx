@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, DatePicker } from 'antd';
+import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, DatePicker, Select } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     ReloadOutlined, UploadOutlined, DownloadOutlined, SearchOutlined, ClearOutlined,
@@ -97,6 +97,10 @@ export default function SohPage() {
     const [editRecord, setEditRecord] = useState<SohRecord | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
+    const [filterEdNote, setFilterEdNote] = useState<string[]>([]);
+    const [filterLocCategory, setFilterLocCategory] = useState<string[]>([]);
+    const [filterBrand, setFilterBrand] = useState<string[]>([]);
+    const [filterAgingNote, setFilterAgingNote] = useState<string[]>([]);
     const [form] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
@@ -243,9 +247,30 @@ export default function SohPage() {
             const d = dayjs(r.update_date);
             if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
         }
+        if (filterEdNote.length > 0) {
+            const note = calcEdNote(r.exp_date, r.update_date);
+            if (!filterEdNote.includes(note)) return false;
+        }
+        if (filterLocCategory.length > 0) {
+            const cat = locCategoryMap[r.location] || r.location_category || '';
+            if (!filterLocCategory.includes(cat)) return false;
+        }
+        if (filterBrand.length > 0) {
+            if (!filterBrand.includes(r.brand || '')) return false;
+        }
+        if (filterAgingNote.length > 0) {
+            const note = calcAgingNote(r.wh_arrival_date);
+            if (!filterAgingNote.includes(note)) return false;
+        }
         if (!search) return true;
         return Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
     });
+
+    // Compute unique filter options from ALL data (not filtered)
+    const edNoteOptions = [...new Set(data.map(r => calcEdNote(r.exp_date, r.update_date)))].sort().map(v => ({ label: v, value: v }));
+    const locCategoryOptions = [...new Set(data.map(r => locCategoryMap[r.location] || r.location_category || '').filter(Boolean))].sort().map(v => ({ label: v, value: v }));
+    const brandOptions = [...new Set(data.map(r => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
+    const agingNoteOptions = [...new Set(data.map(r => calcAgingNote(r.wh_arrival_date)).filter(v => v !== '-'))].sort().map(v => ({ label: v, value: v }));
 
     const columns: any[] = [
         { title: 'Location', dataIndex: 'location', key: 'location', width: 100 },
@@ -330,6 +355,32 @@ export default function SohPage() {
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
                 </Space>
+            </div>
+            {/* Filter row */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <Select
+                    mode="multiple" allowClear placeholder="Filter ED Note" options={edNoteOptions}
+                    value={filterEdNote} onChange={setFilterEdNote}
+                    style={{ minWidth: 180, flex: 1 }} maxTagCount="responsive"
+                />
+                <Select
+                    mode="multiple" allowClear placeholder="Filter Location Category" options={locCategoryOptions}
+                    value={filterLocCategory} onChange={setFilterLocCategory}
+                    style={{ minWidth: 180, flex: 1 }} maxTagCount="responsive"
+                />
+                <Select
+                    mode="multiple" allowClear placeholder="Filter Brand" options={brandOptions}
+                    value={filterBrand} onChange={setFilterBrand}
+                    style={{ minWidth: 180, flex: 1 }} maxTagCount="responsive"
+                />
+                <Select
+                    mode="multiple" allowClear placeholder="Filter Aging Note" options={agingNoteOptions}
+                    value={filterAgingNote} onChange={setFilterAgingNote}
+                    style={{ minWidth: 180, flex: 1 }} maxTagCount="responsive"
+                />
+                {(filterEdNote.length > 0 || filterLocCategory.length > 0 || filterBrand.length > 0 || filterAgingNote.length > 0) && (
+                    <Button size="small" danger onClick={() => { setFilterEdNote([]); setFilterLocCategory([]); setFilterBrand([]); setFilterAgingNote([]); }}>Reset Filter</Button>
+                )}
             </div>
             <Table
                 rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
