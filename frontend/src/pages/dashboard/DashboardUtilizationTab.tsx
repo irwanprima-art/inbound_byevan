@@ -1,5 +1,6 @@
 import { Row, Col, Card, Progress } from 'antd';
 import ResizableTable from '../../components/ResizableTable';
+import dayjs from 'dayjs';
 
 interface Props {
     sohList: any[];
@@ -7,9 +8,17 @@ interface Props {
 }
 
 export default function DashboardUtilizationTab({ sohList, locations }: Props) {
+    // Only use records from the latest update_date (most recent snapshot)
+    const latestDateStr = sohList.reduce((latest: string, s: any) => {
+        if (s.update_date && s.update_date > latest) return s.update_date;
+        return latest;
+    }, '');
+    const latestPrefix = latestDateStr ? latestDateStr.substring(0, 10) : '';
+    const latestSoh = latestPrefix ? sohList.filter((s: any) => (s.update_date || '').startsWith(latestPrefix)) : sohList;
+
     // Build set of occupied locations from SOH data
     const occupiedLocs = new Set<string>();
-    sohList.forEach((s: any) => {
+    latestSoh.forEach((s: any) => {
         const loc = (s.location || '').trim();
         const qty = parseInt(s.qty) || 0;
         if (loc && qty > 0) occupiedLocs.add(loc);
@@ -78,7 +87,7 @@ export default function DashboardUtilizationTab({ sohList, locations }: Props) {
 
     // Location Use Per Brand
     const locBrandMap: Record<string, Record<string, number>> = {};
-    sohList.forEach((s: any) => {
+    latestSoh.forEach((s: any) => {
         const loc = (s.location || '').trim();
         const brand = (s.brand || '').trim();
         const qty = parseInt(s.qty) || 0;
@@ -119,7 +128,11 @@ export default function DashboardUtilizationTab({ sohList, locations }: Props) {
 
     return (
         <>
-            <Card title="📊 WH Utilization by Zone" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+            <Card
+                title={<span>📊 WH Utilization by Zone {latestDateStr && <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginLeft: 12 }}>📆 Data Update: {dayjs(latestDateStr).format('DD MMM YYYY')}</span>}</span>}
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
+                styles={{ header: { color: '#fff' } }}
+            >
                 <ResizableTable
                     dataSource={finalRows}
                     columns={[
