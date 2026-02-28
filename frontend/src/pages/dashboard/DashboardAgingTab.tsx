@@ -59,9 +59,17 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
         }
     });
 
+    // Only use records from the latest update_date (most recent snapshot)
+    const latestDateStr = sohList.reduce((latest: string, s: any) => {
+        if (s.update_date && s.update_date > latest) return s.update_date;
+        return latest;
+    }, '');
+    const latestDatePrefix = latestDateStr ? latestDateStr.substring(0, 10) : '';
+
     const sellable = sohList.filter((s: any) => {
         const cat = locCatMap[s.location] || s.location_category || '';
-        return cat === 'Sellable' && (Number(s.qty) || 0) > 0;
+        const dateOk = latestDatePrefix ? (s.update_date || '').startsWith(latestDatePrefix) : true;
+        return cat === 'Sellable' && (Number(s.qty) || 0) > 0 && dateOk;
     });
 
     // ED Note pivot

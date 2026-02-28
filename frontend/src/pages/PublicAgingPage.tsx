@@ -64,10 +64,19 @@ export default function PublicAgingPage() {
     // Build location category map
     const locCatMap: Record<string, string> = {};
     locations.forEach((loc: any) => { if (loc.location && loc.location_category) locCatMap[loc.location] = loc.location_category; });
+
+    // Only use records from the latest update_date (most recent snapshot)
+    const latestDateStr = sohList.reduce((latest: string, s: any) => {
+        if (s.update_date && s.update_date > latest) return s.update_date;
+        return latest;
+    }, '');
+    const latestDatePrefix = latestDateStr ? latestDateStr.substring(0, 10) : ''; // YYYY-MM-DD
+
     const sellable = sohList.filter((s: any) => {
         const cat = locCatMap[s.location] || s.location_category || '';
         const owner = (s.owner || '').trim();
-        return cat === 'Sellable' && owner === 'JC-ID' && (Number(s.qty) || 0) > 0;
+        const dateOk = latestDatePrefix ? (s.update_date || '').startsWith(latestDatePrefix) : true;
+        return cat === 'Sellable' && owner === 'JC-ID' && (Number(s.qty) || 0) > 0 && dateOk;
     });
 
     // ED Note pivot
@@ -114,20 +123,23 @@ export default function PublicAgingPage() {
         }))
         .sort((a, b) => criticalNotes.indexOf(a.ed_note) - criticalNotes.indexOf(b.ed_note) || a.brand.localeCompare(b.brand));
 
-    // Latest update date
-    const latestUpdate = sohList.reduce((latest: string, s: any) => {
-        if (s.update_date && s.update_date > latest) return s.update_date;
-        return latest;
-    }, '');
+    // Latest update date (reuse latestDateStr computed above)
+    const latestUpdate = latestDateStr;
 
     // === W2W Movement ===
     const calcWeek = (dateStr: string) => {
         const d = parseDate(dateStr); if (!d) return '';
         return `W${Math.ceil(d.date() / 7)} ${d.format('MMM')}`;
     };
-    // Group sellable by week
+    // allSellable: all dates (for W2W comparison across weeks)
+    const allSellable = sohList.filter((s: any) => {
+        const cat = locCatMap[s.location] || s.location_category || '';
+        const owner = (s.owner || '').trim();
+        return cat === 'Sellable' && owner === 'JC-ID' && (Number(s.qty) || 0) > 0;
+    });
+    // Group allSellable by week
     const weekSet = new Set<string>();
-    sellable.forEach((s: any) => { const w = calcWeek(s.update_date); if (w) weekSet.add(w); });
+    allSellable.forEach((s: any) => { const w = calcWeek(s.update_date); if (w) weekSet.add(w); });
     // Sort weeks chronologically
     const monthOrder: Record<string, number> = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
     const sortedWeeks = [...weekSet].sort((a, b) => {
@@ -148,7 +160,7 @@ export default function PublicAgingPage() {
         // Build per-brand per-edNote totals per week
         const weekData: Record<string, Record<string, Record<string, number>>> = {};
         [lastWeek, currWeek].forEach(w => { weekData[w] = {}; });
-        sellable.forEach((s: any) => {
+        allSellable.forEach((s: any) => {
             const w = calcWeek(s.update_date);
             if (w !== lastWeek && w !== currWeek) return;
             const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
@@ -218,7 +230,7 @@ export default function PublicAgingPage() {
     if (lastWeek && currWeek && lastWeek !== currWeek) {
         const agingWeekData: Record<string, Record<string, Record<string, number>>> = {};
         [lastWeek, currWeek].forEach(w => { agingWeekData[w] = {}; });
-        sellable.forEach((s: any) => {
+        allSellable.forEach((s: any) => {
             const w = calcWeek(s.update_date);
             if (w !== lastWeek && w !== currWeek) return;
             const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
