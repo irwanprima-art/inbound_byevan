@@ -24,11 +24,17 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
     const fSohList = useMemo(() => sohList.filter(s => matchesDateRange(s.date)), [sohList, matchesDateRange]);
     const fQcReturns = useMemo(() => qcReturns.filter(q => matchesDateRange(q.qc_date || q.date)), [qcReturns, matchesDateRange]);
 
+    // Use reconcile_variance when available, otherwise fall back to Round 1 variance
+    const effectiveVariance = (d: any): number => {
+        if (d.reconcile_variance != null) return parseInt(d.reconcile_variance) || 0;
+        return parseInt(d.variance) || 0;
+    };
+
     // Accuracy calculations
     const totalSysQty = fDccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);
     const totalPhyQty = fDccList.reduce((sum, d) => sum + (parseInt(d.phy_qty) || 0), 0);
-    const shortageQty = fDccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
-    const gainQty = fDccList.reduce((sum, d) => { const v = parseInt(d.variance) || 0; return sum + (v > 0 ? v : 0); }, 0);
+    const shortageQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
+    const gainQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v > 0 ? v : 0); }, 0);
     const accuracyQty = totalSysQty > 0 ? (((totalSysQty - shortageQty - gainQty) / totalSysQty) * 100).toFixed(2) : '0.00';
 
     // SKU Accuracy
@@ -36,7 +42,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
     fDccList.forEach(d => {
         const sku = (d.sku || '').trim();
         if (!sku) return;
-        const v = parseInt(d.variance) || 0;
+        const v = effectiveVariance(d);
         if (!skuVarianceMap.hasOwnProperty(sku)) skuVarianceMap[sku] = 0;
         skuVarianceMap[sku] += Math.abs(v);
     });
@@ -50,7 +56,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
     fDccList.forEach(d => {
         const loc = (d.location || '').trim();
         if (!loc) return;
-        const v = parseInt(d.variance) || 0;
+        const v = effectiveVariance(d);
         if (!locVarianceMap.hasOwnProperty(loc)) locVarianceMap[loc] = 0;
         locVarianceMap[loc] += Math.abs(v);
     });
