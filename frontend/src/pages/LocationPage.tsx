@@ -70,7 +70,15 @@ export default function LocationPage() {
                 sohApi.list(),
             ]);
             setData(locRes.data || []);
-            setSohMap(buildSohMap((sohRes.data || []) as SohRecord[]));
+            const allSoh = (sohRes.data || []) as SohRecord[];
+            // Only use records from the latest update_date
+            const latestDate = allSoh.reduce((latest: string, s: any) => {
+                if (s.update_date && s.update_date > latest) return s.update_date;
+                return latest;
+            }, '');
+            const latestPrefix = latestDate ? latestDate.substring(0, 10) : '';
+            const latestSoh = latestPrefix ? allSoh.filter((s: any) => (s.update_date || '').startsWith(latestPrefix)) : allSoh;
+            setSohMap(buildSohMap(latestSoh));
         } catch {
             message.error('Gagal memuat data');
         }
