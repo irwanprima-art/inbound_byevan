@@ -68,6 +68,8 @@ export const beritaAcaraApi = createResourceApi('berita-acara');
 export const stockOpnamesApi = createResourceApi('stock-opnames');
 export const additionalMpApi = createResourceApi('additional-mp');
 export const masterItemsApi = createResourceApi('master-items');
+export const inboundRejectionsApi = createResourceApi('inbound-rejections');
+export const inboundCasesApi = createResourceApi('inbound-cases');
 
 // User management API (custom endpoints)
 export const usersApi = {

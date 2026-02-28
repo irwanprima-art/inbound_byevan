@@ -149,6 +149,12 @@ func main() {
 	masterItems := handlers.NewResource[models.MasterItem]("master-items")
 	masterItems.RegisterRoutes(protected.Group("/master-items"))
 
+	inboundRejections := handlers.NewResource[models.InboundRejection]("inbound-rejections")
+	inboundRejections.RegisterRoutes(protected.Group("/inbound-rejections"))
+
+	inboundCases := handlers.NewResource[models.InboundCase]("inbound-cases")
+	inboundCases.RegisterRoutes(protected.Group("/inbound-cases"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

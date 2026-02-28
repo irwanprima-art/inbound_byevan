@@ -288,3 +288,33 @@ type AdditionalMp struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// InboundRejection represents tolakan (rejected goods) in inbound
+type InboundRejection struct {
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Brand        string         `gorm:"column:brand" json:"brand"`
+	Sku          string         `gorm:"column:sku" json:"sku"`
+	SerialNumber string         `gorm:"column:serial_number" json:"serial_number"`
+	Catatan      string         `gorm:"column:catatan" json:"catatan"`
+	Qty          int            `gorm:"column:qty" json:"qty" binding:"min=0"`
+	SourceDocNo  string         `gorm:"column:source_doc_no" json:"source_doc_no"` // BA doc_number ref
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// InboundCase represents inbound case tracking data
+type InboundCase struct {
+	ID         uint           `gorm:"primaryKey" json:"id"`
+	Date       FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	ReceiptNo  string         `gorm:"column:receipt_no" json:"receipt_no"`
+	Brand      string         `gorm:"column:brand" json:"brand"`
+	Case       string         `gorm:"column:case" json:"case"`
+	Operator   string         `gorm:"column:operator" json:"operator"`
+	Qty        int            `gorm:"column:qty" json:"qty" binding:"min=0"`
+	Keterangan string         `gorm:"column:keterangan" json:"keterangan"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+}

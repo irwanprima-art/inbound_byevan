@@ -32,6 +32,8 @@ import StockOpnamePage from '../pages/StockOpnamePage';
 import MasterItemPage from '../pages/MasterItemPage';
 import BeritaAcaraInventoryPage from '../pages/BeritaAcaraInventoryPage';
 import SettingsPage from '../pages/SettingsPage';
+import InboundRejectionPage from '../pages/InboundRejectionPage';
+import InboundCasePage from '../pages/InboundCasePage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -57,6 +59,8 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
     { key: '/vas', icon: <ToolOutlined />, label: 'VAS', group: 'inbound' },
     { key: '/berita-acara', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inbound' },
+    { key: '/inbound-rejection', icon: <WarningOutlined />, label: 'Tolakan Inbound', group: 'inbound' },
+    { key: '/inbound-case', icon: <AuditOutlined />, label: 'Case Inbound', group: 'inbound' },
     { key: '/locations', icon: <EnvironmentOutlined />, label: 'Master Location', group: 'inventory' },
     { key: '/master-items', icon: <ShoppingOutlined />, label: 'Master Item', group: 'inventory' },
     { key: '/soh', icon: <DatabaseOutlined />, label: 'Stock on Hand', group: 'inventory' },
@@ -92,6 +96,8 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/additional-mp': 'additional-mp',
     '/berita-acara': 'berita-acara',
     '/berita-acara-inventory': 'berita-acara-inventory',
+    '/inbound-rejection': 'inbound-rejection',
+    '/inbound-case': 'inbound-case',
 };
 
 // Map route key → component
@@ -115,6 +121,8 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/additional-mp': <AdditionalMpPage />,
     '/berita-acara': <BeritaAcaraPage />,
     '/berita-acara-inventory': <BeritaAcaraInventoryPage />,
+    '/inbound-rejection': <InboundRejectionPage />,
+    '/inbound-case': <InboundCasePage />,
     '/settings': <SettingsPage />,
 };
 
