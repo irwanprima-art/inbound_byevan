@@ -225,19 +225,16 @@ export default function ArrivalsPage() {
         if (modalOpen) {
             if (editRecord.current) {
                 const rec = { ...editRecord.current };
-                // Convert scheduled_arrival_time string to dayjs for DatePicker
-                if (rec.scheduled_arrival_time && rec.scheduled_arrival_time !== '-') {
-                    const d = dayjs(rec.scheduled_arrival_time);
-                    rec.scheduled_arrival_time = d.isValid() ? d : null;
-                } else {
-                    rec.scheduled_arrival_time = null;
-                }
+                // Convert date/time strings to dayjs for DatePickers
+                rec.date = rec.date ? (dayjs(rec.date).isValid() ? dayjs(rec.date) : null) : null;
+                rec.arrival_time = rec.arrival_time && rec.arrival_time !== '-' ? (dayjs(rec.arrival_time).isValid() ? dayjs(rec.arrival_time) : null) : null;
+                rec.scheduled_arrival_time = rec.scheduled_arrival_time && rec.scheduled_arrival_time !== '-' ? (dayjs(rec.scheduled_arrival_time).isValid() ? dayjs(rec.scheduled_arrival_time) : null) : null;
                 form.setFieldsValue(rec);
             } else {
                 form.resetFields();
                 form.setFieldsValue({
-                    date: dayjs().format('YYYY-MM-DD'),
-                    arrival_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                    date: dayjs(),
+                    arrival_time: dayjs(),
                 });
             }
         }
@@ -246,12 +243,11 @@ export default function ArrivalsPage() {
     const handleSave = async () => {
         try {
             const vals = await form.validateFields();
-            // Convert DatePicker dayjs value back to string
-            if (vals.scheduled_arrival_time && typeof vals.scheduled_arrival_time === 'object' && vals.scheduled_arrival_time.format) {
-                vals.scheduled_arrival_time = vals.scheduled_arrival_time.format('YYYY-MM-DD HH:mm:ss');
-            } else if (!vals.scheduled_arrival_time) {
-                vals.scheduled_arrival_time = '';
-            }
+            // Convert DatePicker dayjs values back to strings
+            const toDateStr = (v: any, fmt: string) => v && typeof v === 'object' && v.format ? v.format(fmt) : (v || '');
+            vals.date = toDateStr(vals.date, 'YYYY-MM-DD');
+            vals.arrival_time = toDateStr(vals.arrival_time, 'YYYY-MM-DD HH:mm:ss');
+            vals.scheduled_arrival_time = toDateStr(vals.scheduled_arrival_time, 'YYYY-MM-DD HH:mm:ss');
             if (editId) {
                 await arrivalsApi.update(editId, vals);
                 message.success('Data diupdate');
@@ -427,8 +423,12 @@ export default function ArrivalsPage() {
             >
                 <Form form={form} layout="vertical">
                     <Form.Item name="date" label="Tanggal Kedatangan" rules={[{ required: true }]}
-                        tooltip="Otomatis terisi tanggal hari ini">
-                        <Input disabled={!editId} />
+                        tooltip="Pilih tanggal kedatangan">
+                        <DatePicker
+                            format="YYYY-MM-DD"
+                            placeholder="Pilih tanggal kedatangan"
+                            style={{ width: '100%' }}
+                        />
                     </Form.Item>
                     <Form.Item name="scheduled_arrival_time" label="Jadwal Kedatangan"
                         tooltip="Jadwal/rencana waktu kedatangan">
@@ -440,8 +440,13 @@ export default function ArrivalsPage() {
                         />
                     </Form.Item>
                     <Form.Item name="arrival_time" label="Waktu Kedatangan"
-                        tooltip="Otomatis terisi jam saat input">
-                        <Input disabled={!editId} />
+                        tooltip="Waktu aktual kedatangan">
+                        <DatePicker
+                            showTime
+                            format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="Pilih waktu kedatangan"
+                            style={{ width: '100%' }}
+                        />
                     </Form.Item>
                     <Form.Item name="brand" label="Brand" rules={[{ required: true }]}>
                         <Input />
