@@ -63,7 +63,7 @@ func main() {
 	}
 
 	tables := []tableColumn{
-		{"arrivals", []string{"date", "arrival_time"}},
+		{"arrivals", []string{"date", "scheduled_arrival_time", "arrival_time"}},
 		{"transactions", []string{"date", "time_transaction"}},
 		{"vas", []string{"date", "start_time", "end_time"}},
 		{"dccs", []string{"date"}},

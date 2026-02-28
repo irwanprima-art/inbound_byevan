@@ -129,6 +129,7 @@ export default function ArrivalsPage() {
 
     const columns = [
         { title: 'Tgl Kedatangan', dataIndex: 'date', key: 'date', width: 120, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
+        { title: 'Jadwal Kedatangan', dataIndex: 'scheduled_arrival_time', key: 'scheduled_arrival_time', width: 130 },
         { title: 'Waktu Kedatangan', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
         {
@@ -245,7 +246,7 @@ export default function ArrivalsPage() {
 
     // CSV Export
     const handleExport = () => {
-        const headers = ['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'operator', 'note', 'status'];
+        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             enrichedData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -278,6 +279,7 @@ export default function ArrivalsPage() {
                 };
                 return {
                     date: normalizeDate(get('date', dayjs().format('YYYY-MM-DD'))),
+                    scheduled_arrival_time: normalizeDateTime(get('scheduled_arrival_time', '')),
                     arrival_time: normalizeDateTime(get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss'))),
                     brand: get('brand'),
                     item_type: get('item_type'),
@@ -374,6 +376,10 @@ export default function ArrivalsPage() {
                     <Form.Item name="date" label="Tanggal Kedatangan" rules={[{ required: true }]}
                         tooltip="Otomatis terisi tanggal hari ini">
                         <Input disabled={!editId} />
+                    </Form.Item>
+                    <Form.Item name="scheduled_arrival_time" label="Jadwal Kedatangan"
+                        tooltip="Jadwal/rencana waktu kedatangan">
+                        <Input />
                     </Form.Item>
                     <Form.Item name="arrival_time" label="Waktu Kedatangan"
                         tooltip="Otomatis terisi jam saat input">

@@ -11,19 +11,20 @@ import (
 
 // Arrival represents inbound arrival data
 type Arrival struct {
-	ID          uint           `gorm:"primaryKey" json:"id"`
-	Date        FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	ArrivalTime FlexDate       `gorm:"column:arrival_time;type:text" json:"arrival_time"`
-	ReceiptNo   string         `gorm:"column:receipt_no" json:"receipt_no"`
-	PoNo        string         `gorm:"column:po_no" json:"po_no"`
-	Brand       string         `gorm:"column:brand" json:"brand" binding:"required"`
-	PoQty       int            `gorm:"column:po_qty" json:"po_qty" binding:"min=0"`
-	Operator    string         `gorm:"column:operator" json:"operator"`
-	Note        string         `gorm:"column:note" json:"note"`
-	ItemType    string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID                   uint           `gorm:"primaryKey" json:"id"`
+	Date                 FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	ScheduledArrivalTime FlexDate       `gorm:"column:scheduled_arrival_time;type:text" json:"scheduled_arrival_time"`
+	ArrivalTime          FlexDate       `gorm:"column:arrival_time;type:text" json:"arrival_time"`
+	ReceiptNo            string         `gorm:"column:receipt_no" json:"receipt_no"`
+	PoNo                 string         `gorm:"column:po_no" json:"po_no"`
+	Brand                string         `gorm:"column:brand" json:"brand" binding:"required"`
+	PoQty                int            `gorm:"column:po_qty" json:"po_qty" binding:"min=0"`
+	Operator             string         `gorm:"column:operator" json:"operator"`
+	Note                 string         `gorm:"column:note" json:"note"`
+	ItemType             string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	DeletedAt            gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Transaction represents inbound transaction data
