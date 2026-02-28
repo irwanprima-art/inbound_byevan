@@ -178,7 +178,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         { name: 'Pending Qty', value: Math.max(0, pendingReceive), color: '#f59e0b' },
     ];
 
-    // Per item-type brand data: plan_qty (line) + po_qty (bar)
+    // Per item-type brand data: plan_qty (line) + po_qty (bar) — for Barang Jual & Gimmick
     const buildItemTypeData = (itemType: string) => {
         const map: Record<string, { po_qty: number; plan_qty: number }> = {};
         enrichedArrivals.forEach((a: any) => {
@@ -195,7 +195,37 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     };
     const barangJualData = buildItemTypeData('Barang Jual');
     const gimmickData = buildItemTypeData('Gimmick');
-    const atkData = buildItemTypeData('ATK');
+
+    // ATK: join Receipt No from ATK arrivals with Inbound Transactions (operate_type = receive)
+    const atkData = (() => {
+        // Step 1: collect receipt_no and plan_qty from ATK arrivals, keyed by receipt_no
+        const atkReceiptMap: Record<string, { brand: string; plan_qty: number }> = {};
+        enrichedArrivals.forEach((a: any) => {
+            if ((a.item_type || 'Barang Jual') !== 'ATK') return;
+            const rn = (a.receipt_no || '').trim().toLowerCase();
+            if (!rn) return;
+            const brand = (a.brand || 'Unknown').toUpperCase();
+            if (!atkReceiptMap[rn]) atkReceiptMap[rn] = { brand, plan_qty: 0 };
+            atkReceiptMap[rn].plan_qty += parseInt(a.plan_qty) || 0;
+        });
+
+        // Step 2: sum receive qty from transactions (all dates, not date-filtered, so ATK always has data)
+        const brandMap: Record<string, { receive_qty: number; plan_qty: number }> = {};
+        fTransactions.forEach((tx: any) => {
+            const rn = (tx.receipt_no || '').trim().toLowerCase();
+            if (!atkReceiptMap[rn]) return;
+            const opType = (tx.operate_type || '').trim().toLowerCase();
+            if (opType !== 'receive' && opType !== 'receiving') return;
+            const { brand, plan_qty } = atkReceiptMap[rn];
+            if (!brandMap[brand]) brandMap[brand] = { receive_qty: 0, plan_qty: 0 };
+            brandMap[brand].receive_qty += parseInt(tx.qty) || 0;
+            brandMap[brand].plan_qty = plan_qty; // use arrivals plan_qty
+        });
+
+        return Object.entries(brandMap)
+            .map(([name, v]) => ({ name, po_qty: v.receive_qty, plan_qty: v.plan_qty }))
+            .sort((a, b) => b.po_qty - a.po_qty);
+    })();
 
     // Custom tooltip for item type charts
     const ItemTypeTooltip = ({ active, payload, label }: any) => {
@@ -315,10 +345,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 {([
-                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6' },
-                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa' },
-                    { label: '📎 ATK — Plan Qty vs PO Qty per Brand', data: atkData, color: '#f59e0b' },
-                ] as const).map(({ label, data, color }) => (
+                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty' },
+                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty' },
+                    { label: '📎 ATK — Plan Qty vs Receive Qty per Brand (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty' },
+                ] as const).map(({ label, data, color, barName }) => (
                     <Col xs={24} key={label}>
                         <Card
                             title={label}
@@ -333,7 +363,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                         <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
                                         <RTooltip content={<ItemTypeTooltip />} />
                                         <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
-                                        <Bar dataKey="po_qty" name="PO Qty" fill={color} radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
                                         <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
