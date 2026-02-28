@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Typography, Spin, Card, Tag, ConfigProvider, theme } from 'antd';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Typography, Spin, Card, Tag, ConfigProvider, theme, Button, message } from 'antd';
+import { CameraOutlined } from '@ant-design/icons';
 import ResizableTable from '../components/ResizableTable';
 import { publicApi } from '../api/client';
 import dayjs from 'dayjs';
+import html2canvas from 'html2canvas';
 
 const { Title, Text } = Typography;
 
@@ -43,6 +45,56 @@ export default function PublicAgingPage() {
     const [loading, setLoading] = useState(true);
     const [sohList, setSohList] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
+    const [capturing, setCapturing] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    const handleScreenshot = useCallback(async () => {
+        if (!contentRef.current) return;
+        setCapturing(true);
+        const hide = message.loading('Membuat screenshot...', 0);
+        try {
+            // Temporarily remove scroll limits on all ant-table-body and scrollable divs
+            const scrollEls = contentRef.current.querySelectorAll<HTMLElement>(
+                '.ant-table-body, .ant-table-content, [class*="ant-table-scroll"]'
+            );
+            const saved: { el: HTMLElement; maxH: string; overflowY: string }[] = [];
+            scrollEls.forEach(el => {
+                saved.push({ el, maxH: el.style.maxHeight, overflowY: el.style.overflowY });
+                el.style.maxHeight = 'none';
+                el.style.overflowY = 'visible';
+            });
+
+            await new Promise(r => setTimeout(r, 100)); // wait for reflow
+
+            const canvas = await html2canvas(contentRef.current, {
+                backgroundColor: '#0d1117',
+                scale: 1.5,
+                useCORS: true,
+                logging: false,
+                windowWidth: contentRef.current.scrollWidth,
+                width: contentRef.current.scrollWidth,
+                height: contentRef.current.scrollHeight,
+            });
+
+            // Restore scroll limits
+            saved.forEach(({ el, maxH, overflowY }) => {
+                el.style.maxHeight = maxH;
+                el.style.overflowY = overflowY;
+            });
+
+            const link = document.createElement('a');
+            link.download = `aging_stock_report_${dayjs().format('YYYY-MM-DD')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            hide();
+            message.success('Screenshot berhasil disimpan!');
+        } catch (e) {
+            hide();
+            message.error('Gagal membuat screenshot');
+            console.error(e);
+        }
+        setCapturing(false);
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -294,10 +346,20 @@ export default function PublicAgingPage() {
     return (
         <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#6366f1', borderRadius: 8, fontFamily: "'Inter', sans-serif", colorBgContainer: '#1a1f3a', colorBgElevated: '#1e2340', colorBorder: 'rgba(255,255,255,0.08)', colorText: 'rgba(255,255,255,0.85)' }, components: { Table: { headerBg: '#0d1117', headerColor: 'rgba(255,255,255,0.7)', rowHoverBg: 'rgba(99,102,241,0.08)', borderColor: 'rgba(255,255,255,0.06)' } } }}>
             <div style={{ background: '#0d1117', minHeight: '100vh', padding: 24 }}>
-                <div style={{ maxWidth: 1800, margin: '0 auto' }}>
+                <div style={{ maxWidth: 1800, margin: '0 auto' }} ref={contentRef}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                         <Title level={3} style={{ color: '#fff', margin: 0 }}>📅 Aging Stock Report</Title>
-                        {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
+                            <Button
+                                icon={<CameraOutlined />}
+                                onClick={handleScreenshot}
+                                loading={capturing}
+                                style={{ background: '#6366f1', borderColor: '#6366f1', color: '#fff', fontWeight: 600 }}
+                            >
+                                Screenshot
+                            </Button>
+                        </div>
                     </div>
 
                     <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
