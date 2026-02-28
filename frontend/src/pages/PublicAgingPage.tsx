@@ -54,29 +54,58 @@ export default function PublicAgingPage() {
         setCapturing(label);
         const hide = message.loading(`Membuat screenshot ${label}...`, 0);
         try {
+            // Expand all scrollable table wrappers (vertical AND horizontal)
             const scrollEls = ref.current.querySelectorAll<HTMLElement>(
-                '.ant-table-body, .ant-table-content, [class*="ant-table-scroll"]'
+                '.ant-table-body, .ant-table-content, .ant-table-wrapper, .ant-table-container, [class*="ant-table-scroll"]'
             );
-            const saved: { el: HTMLElement; maxH: string; overflowY: string }[] = [];
+            type SavedStyle = { el: HTMLElement; maxH: string; overflowY: string; overflowX: string; width: string; minWidth: string };
+            const saved: SavedStyle[] = [];
             scrollEls.forEach(el => {
-                saved.push({ el, maxH: el.style.maxHeight, overflowY: el.style.overflowY });
+                saved.push({
+                    el,
+                    maxH: el.style.maxHeight,
+                    overflowY: el.style.overflowY,
+                    overflowX: el.style.overflowX,
+                    width: el.style.width,
+                    minWidth: el.style.minWidth,
+                });
                 el.style.maxHeight = 'none';
                 el.style.overflowY = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.width = 'auto';
+                el.style.minWidth = 'max-content';
             });
-            await new Promise(r => setTimeout(r, 120));
+
+            // Also expand the root ref div to its full scroll width
+            const origRefWidth = ref.current.style.width;
+            const origRefOverflow = ref.current.style.overflow;
+            const fullWidth = ref.current.scrollWidth;
+            ref.current.style.width = `${fullWidth}px`;
+            ref.current.style.overflow = 'visible';
+
+            await new Promise(r => setTimeout(r, 200)); // wait for reflow
+
             const canvas = await html2canvas(ref.current, {
                 backgroundColor: '#0d1117',
                 scale: 1.5,
                 useCORS: true,
                 logging: false,
-                windowWidth: ref.current.scrollWidth,
-                width: ref.current.scrollWidth,
+                windowWidth: fullWidth,
+                width: fullWidth,
                 height: ref.current.scrollHeight,
             });
-            saved.forEach(({ el, maxH, overflowY }) => {
+
+            // Restore everything
+            saved.forEach(({ el, maxH, overflowY, overflowX, width, minWidth }) => {
                 el.style.maxHeight = maxH;
                 el.style.overflowY = overflowY;
+                el.style.overflowX = overflowX;
+                el.style.width = width;
+                el.style.minWidth = minWidth;
             });
+            ref.current.style.width = origRefWidth;
+            ref.current.style.overflow = origRefOverflow;
+
             const link = document.createElement('a');
             link.download = filename;
             link.href = canvas.toDataURL('image/png');
@@ -90,6 +119,7 @@ export default function PublicAgingPage() {
         }
         setCapturing(null);
     }, []);
+
 
     useEffect(() => {
         (async () => {
