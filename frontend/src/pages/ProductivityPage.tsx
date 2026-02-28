@@ -454,10 +454,21 @@ export default function ProductivityPage() {
 </body>
 </html>`;
 
-        const w = window.open('', '_blank');
-        if (w) {
-            w.document.write(html);
-            w.document.close();
+        // Use hidden iframe to avoid popup blocker
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+        document.body.appendChild(iframe);
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+            doc.open();
+            doc.write(html);
+            doc.close();
+            // Wait for content to render then print
+            setTimeout(() => {
+                iframe.contentWindow?.print();
+                // Remove iframe after print dialog closes
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+            }, 500);
         }
     };
 
