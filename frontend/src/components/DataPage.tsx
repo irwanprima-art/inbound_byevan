@@ -87,8 +87,8 @@ export default function DataPage<T extends { id: number }>({
     const canDelete = user?.role === 'supervisor' || user?.role === 'leader';
     const isSupervisor = user?.role === 'supervisor';
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await api.list();
             const items = res.data || [];
@@ -96,17 +96,17 @@ export default function DataPage<T extends { id: number }>({
             items.sort((a: T, b: T) => b.id - a.id);
             setData(items);
         } catch (err) {
-            message.error('Gagal memuat data');
+            if (!silent) message.error('Gagal memuat data');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [api]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 60 seconds (silent — no loading spinner)
     useEffect(() => {
-        const interval = setInterval(() => { fetchData(); }, 30000);
+        const interval = setInterval(() => { fetchData(true); }, 60000);
         return () => clearInterval(interval);
     }, [fetchData]);
 
@@ -420,7 +420,7 @@ export default function DataPage<T extends { id: number }>({
                         style={{ width: 240 }}
                         allowClear
                     />
-                    <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
+                    <Button icon={<ReloadOutlined />} onClick={() => fetchData()}>Refresh</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
                     {csvHeaders && (parseCSVRow || columnMap) && (
                         <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}>

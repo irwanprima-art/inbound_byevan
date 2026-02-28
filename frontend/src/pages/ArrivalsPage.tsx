@@ -26,8 +26,8 @@ export default function ArrivalsPage() {
     const [form] = Form.useForm();
 
     // Fetch arrivals + transactions data
-    const fetchAll = useCallback(async () => {
-        setLoading(true);
+    const fetchAll = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const [aRes, tRes] = await Promise.all([arrivalsApi.list(), transactionsApi.list()]);
             const arrivals = aRes.data || [];
@@ -35,17 +35,17 @@ export default function ArrivalsPage() {
             setData(arrivals);
             setTransData(tRes.data || []);
         } catch {
-            message.error('Gagal memuat data');
+            if (!silent) message.error('Gagal memuat data');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 60 seconds (silent — no loading spinner)
     useEffect(() => {
-        const interval = setInterval(() => { fetchAll(); }, 30000);
+        const interval = setInterval(() => { fetchAll(true); }, 60000);
         return () => clearInterval(interval);
     }, [fetchAll]);
 
@@ -382,7 +382,7 @@ export default function ArrivalsPage() {
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
-                    <Button icon={<ReloadOutlined />} onClick={fetchAll}>Refresh</Button>
+                    <Button icon={<ReloadOutlined />} onClick={() => fetchAll()}>Refresh</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>

@@ -67,24 +67,24 @@ export default function VasPage() {
     const [employees, setEmployees] = useState<any[]>([]);
 
     // ─── Data fetching ─────────────────────────
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const [vasRes, empRes] = await Promise.all([vasApi.list(), employeesApi.list()]);
             setData(vasRes.data || []);
             setEmployees((empRes.data || []).filter((e: any) => e.is_active !== 'Inactive'));
         } catch {
-            message.error('Gagal memuat data');
+            if (!silent) message.error('Gagal memuat data');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 60 seconds (silent — no loading spinner)
     useEffect(() => {
-        const interval = setInterval(() => { fetchData(); }, 30000);
+        const interval = setInterval(() => { fetchData(true); }, 60000);
         return () => clearInterval(interval);
     }, [fetchData]);
 
@@ -716,7 +716,7 @@ export default function VasPage() {
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
                     <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
-                    <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
+                    <Button icon={<ReloadOutlined />} onClick={() => fetchData()}>Refresh</Button>
                     <Button icon={<PlusOutlined />} onClick={handleAddManual}>Manual Add</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>

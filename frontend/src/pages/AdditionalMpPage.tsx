@@ -36,23 +36,23 @@ export default function AdditionalMpPage() {
     const [formTasks, setFormTasks] = useState<string>('');
     const [saving, setSaving] = useState(false);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await additionalMpApi.list();
             setData(res.data || []);
         } catch {
-            message.error('Gagal memuat data');
+            if (!silent) message.error('Gagal memuat data');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Auto-refresh every 30s
+    // Auto-refresh every 60s (silent — no loading spinner)
     useEffect(() => {
-        const interval = setInterval(fetchData, 30000);
+        const interval = setInterval(() => { fetchData(true); }, 60000);
         return () => clearInterval(interval);
     }, [fetchData]);
 
@@ -162,7 +162,7 @@ export default function AdditionalMpPage() {
                     />
                     <Button icon={<RightOutlined />} onClick={nextMonth} size="small" />
                     <Button size="small" onClick={thisMonth}>Bulan Ini</Button>
-                    <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
+                    <Button icon={<ReloadOutlined />} onClick={() => fetchData()} loading={loading}>Refresh</Button>
                     {canEdit && (
                         <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Tambah</Button>
                     )}
