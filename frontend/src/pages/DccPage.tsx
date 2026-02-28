@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Form, Input, InputNumber, Tag, Select } from 'antd';
+import { Form, Input, InputNumber, Tag, Select, Modal, Button, Upload, message, Progress } from 'antd';
+import { SyncOutlined } from '@ant-design/icons';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
 
@@ -118,17 +119,28 @@ const getRemarks = (item: any) => {
 
 const remarksOptions = ['Match', 'Shortage', 'Gain'].map(v => ({ label: v, value: v }));
 
+// Normalize for comparison: lowercase + trim
+const normKey = (v: any) => (v || '').toString().toLowerCase().trim();
+
+// Build composite match key: phy_inv|zone|location|owner|sku|brand
+const makeMatchKey = (r: any) =>
+    [r.phy_inv, r.zone, r.location, r.owner, r.sku, r.brand].map(normKey).join('|');
+
 export default function DccPage() {
     const [filterBrand, setFilterBrand] = useState<string[]>([]);
     const [filterZone, setFilterZone] = useState<string[]>([]);
     const [filterRemarks, setFilterRemarks] = useState<string[]>([]);
     const [allData, setAllData] = useState<any[]>([]);
 
+    // Reconcile state
+    const [reconcileLoading, setReconcileLoading] = useState(false);
+    const [reconcileResult, setReconcileResult] = useState<{ matched: number; unmatched: number; updated: number } | null>(null);
+
     // Derive unique options from loaded data
     const brandOptions = [...new Set(allData.map((r: any) => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
     const zoneOptions = [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
 
-    // Wrap dccApi to intercept list() and capture data for filter options
+    // Wrap dccApi to intercept list() and capture data for filter options + reconcile lookup
     const wrappedApi = useMemo(() => ({
         ...dccApi,
         list: async () => {
@@ -138,37 +150,121 @@ export default function DccPage() {
         },
     }), []);
 
+    // ── Reconcile Import ──────────────────────────────────────────────────────
+    const handleReconcileFile = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) { message.warning('File kosong'); return; }
+
+            // Parse headers — apply columnMap aliases
+            const rawHeaders = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+            const normalHeaders = rawHeaders.map(h => {
+                const mapped = columnMap[h];
+                return mapped || h.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            });
+
+            // Parse rows using the same parseCSVRow logic
+            const importedRows: Record<string, unknown>[] = [];
+            for (const line of lines.slice(1)) {
+                const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                const row = parseCSVRow(cols, normalHeaders);
+                if (row) importedRows.push(row);
+            }
+
+            if (importedRows.length === 0) { message.warning('Tidak ada data valid di file reconcile'); return; }
+
+            // Ensure we have latest data — re-fetch if empty
+            let currentData = allData;
+            if (currentData.length === 0) {
+                try {
+                    const res = await dccApi.list();
+                    currentData = res.data || [];
+                    setAllData(currentData);
+                } catch { message.error('Gagal memuat data DCC'); return; }
+            }
+
+            // Build lookup map from existing data keyed by composite match key
+            const lookup = new Map<string, any>();
+            currentData.forEach((r: any) => { lookup.set(makeMatchKey(r), r); });
+
+            // Match and update
+            setReconcileLoading(true);
+            let matched = 0;
+            let unmatched = 0;
+            let updated = 0;
+
+            for (const row of importedRows) {
+                const key = makeMatchKey(row);
+                const existing = lookup.get(key);
+                if (existing) {
+                    matched++;
+                    const newSys = (row.sys_qty as number) ?? existing.sys_qty;
+                    const newPhy = (row.phy_qty as number) ?? existing.phy_qty;
+                    const newVariance = newPhy - newSys;
+                    try {
+                        await dccApi.update(existing.id, {
+                            ...existing,
+                            sys_qty: newSys,
+                            phy_qty: newPhy,
+                            variance: newVariance,
+                        });
+                        updated++;
+                    } catch { /* skip failed updates */ }
+                } else {
+                    unmatched++;
+                }
+            }
+
+            setReconcileLoading(false);
+            setReconcileResult({ matched, unmatched, updated });
+
+            // Refresh table data
+            try {
+                const res = await dccApi.list();
+                setAllData(res.data || []);
+            } catch { /* ignore */ }
+        };
+        reader.readAsText(file);
+        return false; // prevent antd default upload
+    };
+
+    // Extra button injected into DataPage toolbar (after Import)
+    const extraButtons = (
+        <Upload
+            accept=".csv"
+            showUploadList={false}
+            beforeUpload={handleReconcileFile as any}
+            disabled={reconcileLoading}
+        >
+            <Button
+                icon={<SyncOutlined spin={reconcileLoading} />}
+                loading={reconcileLoading}
+                style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+                title="Import CSV Reconcile — update Sys.Qty & Phy.Qty berdasarkan kecocokan Phy.Inv#, Zone, Location, Owner, SKU, Brand"
+            >
+                Reconcile
+            </Button>
+        </Upload>
+    );
+
     const extraFilterUi = (
         <>
             <Select
-                mode="multiple"
-                allowClear
-                placeholder="Filter Brand"
-                options={brandOptions}
-                value={filterBrand}
-                onChange={setFilterBrand}
-                style={{ minWidth: 130 }}
-                maxTagCount="responsive"
+                mode="multiple" allowClear placeholder="Filter Brand"
+                options={brandOptions} value={filterBrand} onChange={setFilterBrand}
+                style={{ minWidth: 130 }} maxTagCount="responsive"
             />
             <Select
-                mode="multiple"
-                allowClear
-                placeholder="Filter Zone"
-                options={zoneOptions}
-                value={filterZone}
-                onChange={setFilterZone}
-                style={{ minWidth: 130 }}
-                maxTagCount="responsive"
+                mode="multiple" allowClear placeholder="Filter Zone"
+                options={zoneOptions} value={filterZone} onChange={setFilterZone}
+                style={{ minWidth: 130 }} maxTagCount="responsive"
             />
             <Select
-                mode="multiple"
-                allowClear
-                placeholder="Filter Remarks"
-                options={remarksOptions}
-                value={filterRemarks}
-                onChange={setFilterRemarks}
-                style={{ minWidth: 140 }}
-                maxTagCount="responsive"
+                mode="multiple" allowClear placeholder="Filter Remarks"
+                options={remarksOptions} value={filterRemarks} onChange={setFilterRemarks}
+                style={{ minWidth: 140 }} maxTagCount="responsive"
             />
         </>
     );
@@ -181,19 +277,63 @@ export default function DccPage() {
     };
 
     return (
-        <DataPage
-            title="Daily Cycle Count"
-            api={wrappedApi}
-            columns={columns}
-            formFields={formFields}
-            csvHeaders={csvHeaders}
-            columnMap={columnMap}
-            numberFields={numberFields}
-            parseCSVRow={parseCSVRow as any}
-            dateField="date"
-            computeSearchText={getRemarks}
-            extraFilterUi={extraFilterUi}
-            extraFilterFn={extraFilterFn}
-        />
+        <>
+            <DataPage
+                title="Daily Cycle Count"
+                api={wrappedApi}
+                columns={columns}
+                formFields={formFields}
+                csvHeaders={csvHeaders}
+                columnMap={columnMap}
+                numberFields={numberFields}
+                parseCSVRow={parseCSVRow as any}
+                dateField="date"
+                computeSearchText={getRemarks}
+                extraFilterUi={extraFilterUi}
+                extraFilterFn={extraFilterFn}
+                extraButtons={extraButtons}
+            />
+
+            {/* Reconcile Result Modal */}
+            <Modal
+                title={<span><SyncOutlined style={{ color: '#f59e0b', marginRight: 8 }} />Hasil Reconcile</span>}
+                open={!!reconcileResult}
+                onOk={() => setReconcileResult(null)}
+                onCancel={() => setReconcileResult(null)}
+                footer={<Button type="primary" onClick={() => setReconcileResult(null)}>Tutup</Button>}
+                width={420}
+            >
+                {reconcileResult && (
+                    <div style={{ padding: '8px 0' }}>
+                        <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
+                            File reconcile telah diproses. Berikut hasilnya:
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(74,222,128,0.1)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.25)' }}>
+                                <span>✅ Record cocok &amp; diupdate</span>
+                                <span style={{ fontWeight: 700, color: '#4ade80', fontSize: 20 }}>{reconcileResult.updated}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(248,113,113,0.1)', borderRadius: 8, border: '1px solid rgba(248,113,113,0.25)' }}>
+                                <span>❌ Tidak cocok (dilewati)</span>
+                                <span style={{ fontWeight: 700, color: '#f87171', fontSize: 20 }}>{reconcileResult.unmatched}</span>
+                            </div>
+                            <Progress
+                                percent={
+                                    reconcileResult.matched + reconcileResult.unmatched > 0
+                                        ? Math.round(reconcileResult.updated / (reconcileResult.matched + reconcileResult.unmatched) * 100)
+                                        : 0
+                                }
+                                strokeColor="#4ade80"
+                                format={p => `${p}% matched`}
+                                style={{ marginTop: 4 }}
+                            />
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                                Matching key: Phy.Inventory# + Zone + Location + Owner + SKU + Brand
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+        </>
     );
 }
