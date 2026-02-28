@@ -109,7 +109,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         });
     }, [fArrivals, txLookup]);
 
-    // Inbound stats â€” all from enriched arrivals
+    // Inbound stats — all from enriched arrivals
     const totalKedatangan = new Set(enrichedArrivals.map((a: any) => `${a.brand}|${a.date}|${a.arrival_time}`).filter((k: string) => k !== '||')).size;
     const totalPO = new Set(enrichedArrivals.map((a: any) => a.po_no).filter(Boolean)).size;
     const totalBrand = new Set(enrichedArrivals.map((a: any) => a.brand).filter(Boolean)).size;
@@ -120,7 +120,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const completedCount = enrichedArrivals.filter((a: any) => a.status === 'Completed').length;
     const pctCompleted = enrichedArrivals.length > 0 ? ((completedCount / enrichedArrivals.length) * 100).toFixed(1) : '0.0';
 
-    // Avg Kedatangan â†’ Putaway: average diff between arrival_time and last_putaway per receipt_no
+    // Avg Kedatangan → Putaway: average diff between arrival_time and last_putaway per receipt_no
     const calcAvgKedatanganPutaway = () => {
         const diffs: number[] = [];
         // Group by receipt_no to get one diff per receipt
@@ -141,7 +141,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         return `${Math.floor(avg / 60)}h ${Math.round(avg % 60)}m`;
     };
 
-    // Avg Receive â†’ Putaway: average diff between first_receive and last_putaway per receipt_no
+    // Avg Receive → Putaway: average diff between first_receive and last_putaway per receipt_no
     const calcAvgReceivePutaway = () => {
         const diffs: number[] = [];
         const seen = new Set<string>();
@@ -276,14 +276,14 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 <Col xs={12} sm={8} lg={6}><StatCard title="% Completed" value={`${pctCompleted}%`} icon={<CheckCircleOutlined />} color="#22c55e" /></Col>
             </Row>
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Kedatangan â†’ Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Receive â†’ Putaway" value={avgRecPutaway} icon={<ClockCircleOutlined />} color="#f97316" /></Col>
+                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Kedatangan → Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
+                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Receive → Putaway" value={avgRecPutaway} icon={<ClockCircleOutlined />} color="#f97316" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total VAS" value={totalVAS.toLocaleString()} icon={<ToolOutlined />} color="#14b8a6" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Avg VAS / Manpower" value={avgVasPerMP} icon={<ToolOutlined />} color="#64748b" /></Col>
             </Row>
 
             <Card
-                title={`â³ Pending Inbound (${pendingArrivals.length})`}
+                title={`⏳ Pending Inbound (${pendingArrivals.length})`}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
             >
@@ -308,16 +308,16 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     />
                 ) : (
                     <div style={{ textAlign: 'center', padding: 24 }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>âœ… Tidak ada pending â€” semua sudah selesai</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>✅ Tidak ada pending — semua sudah selesai</Text>
                     </div>
                 )}
             </Card>
 
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 {([
-                    { label: 'ðŸ·ï¸ Barang Jual â€” Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6' },
-                    { label: 'ðŸŽ Gimmick â€” Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa' },
-                    { label: 'ðŸ“Ž ATK â€” Plan Qty vs PO Qty per Brand', data: atkData, color: '#f59e0b' },
+                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6' },
+                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa' },
+                    { label: '📎 ATK — Plan Qty vs PO Qty per Brand', data: atkData, color: '#f59e0b' },
                 ] as const).map(({ label, data, color }) => (
                     <Col xs={24} key={label}>
                         <Card
@@ -339,7 +339,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                 </ResponsiveContainer>
                             ) : (
                                 <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('â€”')[0].trim()}</Text>
+                                    <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
                                 </div>
                             )}
                         </Card>
@@ -349,7 +349,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 <Col xs={24} lg={12}>
-                    <Card title="ðŸ“ˆ Breakdown Qty" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+                    <Card title="📈 Breakdown Qty" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         {breakdownData.map(item => (
                             <div key={item.name} style={{ marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -391,7 +391,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 <Col xs={24} lg={12}>
-                    <Card title="ðŸ“Š PO & Qty per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+                    <Card title="📊 PO & Qty per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={brandData} margin={{ left: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -407,7 +407,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </Card>
                 </Col>
                 <Col xs={24} lg={12}>
-                    <Card title="ðŸ·ï¸ VAS Type" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+                    <Card title="🏷️ VAS Type" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         {vasTypeData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
@@ -427,7 +427,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             </Row>
 
             <Card
-                title="ðŸ“¦ Value-Added Services (VAS)"
+                title="📦 Value-Added Services (VAS)"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
             >
@@ -451,7 +451,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             </Card>
 
             <Card
-                title="ðŸšš Unloading Summary"
+                title="🚚 Unloading Summary"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
             >
