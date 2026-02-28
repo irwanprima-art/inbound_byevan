@@ -46,7 +46,8 @@ export default function PublicAgingPage() {
     const [sohList, setSohList] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
     const [capturing, setCapturing] = useState<string | null>(null);
-    const nedRef = useRef<HTMLDivElement>(null);
+    const edNoteRef = useRef<HTMLDivElement>(null);
+    const criticalRef = useRef<HTMLDivElement>(null);
     const agingRef = useRef<HTMLDivElement>(null);
 
     const captureSection = useCallback(async (ref: React.MutableRefObject<HTMLDivElement | null>, filename: string, label: string) => {
@@ -398,12 +399,21 @@ export default function PublicAgingPage() {
                             {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
                             <Button
                                 icon={<CameraOutlined />}
-                                onClick={() => captureSection(nedRef, `aging_NED_report_${dayjs().format('YYYY-MM-DD')}.png`, 'NED')}
-                                loading={capturing === 'NED'}
-                                disabled={capturing !== null && capturing !== 'NED'}
+                                onClick={() => captureSection(edNoteRef, `aging_EDNote_report_${dayjs().format('YYYY-MM-DD')}.png`, 'ED Note')}
+                                loading={capturing === 'ED Note'}
+                                disabled={capturing !== null && capturing !== 'ED Note'}
                                 style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff', fontWeight: 600 }}
                             >
-                                Screenshot NED
+                                Screenshot ED Note
+                            </Button>
+                            <Button
+                                icon={<CameraOutlined />}
+                                onClick={() => captureSection(criticalRef, `aging_Critical_report_${dayjs().format('YYYY-MM-DD')}.png`, 'Critical')}
+                                loading={capturing === 'Critical'}
+                                disabled={capturing !== null && capturing !== 'Critical'}
+                                style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', fontWeight: 600 }}
+                            >
+                                Screenshot Critical
                             </Button>
                             <Button
                                 icon={<CameraOutlined />}
@@ -417,10 +427,10 @@ export default function PublicAgingPage() {
                         </div>
                     </div>
 
-                    {/* NED Section: ED Note + Critical + W2W ED */}
-                    <div ref={nedRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8 }}>
+                    {/* ED Note Section */}
+                    <div ref={edNoteRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8 }}>
                         <div style={{ marginBottom: 16 }}>
-                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — NED &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — ED Note &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
                         <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
                             {[{ label: 'ITEM', rows: edRowsItem }, { label: 'GIMMICK', rows: edRowsGimmick }].map(({ label, rows }) => (
@@ -444,9 +454,15 @@ export default function PublicAgingPage() {
                                 </div>
                             ))}
                         </Card>
+                    </div>
 
-                        {criticalItems.length > 0 && (
-                            <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
+                    {/* Critical ED Section */}
+                    {criticalItems.length > 0 && (
+                        <div ref={criticalRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
+                            <div style={{ marginBottom: 16 }}>
+                                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Critical ED &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                            </div>
+                            <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
                                 <ResizableTable dataSource={criticalItems} columns={[
                                     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
                                     { title: 'SKU Category', dataIndex: 'sku_category', key: 'sku_category', width: 120, render: (v: string) => <Tag color={v === 'ITEM' ? '#6366f1' : v === 'GIMMICK' ? '#ec4899' : '#6b7280'} style={{ border: 'none', fontWeight: 600 }}>{v}</Tag> },
@@ -456,8 +472,8 @@ export default function PublicAgingPage() {
                                     { title: 'ED Note', dataIndex: 'ed_note', key: 'ed_note', width: 140, render: (v: string) => <Tag color={edNoteColor(v)} style={{ border: 'none' }}>{v}</Tag> },
                                 ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false} />
                             </Card>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* W2W ED — outside screenshot */}
                     {w2wRows.length > 0 && (
