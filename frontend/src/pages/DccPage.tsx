@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Form, Input, InputNumber, Tag, Select } from 'antd';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
@@ -129,14 +129,14 @@ export default function DccPage() {
     const zoneOptions = [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
 
     // Wrap dccApi to intercept list() and capture data for filter options
-    const wrappedApi = useCallback(() => ({
+    const wrappedApi = useMemo(() => ({
         ...dccApi,
         list: async () => {
             const res = await dccApi.list();
             setAllData(res.data || []);
             return res;
         },
-    }), [])();
+    }), []);
 
     const extraFilterUi = (
         <>
