@@ -45,16 +45,16 @@ export default function PublicAgingPage() {
     const [loading, setLoading] = useState(true);
     const [sohList, setSohList] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
-    const [capturing, setCapturing] = useState(false);
-    const contentRef = useRef<HTMLDivElement>(null);
+    const [capturing, setCapturing] = useState<string | null>(null);
+    const nedRef = useRef<HTMLDivElement>(null);
+    const agingRef = useRef<HTMLDivElement>(null);
 
-    const handleScreenshot = useCallback(async () => {
-        if (!contentRef.current) return;
-        setCapturing(true);
-        const hide = message.loading('Membuat screenshot...', 0);
+    const captureSection = useCallback(async (ref: React.MutableRefObject<HTMLDivElement | null>, filename: string, label: string) => {
+        if (!ref.current) return;
+        setCapturing(label);
+        const hide = message.loading(`Membuat screenshot ${label}...`, 0);
         try {
-            // Temporarily remove scroll limits on all ant-table-body and scrollable divs
-            const scrollEls = contentRef.current.querySelectorAll<HTMLElement>(
+            const scrollEls = ref.current.querySelectorAll<HTMLElement>(
                 '.ant-table-body, .ant-table-content, [class*="ant-table-scroll"]'
             );
             const saved: { el: HTMLElement; maxH: string; overflowY: string }[] = [];
@@ -63,37 +63,32 @@ export default function PublicAgingPage() {
                 el.style.maxHeight = 'none';
                 el.style.overflowY = 'visible';
             });
-
-            await new Promise(r => setTimeout(r, 100)); // wait for reflow
-
-            const canvas = await html2canvas(contentRef.current, {
+            await new Promise(r => setTimeout(r, 120));
+            const canvas = await html2canvas(ref.current, {
                 backgroundColor: '#0d1117',
                 scale: 1.5,
                 useCORS: true,
                 logging: false,
-                windowWidth: contentRef.current.scrollWidth,
-                width: contentRef.current.scrollWidth,
-                height: contentRef.current.scrollHeight,
+                windowWidth: ref.current.scrollWidth,
+                width: ref.current.scrollWidth,
+                height: ref.current.scrollHeight,
             });
-
-            // Restore scroll limits
             saved.forEach(({ el, maxH, overflowY }) => {
                 el.style.maxHeight = maxH;
                 el.style.overflowY = overflowY;
             });
-
             const link = document.createElement('a');
-            link.download = `aging_stock_report_${dayjs().format('YYYY-MM-DD')}.png`;
+            link.download = filename;
             link.href = canvas.toDataURL('image/png');
             link.click();
             hide();
-            message.success('Screenshot berhasil disimpan!');
+            message.success(`Screenshot ${label} berhasil disimpan!`);
         } catch (e) {
             hide();
             message.error('Gagal membuat screenshot');
             console.error(e);
         }
-        setCapturing(false);
+        setCapturing(null);
     }, []);
 
     useEffect(() => {
@@ -346,88 +341,110 @@ export default function PublicAgingPage() {
     return (
         <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#6366f1', borderRadius: 8, fontFamily: "'Inter', sans-serif", colorBgContainer: '#1a1f3a', colorBgElevated: '#1e2340', colorBorder: 'rgba(255,255,255,0.08)', colorText: 'rgba(255,255,255,0.85)' }, components: { Table: { headerBg: '#0d1117', headerColor: 'rgba(255,255,255,0.7)', rowHoverBg: 'rgba(99,102,241,0.08)', borderColor: 'rgba(255,255,255,0.06)' } } }}>
             <div style={{ background: '#0d1117', minHeight: '100vh', padding: 24 }}>
-                <div style={{ maxWidth: 1800, margin: '0 auto' }} ref={contentRef}>
+                <div style={{ maxWidth: 1800, margin: '0 auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                         <Title level={3} style={{ color: '#fff', margin: 0 }}>📅 Aging Stock Report</Title>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
                             <Button
                                 icon={<CameraOutlined />}
-                                onClick={handleScreenshot}
-                                loading={capturing}
-                                style={{ background: '#6366f1', borderColor: '#6366f1', color: '#fff', fontWeight: 600 }}
+                                onClick={() => captureSection(nedRef, `aging_NED_report_${dayjs().format('YYYY-MM-DD')}.png`, 'NED')}
+                                loading={capturing === 'NED'}
+                                disabled={capturing !== null && capturing !== 'NED'}
+                                style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff', fontWeight: 600 }}
                             >
-                                Screenshot
+                                Screenshot NED
+                            </Button>
+                            <Button
+                                icon={<CameraOutlined />}
+                                onClick={() => captureSection(agingRef, `aging_Aging_report_${dayjs().format('YYYY-MM-DD')}.png`, 'Aging')}
+                                loading={capturing === 'Aging'}
+                                disabled={capturing !== null && capturing !== 'Aging'}
+                                style={{ background: '#f59e0b', borderColor: '#f59e0b', color: '#fff', fontWeight: 600 }}
+                            >
+                                Screenshot Aging
                             </Button>
                         </div>
                     </div>
 
-                    <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
-                        <ResizableTable dataSource={edRowsWithTotal} columns={[
-                            { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                            ...edCats.map(cat => ({
-                                title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
-                                dataIndex: cat, key: cat, width: 130,
-                                render: (v: number, r: any) => v ? (
-                                    <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                        {v.toLocaleString()}
-                                    </a>
-                                ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                            })),
-                        ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                            onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                    </Card>
-
-                    {criticalItems.length > 0 && (
-                        <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
-                            <ResizableTable dataSource={criticalItems} columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
-                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
-                                { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span> },
-                                { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp_date', width: 120 },
-                                { title: 'ED Note', dataIndex: 'ed_note', key: 'ed_note', width: 140, render: (v: string) => <Tag color={edNoteColor(v)} style={{ border: 'none' }}>{v}</Tag> },
-                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false} />
-                        </Card>
-                    )}
-
-                    {w2wRows.length > 0 && (
-                        <Card
-                            title={`📊 Week to Week Movement (${lastWeek} → ${currWeek})`}
-                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
-                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
-                        >
-                            <ResizableTable dataSource={w2wRows} columns={w2wColumns} rowKey="key" size="small"
-                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                    {/* NED Section: ED Note + Critical + W2W ED */}
+                    <div ref={nedRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8 }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — NED &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                        </div>
+                        <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
+                            <ResizableTable dataSource={edRowsWithTotal} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...edCats.map(cat => ({
+                                    title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
+                                    dataIndex: cat, key: cat, width: 130,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
                                 onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
-                    )}
 
-                    <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
-                        <ResizableTable dataSource={agingRowsWithTotal} columns={[
-                            { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                            ...agingCats.map(cat => ({
-                                title: cat, dataIndex: cat, key: cat, width: 120,
-                                render: (v: number, r: any) => v ? (
-                                    <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                        {v.toLocaleString()}
-                                    </a>
-                                ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                            })),
-                        ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                            onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                    </Card>
+                        {criticalItems.length > 0 && (
+                            <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
+                                <ResizableTable dataSource={criticalItems} columns={[
+                                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
+                                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
+                                    { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span> },
+                                    { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp_date', width: 120 },
+                                    { title: 'ED Note', dataIndex: 'ed_note', key: 'ed_note', width: 140, render: (v: string) => <Tag color={edNoteColor(v)} style={{ border: 'none' }}>{v}</Tag> },
+                                ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false} />
+                            </Card>
+                        )}
 
-                    {agingW2wRows.length > 0 && (
-                        <Card
-                            title={`📊 Aging Note W2W Movement (${lastWeek} → ${currWeek})`}
-                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
-                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
-                        >
-                            <ResizableTable dataSource={agingW2wRows} columns={agingW2wColumns} rowKey="key" size="small"
-                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                        {w2wRows.length > 0 && (
+                            <Card
+                                title={`📊 Week to Week Movement (${lastWeek} → ${currWeek})`}
+                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                                styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                            >
+                                <ResizableTable dataSource={w2wRows} columns={w2wColumns} rowKey="key" size="small"
+                                    scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                    onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Aging Section: Aging Note + Aging W2W */}
+                    <div ref={agingRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                        </div>
+                        <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
+                            <ResizableTable dataSource={agingRowsWithTotal} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...agingCats.map(cat => ({
+                                    title: cat, dataIndex: cat, key: cat, width: 120,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
                                 onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
-                    )}
+
+                        {agingW2wRows.length > 0 && (
+                            <Card
+                                title={`📊 Aging Note W2W Movement (${lastWeek} → ${currWeek})`}
+                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                                styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                            >
+                                <ResizableTable dataSource={agingW2wRows} columns={agingW2wColumns} rowKey="key" size="small"
+                                    scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                    onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                            </Card>
+                        )}
+                    </div>
 
                     <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
                         <Text style={{ color: 'rgba(255,255,255,0.25)' }}>Warehouse Report & Monitoring System</Text>
