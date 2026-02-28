@@ -64,10 +64,14 @@ interface DataPageProps<T> {
     computeSearchText?: (item: T) => string;
     /** Field name containing the date value, e.g. 'date'. When set, a date range picker is shown. */
     dateField?: string;
+    /** Extra filter UI nodes rendered before the search bar */
+    extraFilterUi?: React.ReactNode;
+    /** Extra filter function applied per row (after date+search filters) */
+    extraFilterFn?: (item: T) => boolean;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -373,12 +377,15 @@ export default function DataPage<T extends { id: number }>({
             }
         }
         // Search filter
-        if (search === '') return true;
+        if (search === '') {
+            if (extraFilterFn) return extraFilterFn(item);
+            return true;
+        }
         const q = search.toLowerCase();
         const base = JSON.stringify(item).toLowerCase().includes(q);
-        if (base) return true;
-        if (computeSearchText) return computeSearchText(item).toLowerCase().includes(q);
-        return false;
+        if (base) return extraFilterFn ? extraFilterFn(item) : true;
+        const computed = computeSearchText ? computeSearchText(item).toLowerCase().includes(q) : false;
+        return computed && (extraFilterFn ? extraFilterFn(item) : true);
     });
 
     return (
@@ -389,6 +396,7 @@ export default function DataPage<T extends { id: number }>({
             }}>
                 <Title level={4} style={{ margin: 0, color: '#fff' }}>{title}</Title>
                 <Space wrap>
+                    {extraFilterUi && <>{extraFilterUi}</>}
                     {dateField && (
                         <>
                             <DatePicker.RangePicker

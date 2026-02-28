@@ -1,5 +1,5 @@
-import 'react';
-import { Form, Input, InputNumber, Tag } from 'antd';
+import { useState, useCallback } from 'react';
+import { Form, Input, InputNumber, Tag, Select } from 'antd';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
 
@@ -59,7 +59,6 @@ const formFields = (
 
 const csvHeaders = ['date', 'phy_inv', 'zone', 'location', 'owner', 'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'operator'];
 
-// Map common CSV header names to database fields
 const columnMap: Record<string, string> = {
     'Phy. Inventory#': 'phy_inv',
     'phy_inventory': 'phy_inv',
@@ -80,7 +79,6 @@ const columnMap: Record<string, string> = {
 
 const numberFields = ['sys_qty', 'phy_qty', 'variance'];
 
-// Skip rows where every important string field is blank
 const parseCSVRow = (row: string[], headers?: string[]): Record<string, unknown> | null => {
     if (!headers) return null;
     const get = (key: string) => {
@@ -92,7 +90,6 @@ const parseCSVRow = (row: string[], headers?: string[]): Record<string, unknown>
     };
     const sku = get('sku');
     const date = get('date');
-    // Skip truly blank rows
     if (!sku && !date) return null;
     const sysQty = parseInt(get('sys_qty')) || 0;
     const phyQty = parseInt(get('phy_qty')) || 0;
@@ -112,11 +109,81 @@ const parseCSVRow = (row: string[], headers?: string[]): Record<string, unknown>
     };
 };
 
+const getRemarks = (item: any) => {
+    const v = parseInt(item.variance) || 0;
+    if (v < 0) return 'Shortage';
+    if (v > 0) return 'Gain';
+    return 'Match';
+};
+
+const remarksOptions = ['Match', 'Shortage', 'Gain'].map(v => ({ label: v, value: v }));
+
 export default function DccPage() {
+    const [filterBrand, setFilterBrand] = useState<string[]>([]);
+    const [filterZone, setFilterZone] = useState<string[]>([]);
+    const [filterRemarks, setFilterRemarks] = useState<string[]>([]);
+    const [allData, setAllData] = useState<any[]>([]);
+
+    // Derive unique options from loaded data
+    const brandOptions = [...new Set(allData.map((r: any) => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
+    const zoneOptions = [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
+
+    // Wrap dccApi to intercept list() and capture data for filter options
+    const wrappedApi = useCallback(() => ({
+        ...dccApi,
+        list: async () => {
+            const res = await dccApi.list();
+            setAllData(res.data || []);
+            return res;
+        },
+    }), [])();
+
+    const extraFilterUi = (
+        <>
+            <Select
+                mode="multiple"
+                allowClear
+                placeholder="Filter Brand"
+                options={brandOptions}
+                value={filterBrand}
+                onChange={setFilterBrand}
+                style={{ minWidth: 130 }}
+                maxTagCount="responsive"
+            />
+            <Select
+                mode="multiple"
+                allowClear
+                placeholder="Filter Zone"
+                options={zoneOptions}
+                value={filterZone}
+                onChange={setFilterZone}
+                style={{ minWidth: 130 }}
+                maxTagCount="responsive"
+            />
+            <Select
+                mode="multiple"
+                allowClear
+                placeholder="Filter Remarks"
+                options={remarksOptions}
+                value={filterRemarks}
+                onChange={setFilterRemarks}
+                style={{ minWidth: 140 }}
+                maxTagCount="responsive"
+            />
+        </>
+    );
+
+    const extraFilterFn = (item: any) => {
+        if (filterBrand.length > 0 && !filterBrand.includes(item.brand)) return false;
+        if (filterZone.length > 0 && !filterZone.includes(item.zone)) return false;
+        if (filterRemarks.length > 0 && !filterRemarks.includes(getRemarks(item))) return false;
+        return true;
+    };
+
     return (
         <DataPage
             title="Daily Cycle Count"
-            api={dccApi}
+            api={wrappedApi}
             columns={columns}
             formFields={formFields}
             csvHeaders={csvHeaders}
@@ -124,10 +191,9 @@ export default function DccPage() {
             numberFields={numberFields}
             parseCSVRow={parseCSVRow as any}
             dateField="date"
-            computeSearchText={(item: any) => {
-                const v = parseInt(item.variance) || 0;
-                return v < 0 ? 'Shortage' : v > 0 ? 'Gain' : 'Match';
-            }}
+            computeSearchText={getRemarks}
+            extraFilterUi={extraFilterUi}
+            extraFilterFn={extraFilterFn}
         />
     );
 }
