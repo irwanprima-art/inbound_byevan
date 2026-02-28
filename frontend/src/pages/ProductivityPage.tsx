@@ -3,7 +3,7 @@ import { Row, Col, Card, Typography, Input, Button, DatePicker, Space, Spin, Mod
 import {
     SearchOutlined, ReloadOutlined, DownloadOutlined, PlusOutlined,
     TrophyOutlined, InboxOutlined, SwapOutlined, TagsOutlined,
-    CheckCircleOutlined, SafetyOutlined, ProjectOutlined,
+    CheckCircleOutlined, SafetyOutlined, ProjectOutlined, PrinterOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, qcReturnsApi, productivityApi } from '../api/client';
 import dayjs, { Dayjs } from 'dayjs';
@@ -360,6 +360,107 @@ export default function ProductivityPage() {
         message.success('Export CSV berhasil');
     };
 
+    // Print mading report
+    const handlePrint = () => {
+        const period = filterDate
+            ? filterDate.format('DD MMMM YYYY')
+            : filterMonth
+                ? filterMonth.format('MMMM YYYY')
+                : 'Semua Periode';
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const gradientMap: Record<string, string> = {};
+        categories.forEach(c => { gradientMap[c.key] = c.gradient; });
+
+        const renderCategory = (cat: CategoryConfig) => {
+            const top3 = cat.data.slice(0, 3);
+            const rest = cat.data.slice(3);
+            const podiumOrder = top3.length >= 3 ? [1, 0, 2] : top3.length === 2 ? [1, 0] : [0];
+            const podiumItems = podiumOrder.map(i => top3[i]);
+
+            const podiumHtml = podiumItems.map((item, pi) => {
+                const origIdx = podiumOrder[pi];
+                const medalColors = ['#f59e0b', '#9ca3af', '#b45309'];
+                return `
+                    <div class="podium-item">
+                        <div class="medal" style="background:${medalColors[origIdx]};font-size:${origIdx === 0 ? '1.6rem' : '1.3rem'}">${medals[origIdx]}</div>
+                        <div class="pname">${item.name}</div>
+                        <div class="pval">${item.valueLabel || item.value.toLocaleString()}</div>
+                    </div>`;
+            }).join('');
+
+            const listHtml = rest.map((item, i) => `
+                <div class="rank-row">
+                    <span class="rank-num">${i + 4}</span>
+                    <span class="rank-name">${item.name}</span>
+                    <span class="rank-val">${item.valueLabel || item.value.toLocaleString()}</span>
+                </div>`).join('');
+
+            return `
+                <div class="cat-card">
+                    <div class="cat-header" style="background:${cat.gradient}">
+                        <div class="cat-title">${cat.title}</div>
+                        <div class="cat-sub">${cat.subtitle}</div>
+                    </div>
+                    <div class="podium">${podiumHtml}</div>
+                    ${rest.length > 0 ? `<div class="rank-list">${listHtml}</div>` : ''}
+                </div>`;
+        };
+
+        const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Productivity Leaderboard — ${period}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #0d1117; color: #fff; padding: 24px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h1 { text-align: center; font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-bottom: 4px; }
+    .period { text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 20px; }
+    .printed-at { text-align: center; font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cat-card { background: #161b22; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .cat-header { padding: 14px 16px; text-align: center; }
+    .cat-title { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .cat-sub { font-size: 0.7rem; opacity: 0.7; margin-top: 2px; }
+    .podium { display: flex; justify-content: center; align-items: flex-end; gap: 10px; padding: 16px 12px 10px; min-height: 110px; }
+    .podium-item { display: flex; flex-direction: column; align-items: center; }
+    .medal { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+    .pname { font-size: 0.75rem; font-weight: 700; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+    .pval { font-size: 0.8rem; color: #22c55e; font-weight: 700; }
+    .rank-list { padding: 6px 12px 12px; }
+    .rank-row { display: flex; align-items: center; padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; }
+    .rank-row:nth-child(even) { background: rgba(255,255,255,0.03); }
+    .rank-num { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px; }
+    .rank-name { flex: 1; color: #fff; font-weight: 600; }
+    .rank-val { color: #22c55e; font-weight: 700; margin-left: 10px; }
+    .footer { text-align: center; margin-top: 20px; font-size: 0.7rem; color: rgba(255,255,255,0.25); }
+    @media print {
+      body { padding: 10px; }
+      .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🏆 Productivity Leaderboard</h1>
+  <div class="period">Periode: ${period}</div>
+  <div class="printed-at">Dicetak: ${dayjs().format('DD MMM YYYY HH:mm')}</div>
+  <div class="grid">
+    ${categories.map(renderCategory).join('')}
+  </div>
+  <div class="footer">Warehouse Report & Monitoring System — Inbound Byevan</div>
+  <script>window.onload = () => window.print();</script>
+</body>
+</html>`;
+
+        const w = window.open('', '_blank');
+        if (w) {
+            w.document.write(html);
+            w.document.close();
+        }
+    };
+
     // Add project
     const handleAddProject = async () => {
         try {
@@ -395,6 +496,7 @@ export default function ProductivityPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 <Space>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export CSV</Button>
+                    <Button icon={<PrinterOutlined />} onClick={handlePrint} type="primary" ghost>Print Mading</Button>
                     <Button icon={<ReloadOutlined />} onClick={fetchAll}>Refresh</Button>
                 </Space>
                 <Space>
