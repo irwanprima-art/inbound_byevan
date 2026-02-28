@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Form, Input, InputNumber, Tag, Select, Modal, Button, Upload, message, Progress } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { Form, Input, InputNumber, Tag, Select, Modal, Button, Upload, message, Progress, Space } from 'antd';
+import { SyncOutlined, DownloadOutlined } from '@ant-design/icons';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
 
@@ -37,6 +37,28 @@ const columns = [
             if (v < 0) return <Tag color="red">Shortage</Tag>;
             if (v > 0) return <Tag color="orange">Gain</Tag>;
             return <Tag color="green">Match</Tag>;
+        },
+    },
+    // ── Reconcile columns ──
+    {
+        title: 'Rec. Sys.Qty', dataIndex: 'reconcile_sys_qty', key: 'reconcile_sys_qty', width: 110,
+        render: (v: number | null) => v != null ? <span style={{ color: '#a78bfa' }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span>,
+    },
+    {
+        title: 'Rec. Phy.Qty', dataIndex: 'reconcile_phy_qty', key: 'reconcile_phy_qty', width: 110,
+        render: (v: number | null) => v != null ? <span style={{ color: '#a78bfa' }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span>,
+    },
+    {
+        title: 'Rec. Variance', dataIndex: 'reconcile_variance', key: 'reconcile_variance', width: 115,
+        render: (v: number | null, r: any) => {
+            if (v == null) return <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span>;
+            const color = v === 0 ? '#4ade80' : v < 0 ? '#f87171' : '#fb923c';
+            const diffFromR1 = r.variance !== v;
+            return (
+                <span style={{ color, fontWeight: diffFromR1 ? 700 : 400 }}>
+                    {diffFromR1 ? '↻ ' : ''}{v}
+                </span>
+            );
         },
     },
 ];
@@ -189,7 +211,7 @@ export default function DccPage() {
             const lookup = new Map<string, any>();
             currentData.forEach((r: any) => { lookup.set(makeMatchKey(r), r); });
 
-            // Match and update
+            // Match and update — only write to reconcile_ fields, NOT touching Round 1 qty
             setReconcileLoading(true);
             let matched = 0;
             let unmatched = 0;
@@ -200,15 +222,15 @@ export default function DccPage() {
                 const existing = lookup.get(key);
                 if (existing) {
                     matched++;
-                    const newSys = (row.sys_qty as number) ?? existing.sys_qty;
-                    const newPhy = (row.phy_qty as number) ?? existing.phy_qty;
+                    const newSys = row.sys_qty as number;
+                    const newPhy = row.phy_qty as number;
                     const newVariance = newPhy - newSys;
                     try {
                         await dccApi.update(existing.id, {
                             ...existing,
-                            sys_qty: newSys,
-                            phy_qty: newPhy,
-                            variance: newVariance,
+                            reconcile_sys_qty: newSys,
+                            reconcile_phy_qty: newPhy,
+                            reconcile_variance: newVariance,
                         });
                         updated++;
                     } catch { /* skip failed updates */ }
@@ -230,23 +252,47 @@ export default function DccPage() {
         return false; // prevent antd default upload
     };
 
-    // Extra button injected into DataPage toolbar (after Import)
+    // Extra buttons: Reconcile Template + Reconcile Import
+    const reconcileCsvHeaders = ['Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Sys. Qty', 'Phy. Qty'];
+
+    const handleReconcileTemplate = () => {
+        const bom = '\uFEFF';
+        const csv = bom + reconcileCsvHeaders.join(',') + '\n';
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dcc_reconcile_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const extraButtons = (
-        <Upload
-            accept=".csv"
-            showUploadList={false}
-            beforeUpload={handleReconcileFile as any}
-            disabled={reconcileLoading}
-        >
+        <Space>
             <Button
-                icon={<SyncOutlined spin={reconcileLoading} />}
-                loading={reconcileLoading}
+                icon={<DownloadOutlined />}
                 style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
-                title="Import CSV Reconcile — update Sys.Qty & Phy.Qty berdasarkan kecocokan Phy.Inv#, Zone, Location, Owner, SKU, Brand"
+                onClick={handleReconcileTemplate}
+                title="Download template CSV untuk Reconcile"
             >
-                Reconcile
+                Template Reconcile
             </Button>
-        </Upload>
+            <Upload
+                accept=".csv"
+                showUploadList={false}
+                beforeUpload={handleReconcileFile as any}
+                disabled={reconcileLoading}
+            >
+                <Button
+                    icon={<SyncOutlined spin={reconcileLoading} />}
+                    loading={reconcileLoading}
+                    style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+                    title="Import CSV Reconcile — update Sys.Qty &amp; Phy.Qty berdasarkan kecocokan Phy.Inv#, Zone, Location, Owner, SKU, Brand"
+                >
+                    Reconcile
+                </Button>
+            </Upload>
+        </Space>
     );
 
     const extraFilterUi = (

@@ -61,22 +61,25 @@ type Vas struct {
 
 // Dcc represents Daily Cycle Count data
 type Dcc struct {
-	ID          uint           `gorm:"primaryKey" json:"id"`
-	Date        FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	PhyInv      string         `gorm:"column:phy_inv" json:"phy_inv"`
-	Zone        string         `gorm:"column:zone" json:"zone"`
-	Location    string         `gorm:"column:location" json:"location" binding:"required"`
-	Owner       string         `gorm:"column:owner" json:"owner"`
-	Sku         string         `gorm:"column:sku" json:"sku" binding:"required"`
-	Brand       string         `gorm:"column:brand" json:"brand"`
-	Description string         `gorm:"column:description" json:"description"`
-	SysQty      int            `gorm:"column:sys_qty" json:"sys_qty"`
-	PhyQty      int            `gorm:"column:phy_qty" json:"phy_qty"`
-	Variance    int            `gorm:"column:variance" json:"variance"`
-	Operator    string         `gorm:"column:operator" json:"operator"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID                uint           `gorm:"primaryKey" json:"id"`
+	Date              FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	PhyInv            string         `gorm:"column:phy_inv" json:"phy_inv"`
+	Zone              string         `gorm:"column:zone" json:"zone"`
+	Location          string         `gorm:"column:location" json:"location" binding:"required"`
+	Owner             string         `gorm:"column:owner" json:"owner"`
+	Sku               string         `gorm:"column:sku" json:"sku" binding:"required"`
+	Brand             string         `gorm:"column:brand" json:"brand"`
+	Description       string         `gorm:"column:description" json:"description"`
+	SysQty            int            `gorm:"column:sys_qty" json:"sys_qty"`
+	PhyQty            int            `gorm:"column:phy_qty" json:"phy_qty"`
+	Variance          int            `gorm:"column:variance" json:"variance"`
+	Operator          string         `gorm:"column:operator" json:"operator"`
+	ReconcileSysQty   *int           `gorm:"column:reconcile_sys_qty" json:"reconcile_sys_qty"`
+	ReconcilePhyQty   *int           `gorm:"column:reconcile_phy_qty" json:"reconcile_phy_qty"`
+	ReconcileVariance *int           `gorm:"column:reconcile_variance" json:"reconcile_variance"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Damage represents project damage data
