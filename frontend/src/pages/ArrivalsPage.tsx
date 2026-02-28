@@ -154,24 +154,6 @@ export default function ArrivalsPage() {
         },
         { title: 'First Receive', dataIndex: 'first_receive', key: 'first_receive', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#60a5fa' }}>{v}</span> },
         { title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span> },
-        {
-            title: 'Kingdee Status', dataIndex: 'kingdee_status', key: 'kingdee_status', width: 120,
-            render: (v: string) => v ? <Tag color={v === 'Done' ? 'green' : 'orange'}>{v}</Tag> : '-',
-            filters: [{ text: 'Done', value: 'Done' }, { text: 'Pending', value: 'Pending' }],
-            onFilter: (value: any, r: any) => r.kingdee_status === value,
-        },
-        { title: 'Date Publish DO', dataIndex: 'date_publish_do', key: 'date_publish_do', width: 130 },
-        { title: 'Remarks Publish DO', dataIndex: 'remarks_publish_do', key: 'remarks_publish_do', width: 170, ellipsis: true },
-        {
-            title: 'Inbound Paperwork SLA (day)', key: 'sla_days', width: 190,
-            render: (_: any, r: any) => {
-                const arrival = r.date;
-                const publishDO = r.date_publish_do;
-                if (!arrival || !publishDO || publishDO === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
-                const diff = dayjs(publishDO).diff(dayjs(arrival), 'day');
-                return <Tag color={diff <= 1 ? 'green' : diff <= 3 ? 'orange' : 'red'}>{diff} hari</Tag>;
-            },
-        },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
         { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
@@ -212,6 +194,24 @@ export default function ArrivalsPage() {
                 if (!sched || sched === '-') return value === 'tidak';
                 if (!actual || actual === '-') return value === 'belum';
                 return value === 'tepat' ? actual <= sched : (value === 'terlambat' ? actual > sched : false);
+            },
+        },
+        {
+            title: 'Kingdee Status', dataIndex: 'kingdee_status', key: 'kingdee_status', width: 120,
+            render: (v: string) => v ? <Tag color={v === 'Done' ? 'green' : 'orange'}>{v}</Tag> : '-',
+            filters: [{ text: 'Done', value: 'Done' }, { text: 'Pending', value: 'Pending' }],
+            onFilter: (value: any, r: any) => r.kingdee_status === value,
+        },
+        { title: 'Date Publish DO', dataIndex: 'date_publish_do', key: 'date_publish_do', width: 130 },
+        { title: 'Remarks Publish DO', dataIndex: 'remarks_publish_do', key: 'remarks_publish_do', width: 170, ellipsis: true },
+        {
+            title: 'Inbound Paperwork SLA (day)', key: 'sla_days', width: 190,
+            render: (_: any, r: any) => {
+                const arrival = r.date;
+                const publishDO = r.date_publish_do;
+                if (!arrival || !publishDO || publishDO === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                const diff = dayjs(publishDO).diff(dayjs(arrival), 'day');
+                return <Tag color={diff <= 1 ? 'green' : diff <= 3 ? 'orange' : 'red'}>{diff} hari</Tag>;
             },
         },
         {
