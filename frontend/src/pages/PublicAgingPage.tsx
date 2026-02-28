@@ -429,19 +429,20 @@ export default function PublicAgingPage() {
                                 ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false} />
                             </Card>
                         )}
-
-                        {w2wRows.length > 0 && (
-                            <Card
-                                title={`📊 Week to Week Movement (${lastWeek} → ${currWeek})`}
-                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
-                                styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
-                            >
-                                <ResizableTable dataSource={w2wRows} columns={w2wColumns} rowKey="key" size="small"
-                                    scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                                    onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                            </Card>
-                        )}
                     </div>
+
+                    {/* W2W ED — outside screenshot */}
+                    {w2wRows.length > 0 && (
+                        <Card
+                            title={`📊 Week to Week Movement (${lastWeek} → ${currWeek})`}
+                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                        >
+                            <ResizableTable dataSource={w2wRows} columns={w2wColumns} rowKey="key" size="small"
+                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        </Card>
+                    )}
 
                     {/* Aging Section: Aging Note + Aging W2W */}
                     <div ref={agingRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
@@ -462,19 +463,20 @@ export default function PublicAgingPage() {
                             ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
                                 onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
-
-                        {agingW2wRows.length > 0 && (
-                            <Card
-                                title={`📊 Aging Note W2W Movement (${lastWeek} → ${currWeek})`}
-                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
-                                styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
-                            >
-                                <ResizableTable dataSource={agingW2wRows} columns={agingW2wColumns} rowKey="key" size="small"
-                                    scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                                    onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                            </Card>
-                        )}
                     </div>
+
+                    {/* Aging W2W — outside screenshot */}
+                    {agingW2wRows.length > 0 && (
+                        <Card
+                            title={`📊 Aging Note W2W Movement (${lastWeek} → ${currWeek})`}
+                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
+                            styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
+                        >
+                            <ResizableTable dataSource={agingW2wRows} columns={agingW2wColumns} rowKey="key" size="small"
+                                scroll={{ x: 'max-content', y: 500 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        </Card>
+                    )}
 
                     <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
                         <Text style={{ color: 'rgba(255,255,255,0.25)' }}>Warehouse Report & Monitoring System</Text>
