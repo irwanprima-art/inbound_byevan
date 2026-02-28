@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, InputNumber, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
+import { Form, Input, InputNumber, Select, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     UploadOutlined, DownloadOutlined, FileExcelOutlined, ClearOutlined,
@@ -15,6 +15,7 @@ interface MasterItemRecord {
     description: string;
     brand: string;
     sku_category: string;
+    item_class: string;
     price: number;
 }
 
@@ -116,6 +117,7 @@ export default function MasterItemPage() {
     const HEADER_MAP: Record<string, string> = {
         sku: 'sku', description: 'description', brand: 'brand',
         sku_category: 'sku_category', category: 'sku_category',
+        item_class: 'item_class', class: 'item_class',
         price: 'price',
     };
 
@@ -159,7 +161,7 @@ export default function MasterItemPage() {
 
     const handleExport = () => {
         const bom = '\uFEFF';
-        const headers = ['SKU', 'Description', 'Brand', 'SKU Category', 'Price'];
+        const headers = ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Price'];
         const csvRows = [headers.join(',')];
         const filtered = getFilteredData();
         filtered.forEach(r => {
@@ -168,6 +170,7 @@ export default function MasterItemPage() {
                 `"${(r.description || '').replace(/"/g, '""')}"`,
                 `"${(r.brand || '').replace(/"/g, '""')}"`,
                 `"${(r.sku_category || '').replace(/"/g, '""')}"`,
+                `"${(r.item_class || '').replace(/"/g, '""')}"`,
                 r.price || 0,
             ].join(','));
         });
@@ -209,6 +212,18 @@ export default function MasterItemPage() {
             title: 'SKU Category', dataIndex: 'sku_category', key: 'sku_category', width: 160,
             sorter: (a, b) => (a.sku_category || '').localeCompare(b.sku_category || ''),
             render: (v) => v ? <Tag color="cyan">{v}</Tag> : '-',
+        },
+        {
+            title: 'Item Class', dataIndex: 'item_class', key: 'item_class', width: 160,
+            sorter: (a, b) => (a.item_class || '').localeCompare(b.item_class || ''),
+            render: (v: string) => {
+                const colorMap: Record<string, string> = {
+                    'Item A (ED)': 'gold',
+                    'Item B (Imei)': 'purple',
+                    'Item C (Standard)': 'green',
+                };
+                return v ? <Tag color={colorMap[v] || 'default'}>{v}</Tag> : '-';
+            },
         },
         {
             title: 'Price', dataIndex: 'price', key: 'price', width: 130, align: 'right',
@@ -255,7 +270,7 @@ export default function MasterItemPage() {
                         onChange={e => !e.target.value && setSearchText('')}
                     />
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
-                        ['SKU', 'Description', 'Brand', 'SKU Category', 'Price'],
+                        ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Price'],
                         'master_items_template.csv'
                     )}>Template</Button>
                     {!readOnly && (
@@ -303,6 +318,17 @@ export default function MasterItemPage() {
                     </Form.Item>
                     <Form.Item name="sku_category" label="SKU Category">
                         <Input />
+                    </Form.Item>
+                    <Form.Item name="item_class" label="Item Class">
+                        <Select
+                            placeholder="Pilih Item Class"
+                            allowClear
+                            options={[
+                                { label: 'Item A (ED)', value: 'Item A (ED)' },
+                                { label: 'Item B (Imei)', value: 'Item B (Imei)' },
+                                { label: 'Item C (Standard)', value: 'Item C (Standard)' },
+                            ]}
+                        />
                     </Form.Item>
                     <Form.Item name="price" label="Price">
                         <InputNumber style={{ width: '100%' }} min={0} precision={0} />

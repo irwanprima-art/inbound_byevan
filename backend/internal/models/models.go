@@ -160,6 +160,7 @@ type MasterItem struct {
 	Description string         `gorm:"column:description" json:"description"`
 	Brand       string         `gorm:"column:brand" json:"brand"`
 	SkuCategory string         `gorm:"column:sku_category" json:"sku_category"`
+	ItemClass   string         `gorm:"column:item_class" json:"item_class"`
 	Price       float64        `gorm:"column:price" json:"price"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
