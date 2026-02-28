@@ -153,6 +153,45 @@ export default function ArrivalsPage() {
         { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
         {
+            title: 'Status Jadwal', key: 'schedule_status', width: 130,
+            render: (_: any, r: any) => {
+                const hasSchedule = r.scheduled_arrival_time && r.scheduled_arrival_time.trim() && r.scheduled_arrival_time !== '-';
+                return hasSchedule
+                    ? <Tag color="blue">Terjadwal</Tag>
+                    : <Tag color="default">Tidak Terjadwal</Tag>;
+            },
+            filters: [{ text: 'Terjadwal', value: 'terjadwal' }, { text: 'Tidak Terjadwal', value: 'tidak' }],
+            onFilter: (value: any, record: any) => {
+                const has = record.scheduled_arrival_time && record.scheduled_arrival_time.trim() && record.scheduled_arrival_time !== '-';
+                return value === 'terjadwal' ? !!has : !has;
+            },
+        },
+        {
+            title: 'Status Kedatangan', key: 'arrival_status', width: 140,
+            render: (_: any, r: any) => {
+                const sched = r.scheduled_arrival_time?.trim();
+                const actual = r.arrival_time?.trim();
+                if (!sched || sched === '-') return <Tag color="default">Tidak Terjadwal</Tag>;
+                if (!actual || actual === '-') return <Tag color="orange">Belum Tiba</Tag>;
+                return actual <= sched
+                    ? <Tag color="green">Tepat Waktu</Tag>
+                    : <Tag color="red">Terlambat</Tag>;
+            },
+            filters: [
+                { text: 'Tepat Waktu', value: 'tepat' },
+                { text: 'Terlambat', value: 'terlambat' },
+                { text: 'Tidak Terjadwal', value: 'tidak' },
+                { text: 'Belum Tiba', value: 'belum' },
+            ],
+            onFilter: (value: any, record: any) => {
+                const sched = record.scheduled_arrival_time?.trim();
+                const actual = record.arrival_time?.trim();
+                if (!sched || sched === '-') return value === 'tidak';
+                if (!actual || actual === '-') return value === 'belum';
+                return value === 'tepat' ? actual <= sched : (value === 'terlambat' ? actual > sched : false);
+            },
+        },
+        {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
                 <Space>
