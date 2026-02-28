@@ -28,6 +28,7 @@ type Arrival struct {
 	DatePublishDO        FlexDate       `gorm:"column:date_publish_do;type:text" json:"date_publish_do"`
 	RemarksPublishDO     string         `gorm:"column:remarks_publish_do" json:"remarks_publish_do"`
 	Urgensi              string         `gorm:"column:urgensi" json:"urgensi"`
+	UpdatedBy            string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt            time.Time      `json:"created_at"`
 	UpdatedAt            time.Time      `json:"updated_at"`
 	DeletedAt            gorm.DeletedAt `gorm:"index" json:"-"`
@@ -43,6 +44,7 @@ type Transaction struct {
 	OperateType     string         `gorm:"column:operate_type" json:"operate_type"`
 	Qty             int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	Operator        string         `gorm:"column:operator" json:"operator"`
+	UpdatedBy       string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
@@ -60,6 +62,7 @@ type Vas struct {
 	Qty       int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	Operator  string         `gorm:"column:operator" json:"operator"`
 	ItemType  string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -83,6 +86,7 @@ type Dcc struct {
 	ReconcileSysQty   *int           `gorm:"column:reconcile_sys_qty" json:"reconcile_sys_qty"`
 	ReconcilePhyQty   *int           `gorm:"column:reconcile_phy_qty" json:"reconcile_phy_qty"`
 	ReconcileVariance *int           `gorm:"column:reconcile_variance" json:"reconcile_variance"`
+	UpdatedBy         string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
@@ -101,6 +105,7 @@ type Damage struct {
 	Operator     string         `gorm:"column:operator" json:"operator"`
 	Owner        string         `gorm:"column:owner" json:"owner"`
 	QcBy         string         `gorm:"column:qc_by" json:"qc_by"`
+	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
@@ -125,6 +130,7 @@ type Soh struct {
 	ExpDate          FlexDate       `gorm:"column:exp_date;type:text" json:"exp_date"`
 	BatchNo          string         `gorm:"column:batch_no" json:"batch_no"`
 	UpdateDate       FlexDate       `gorm:"column:update_date;type:text" json:"update_date"`
+	UpdatedBy        string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
@@ -145,6 +151,7 @@ type QcReturn struct {
 	ToLoc       string         `gorm:"column:to_loc" json:"to_loc"`
 	Status      string         `gorm:"column:status" json:"status"`
 	Operator    string         `gorm:"column:operator" json:"operator"`
+	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
@@ -157,6 +164,7 @@ type Location struct {
 	LocationCategory string         `gorm:"column:location_category" json:"location_category"`
 	Zone             string         `gorm:"column:zone" json:"zone"`
 	LocationType     string         `gorm:"column:location_type" json:"location_type"`
+	UpdatedBy        string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
@@ -171,6 +179,7 @@ type MasterItem struct {
 	SkuCategory string         `gorm:"column:sku_category" json:"sku_category"`
 	ItemClass   string         `gorm:"column:item_class" json:"item_class"`
 	Price       float64        `gorm:"column:price" json:"price"`
+	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
@@ -186,6 +195,7 @@ type Attendance struct {
 	ClockIn   string         `gorm:"column:clock_in" json:"clock_in"`
 	ClockOut  string         `gorm:"column:clock_out" json:"clock_out"`
 	Status    string         `gorm:"column:status" json:"status"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -198,6 +208,7 @@ type Employee struct {
 	Name      string         `gorm:"column:name" json:"name" binding:"required"`
 	Status    string         `gorm:"column:status" json:"status"`
 	IsActive  string         `gorm:"column:is_active;default:Active" json:"is_active"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -213,6 +224,7 @@ type ProjectProductivity struct {
 	Qty       int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	Duration  string         `gorm:"column:duration" json:"duration"`
 	Status    string         `gorm:"column:status" json:"status"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -225,6 +237,7 @@ type Unloading struct {
 	Brand         string         `gorm:"column:brand" json:"brand" binding:"required"`
 	VehicleType   string         `gorm:"column:vehicle_type" json:"vehicle_type"`
 	TotalVehicles int            `gorm:"column:total_vehicles" json:"total_vehicles" binding:"min=0"`
+	UpdatedBy     string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
@@ -247,6 +260,7 @@ type Schedule struct {
 	Jobdesc   string         `gorm:"column:jobdesc" json:"jobdesc"`
 	ClockIn   string         `gorm:"column:clock_in" json:"clock_in"`
 	ClockOut  string         `gorm:"column:clock_out" json:"clock_out"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -263,6 +277,7 @@ type BeritaAcara struct {
 	Dari      string         `gorm:"column:dari" json:"dari"`
 	Items     string         `gorm:"column:items;type:text" json:"items"`
 	Notes     string         `gorm:"column:notes" json:"notes"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -283,6 +298,7 @@ type StockOpname struct {
 	PhyQty      int            `gorm:"column:phy_qty" json:"phy_qty"`
 	Variance    int            `gorm:"column:variance" json:"variance"`
 	Operator    string         `gorm:"column:operator" json:"operator"`
+	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
@@ -294,6 +310,7 @@ type AdditionalMp struct {
 	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
 	AdditionalMp int            `gorm:"column:additional_mp" json:"additional_mp"`
 	Tasks        string         `gorm:"column:tasks;type:text" json:"tasks"`
+	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
@@ -309,6 +326,7 @@ type InboundRejection struct {
 	Catatan      string         `gorm:"column:catatan" json:"catatan"`
 	Qty          int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	SourceDocNo  string         `gorm:"column:source_doc_no" json:"source_doc_no"` // BA doc_number ref
+	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`

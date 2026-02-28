@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -18,6 +20,29 @@ type ResourceHandler[T any] struct {
 // NewResource creates a new ResourceHandler for a given model type
 func NewResource[T any](name string) *ResourceHandler[T] {
 	return &ResourceHandler[T]{Name: name}
+}
+
+// injectUpdatedBy reads the raw request body, injects updated_by from JWT, and binds to item
+func injectUpdatedBy[T any](c *gin.Context, item *T) error {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		return err
+	}
+	// Parse into a generic map so we can inject updated_by
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return err
+	}
+	username := c.GetString("username")
+	if username != "" {
+		raw["updated_by"] = username
+	}
+	// Re-marshal with updated_by injected, then bind to typed struct
+	enriched, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(enriched, item)
 }
 
 // List returns all records
@@ -48,7 +73,7 @@ func (h *ResourceHandler[T]) Get(c *gin.Context) {
 // Create creates a new record
 func (h *ResourceHandler[T]) Create(c *gin.Context) {
 	var item T
-	if err := c.ShouldBindJSON(&item); err != nil {
+	if err := injectUpdatedBy(c, &item); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -72,7 +97,7 @@ func (h *ResourceHandler[T]) Update(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&existing); err != nil {
+	if err := injectUpdatedBy(c, &existing); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

@@ -345,6 +345,15 @@ export default function DataPage<T extends { id: number }>({
             };
         }),
         {
+            title: 'Updated By',
+            key: 'updated_by',
+            dataIndex: 'updated_by',
+            width: 120,
+            render: (v: string) => v
+                ? <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontStyle: 'italic' }}>{v}</span>
+                : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>—</span>,
+        },
+        {
             title: 'Actions',
             key: 'actions',
             width: 100,

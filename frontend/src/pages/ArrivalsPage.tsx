@@ -223,6 +223,12 @@ export default function ArrivalsPage() {
             onFilter: (value: any, r: any) => r.urgensi === value,
         },
         {
+            title: 'Updated By', dataIndex: 'updated_by', key: 'updated_by', width: 120,
+            render: (v: string) => v
+                ? <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontStyle: 'italic' }}>{v}</span>
+                : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>—</span>,
+        },
+        {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
                 <Space>
