@@ -320,11 +320,17 @@ export default function ArrivalsPage() {
         });
     };
 
-    // CSV Export
+    // CSV Export — includes all columns including auto-calculated ones
     const handleExport = () => {
-        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'operator', 'note', 'status'];
+        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
-            enrichedData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
+            enrichedData.map((r: any) => {
+                const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
+                    ? dayjs(r.date_publish_do).diff(dayjs(r.date), 'day')
+                    : '';
+                const row: any = { ...r, inbound_paperwork_sla_day: sla };
+                return headers.map(h => `"${row[h] ?? ''}"`).join(',');
+            }).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
