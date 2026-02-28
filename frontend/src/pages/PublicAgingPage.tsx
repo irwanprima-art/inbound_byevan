@@ -156,39 +156,57 @@ export default function PublicAgingPage() {
         return cat === 'Sellable' && owner === 'JC-ID' && (Number(s.qty) || 0) > 0 && dateOk;
     });
 
-    // ED Note pivot
+    // ED and Aging category lists (declared before helpers so helpers can reference them)
     const edCats = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month', '3 - 6 Month', '6 - 12 Month', '1yr++', 'No Expiry Date'];
-    const edMap: Record<string, Record<string, number>> = {};
-    sellable.forEach((s: any) => {
-        const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
-        const ed = calcEdNote(s.exp_date, s.update_date);
-        if (!edMap[brand]) edMap[brand] = {};
-        edMap[brand][ed] = (edMap[brand][ed] || 0) + (Number(s.qty) || 0);
-    });
-    const edRows = Object.entries(edMap).map(([brand, cats]) => ({ brand, ...cats, key: `ed_${brand}` })).sort((a, b) => a.brand.localeCompare(b.brand));
-    const edTotal: Record<string, any> = { brand: 'TOTAL', key: 'ed_TOTAL', _isTotal: true };
-    edCats.forEach(cat => { edTotal[cat] = edRows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0); });
-    const edRowsWithTotal = [edTotal, ...edRows];
-
-    // Aging Note pivot
-    const agingMap: Record<string, Record<string, number>> = {};
-    sellable.forEach((s: any) => {
-        const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
-        const aging = calcAgingNote(s.wh_arrival_date);
-        if (aging === '-') return;
-        if (!agingMap[brand]) agingMap[brand] = {};
-        agingMap[brand][aging] = (agingMap[brand][aging] || 0) + (Number(s.qty) || 0);
-    });
-    const agingCats = [...new Set(sellable.map((s: any) => calcAgingNote(s.wh_arrival_date)).filter(v => v !== '-'))].sort((a, b) => {
+    const agingCats = [...new Set(sellable.map((s: any) => calcAgingNote(s.wh_arrival_date)).filter((v: string) => v !== '-'))].sort((a: string, b: string) => {
         if (a === 'Under 2025') return -1; if (b === 'Under 2025') return 1;
         const [qa, ya] = a.split(' '); const [qb, yb] = b.split(' ');
         const yd = Number(ya) - Number(yb); if (yd !== 0) return yd;
         return qa.localeCompare(qb);
     });
-    const agingRows = Object.entries(agingMap).map(([brand, cats]) => ({ brand, ...cats, key: `aging_${brand}` })).sort((a, b) => a.brand.localeCompare(b.brand));
-    const agingTotal: Record<string, any> = { brand: 'TOTAL', key: 'aging_TOTAL', _isTotal: true };
-    agingCats.forEach(cat => { agingTotal[cat] = agingRows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0); });
-    const agingRowsWithTotal = [agingTotal, ...agingRows];
+
+    // Helper: build ED pivot for a subset of sellable items
+    const buildEdPivot = (items: any[]) => {
+        const map: Record<string, Record<string, number>> = {};
+        items.forEach((s: any) => {
+            const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
+            const ed = calcEdNote(s.exp_date, s.update_date);
+            if (!map[brand]) map[brand] = {};
+            map[brand][ed] = (map[brand][ed] || 0) + (Number(s.qty) || 0);
+        });
+        const rows = Object.entries(map).map(([brand, cats]) => ({ brand, ...cats, key: `ed_${brand}` })).sort((a, b) => a.brand.localeCompare(b.brand));
+        const total: Record<string, any> = { brand: 'TOTAL', key: 'ed_TOTAL', _isTotal: true };
+        edCats.forEach((cat: string) => { total[cat] = rows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0); });
+        return [total, ...rows];
+    };
+
+    // Helper: build Aging pivot for a subset
+    const buildAgingPivot = (items: any[]) => {
+        const map: Record<string, Record<string, number>> = {};
+        items.forEach((s: any) => {
+            const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
+            const aging = calcAgingNote(s.wh_arrival_date);
+            if (aging === '-') return;
+            if (!map[brand]) map[brand] = {};
+            map[brand][aging] = (map[brand][aging] || 0) + (Number(s.qty) || 0);
+        });
+        const rows = Object.entries(map).map(([brand, cats]) => ({ brand, ...cats, key: `aging_${brand}` })).sort((a, b) => a.brand.localeCompare(b.brand));
+        const total: Record<string, any> = { brand: 'TOTAL', key: 'aging_TOTAL', _isTotal: true };
+        agingCats.forEach((cat: string) => { total[cat] = rows.reduce((sum, r) => sum + ((r as any)[cat] || 0), 0); });
+        return [total, ...rows];
+    };
+
+    // Filter sellable by SKU category
+    const sellableItem = sellable.filter((s: any) => (s.sku_category || '').toString().toUpperCase() === 'ITEM');
+    const sellableGimmick = sellable.filter((s: any) => (s.sku_category || '').toString().toUpperCase() === 'GIMMICK');
+
+    // ED Note pivot per SKU Category
+    const edRowsItem = buildEdPivot(sellableItem);
+    const edRowsGimmick = buildEdPivot(sellableGimmick);
+
+    // Aging Note pivot per SKU Category
+    const agingRowsItem = buildAgingPivot(sellableItem);
+    const agingRowsGimmick = buildAgingPivot(sellableGimmick);
 
     // Critical ED
     const criticalNotes = ['Expired', 'NED 1 Month', 'NED 2 Month', 'NED 3 Month'];
@@ -196,9 +214,11 @@ export default function PublicAgingPage() {
         .filter((s: any) => criticalNotes.includes(calcEdNote(s.exp_date, s.update_date)))
         .map((s: any, i: number) => ({
             key: `crit_${i}`, brand: ((s.brand || '').trim() || 'Unknown').toUpperCase(),
+            sku_category: (s.sku_category || '-').toString().toUpperCase(),
             sku: s.sku || '-', qty: Number(s.qty) || 0, exp_date: s.exp_date || '-', ed_note: calcEdNote(s.exp_date, s.update_date),
         }))
         .sort((a, b) => criticalNotes.indexOf(a.ed_note) - criticalNotes.indexOf(b.ed_note) || a.brand.localeCompare(b.brand));
+
 
     // Latest update date (reuse latestDateStr computed above)
     const latestUpdate = latestDateStr;
@@ -402,26 +422,34 @@ export default function PublicAgingPage() {
                         <div style={{ marginBottom: 16 }}>
                             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — NED &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
-                        <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
-                            <ResizableTable dataSource={edRowsWithTotal} columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                                ...edCats.map(cat => ({
-                                    title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
-                                    dataIndex: cat, key: cat, width: 130,
-                                    render: (v: number, r: any) => v ? (
-                                        <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                            {v.toLocaleString()}
-                                        </a>
-                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                                })),
-                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            {[{ label: 'ITEM', rows: edRowsItem }, { label: 'GIMMICK', rows: edRowsGimmick }].map(({ label, rows }) => (
+                                <div key={label} style={{ marginBottom: 20 }}>
+                                    <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
+                                        <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
+                                    </div>
+                                    <ResizableTable dataSource={rows} columns={[
+                                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                        ...edCats.map((cat: string) => ({
+                                            title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
+                                            dataIndex: cat, key: cat, width: 130,
+                                            render: (v: number, r: any) => v ? (
+                                                <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(label)}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                                    {v.toLocaleString()}
+                                                </a>
+                                            ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                        })),
+                                    ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                        onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                                </div>
+                            ))}
                         </Card>
 
                         {criticalItems.length > 0 && (
                             <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
                                 <ResizableTable dataSource={criticalItems} columns={[
                                     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
+                                    { title: 'SKU Category', dataIndex: 'sku_category', key: 'sku_category', width: 120, render: (v: string) => <Tag color={v === 'ITEM' ? '#6366f1' : v === 'GIMMICK' ? '#ec4899' : '#6b7280'} style={{ border: 'none', fontWeight: 600 }}>{v}</Tag> },
                                     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
                                     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span> },
                                     { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp_date', width: 120 },
@@ -449,19 +477,26 @@ export default function PublicAgingPage() {
                         <div style={{ marginBottom: 16 }}>
                             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
-                        <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}>
-                            <ResizableTable dataSource={agingRowsWithTotal} columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                                ...agingCats.map(cat => ({
-                                    title: cat, dataIndex: cat, key: cat, width: 120,
-                                    render: (v: number, r: any) => v ? (
-                                        <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                            {v.toLocaleString()}
-                                        </a>
-                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                                })),
-                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 500 }} pagination={false}
-                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            {[{ label: 'ITEM', rows: agingRowsItem }, { label: 'GIMMICK', rows: agingRowsGimmick }].map(({ label, rows }) => (
+                                <div key={label} style={{ marginBottom: 20 }}>
+                                    <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
+                                        <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
+                                    </div>
+                                    <ResizableTable dataSource={rows} columns={[
+                                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                        ...agingCats.map((cat: string) => ({
+                                            title: cat, dataIndex: cat, key: cat, width: 120,
+                                            render: (v: number, r: any) => v ? (
+                                                <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(label)}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                                    {v.toLocaleString()}
+                                                </a>
+                                            ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                        })),
+                                    ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                        onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                                </div>
+                            ))}
                         </Card>
                     </div>
 
