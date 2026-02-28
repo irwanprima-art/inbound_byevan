@@ -224,7 +224,15 @@ export default function ArrivalsPage() {
     useEffect(() => {
         if (modalOpen) {
             if (editRecord.current) {
-                form.setFieldsValue(editRecord.current);
+                const rec = { ...editRecord.current };
+                // Convert scheduled_arrival_time string to dayjs for DatePicker
+                if (rec.scheduled_arrival_time && rec.scheduled_arrival_time !== '-') {
+                    const d = dayjs(rec.scheduled_arrival_time);
+                    rec.scheduled_arrival_time = d.isValid() ? d : null;
+                } else {
+                    rec.scheduled_arrival_time = null;
+                }
+                form.setFieldsValue(rec);
             } else {
                 form.resetFields();
                 form.setFieldsValue({
@@ -238,6 +246,12 @@ export default function ArrivalsPage() {
     const handleSave = async () => {
         try {
             const vals = await form.validateFields();
+            // Convert DatePicker dayjs value back to string
+            if (vals.scheduled_arrival_time && typeof vals.scheduled_arrival_time === 'object' && vals.scheduled_arrival_time.format) {
+                vals.scheduled_arrival_time = vals.scheduled_arrival_time.format('YYYY-MM-DD HH:mm:ss');
+            } else if (!vals.scheduled_arrival_time) {
+                vals.scheduled_arrival_time = '';
+            }
             if (editId) {
                 await arrivalsApi.update(editId, vals);
                 message.success('Data diupdate');
@@ -418,7 +432,12 @@ export default function ArrivalsPage() {
                     </Form.Item>
                     <Form.Item name="scheduled_arrival_time" label="Jadwal Kedatangan"
                         tooltip="Jadwal/rencana waktu kedatangan">
-                        <Input />
+                        <DatePicker
+                            showTime
+                            format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="Pilih jadwal kedatangan"
+                            style={{ width: '100%' }}
+                        />
                     </Form.Item>
                     <Form.Item name="arrival_time" label="Waktu Kedatangan"
                         tooltip="Otomatis terisi jam saat input">
