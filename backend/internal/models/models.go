@@ -27,6 +27,7 @@ type Arrival struct {
 	KingdeeStatus        string         `gorm:"column:kingdee_status" json:"kingdee_status"`
 	DatePublishDO        FlexDate       `gorm:"column:date_publish_do;type:text" json:"date_publish_do"`
 	RemarksPublishDO     string         `gorm:"column:remarks_publish_do" json:"remarks_publish_do"`
+	Urgensi              string         `gorm:"column:urgensi" json:"urgensi"`
 	CreatedAt            time.Time      `json:"created_at"`
 	UpdatedAt            time.Time      `json:"updated_at"`
 	DeletedAt            gorm.DeletedAt `gorm:"index" json:"-"`

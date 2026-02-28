@@ -215,6 +215,14 @@ export default function ArrivalsPage() {
             },
         },
         {
+            title: 'Urgensi', dataIndex: 'urgensi', key: 'urgensi', width: 100,
+            render: (v: string) => v === 'YA'
+                ? <Tag color="red">YA</Tag>
+                : v === 'TIDAK' ? <Tag color="green">TIDAK</Tag> : '-',
+            filters: [{ text: 'YA', value: 'YA' }, { text: 'TIDAK', value: 'TIDAK' }],
+            onFilter: (value: any, r: any) => r.urgensi === value,
+        },
+        {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
                 <Space>
@@ -322,7 +330,7 @@ export default function ArrivalsPage() {
 
     // CSV Export — includes all columns including auto-calculated ones
     const handleExport = () => {
-        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'operator', 'note', 'status'];
+        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'urgensi', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             enrichedData.map((r: any) => {
                 const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
@@ -421,7 +429,7 @@ export default function ArrivalsPage() {
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
-                        ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'operator', 'note'],
+                        ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'urgensi', 'operator', 'note'],
                         'Arrivals_template'
                     )}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
@@ -532,6 +540,12 @@ export default function ArrivalsPage() {
                     </Form.Item>
                     <Form.Item name="remarks_publish_do" label="Remarks of Date Publish DO">
                         <Input.TextArea rows={2} />
+                    </Form.Item>
+                    <Form.Item name="urgensi" label="Urgensi">
+                        <Select allowClear placeholder="Pilih urgensi" options={[
+                            { label: 'YA', value: 'YA' },
+                            { label: 'TIDAK', value: 'TIDAK' },
+                        ]} />
                     </Form.Item>
                 </Form>
             </Modal>
