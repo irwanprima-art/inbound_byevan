@@ -148,6 +148,10 @@ const normKey = (v: any) => (v || '').toString().toLowerCase().trim();
 const makeMatchKey = (r: any) =>
     [r.phy_inv, r.zone, r.location, r.owner, r.sku, r.brand].map(normKey).join('|');
 
+// Fallback match key using Description instead of SKU
+const makeDescMatchKey = (r: any) =>
+    [r.phy_inv, r.zone, r.location, r.owner, r.description, r.brand].map(normKey).join('|');
+
 export default function DccPage() {
     const [filterBrand, setFilterBrand] = useState<string[]>([]);
     const [filterZone, setFilterZone] = useState<string[]>([]);
@@ -207,9 +211,15 @@ export default function DccPage() {
                 } catch { message.error('Gagal memuat data DCC'); return; }
             }
 
-            // Build lookup map from existing data keyed by composite match key
+            // Build TWO lookup maps:
+            // 1. Primary: by phy_inv+zone+location+owner+sku+brand (may fail if SKU mangled by Excel)
+            // 2. Fallback: by phy_inv+zone+location+owner+description+brand
             const lookup = new Map<string, any>();
-            currentData.forEach((r: any) => { lookup.set(makeMatchKey(r), r); });
+            const lookupByDesc = new Map<string, any>();
+            currentData.forEach((r: any) => {
+                lookup.set(makeMatchKey(r), r);
+                if (r.description) lookupByDesc.set(makeDescMatchKey(r), r);
+            });
 
             // Match and update — only write to reconcile_ fields, NOT touching Round 1 qty
             setReconcileLoading(true);
@@ -219,7 +229,8 @@ export default function DccPage() {
 
             for (const row of importedRows) {
                 const key = makeMatchKey(row);
-                const existing = lookup.get(key);
+                // Try SKU-based key first, then fall back to Description-based key
+                const existing = lookup.get(key) || lookupByDesc.get(makeDescMatchKey(row));
                 if (existing) {
                     matched++;
                     const newSys = row.sys_qty as number;
@@ -253,7 +264,7 @@ export default function DccPage() {
     };
 
     // Extra buttons: Reconcile Template + Reconcile Import
-    const reconcileCsvHeaders = ['Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Sys. Qty', 'Phy. Qty'];
+    const reconcileCsvHeaders = ['Phy. Inventory#', 'Zone', 'Location', 'Owner', 'SKU', 'Brand', 'Description', 'Sys. Qty', 'Phy. Qty'];
 
     const handleReconcileTemplate = () => {
         const bom = '\uFEFF';
