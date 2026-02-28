@@ -15,13 +15,18 @@ type Arrival struct {
 	Date                 FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
 	ScheduledArrivalTime FlexDate       `gorm:"column:scheduled_arrival_time;type:text" json:"scheduled_arrival_time"`
 	ArrivalTime          FlexDate       `gorm:"column:arrival_time;type:text" json:"arrival_time"`
+	FinishUnloadingTime  FlexDate       `gorm:"column:finish_unloading_time;type:text" json:"finish_unloading_time"`
 	ReceiptNo            string         `gorm:"column:receipt_no" json:"receipt_no"`
 	PoNo                 string         `gorm:"column:po_no" json:"po_no"`
 	Brand                string         `gorm:"column:brand" json:"brand" binding:"required"`
+	PlanQty              int            `gorm:"column:plan_qty" json:"plan_qty" binding:"min=0"`
 	PoQty                int            `gorm:"column:po_qty" json:"po_qty" binding:"min=0"`
 	Operator             string         `gorm:"column:operator" json:"operator"`
 	Note                 string         `gorm:"column:note" json:"note"`
 	ItemType             string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
+	KingdeeStatus        string         `gorm:"column:kingdee_status" json:"kingdee_status"`
+	DatePublishDO        FlexDate       `gorm:"column:date_publish_do;type:text" json:"date_publish_do"`
+	RemarksPublishDO     string         `gorm:"column:remarks_publish_do" json:"remarks_publish_do"`
 	CreatedAt            time.Time      `json:"created_at"`
 	UpdatedAt            time.Time      `json:"updated_at"`
 	DeletedAt            gorm.DeletedAt `gorm:"index" json:"-"`

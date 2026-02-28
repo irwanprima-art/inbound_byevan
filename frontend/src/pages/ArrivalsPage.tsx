@@ -143,12 +143,35 @@ export default function ArrivalsPage() {
         },
         { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 120 },
         { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 120 },
+        { title: 'Plan Qty', dataIndex: 'plan_qty', key: 'plan_qty', width: 90, sorter: (a: any, b: any) => a.plan_qty - b.plan_qty },
         { title: 'PO Qty', dataIndex: 'po_qty', key: 'po_qty', width: 90, sorter: (a: any, b: any) => a.po_qty - b.po_qty },
         { title: 'Receive Qty', dataIndex: 'receive_qty', key: 'receive_qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v.toLocaleString()}</span> },
         { title: 'Putaway Qty', dataIndex: 'putaway_qty', key: 'putaway_qty', width: 100, render: (v: number) => <span style={{ color: '#a78bfa' }}>{v.toLocaleString()}</span> },
         { title: 'Pending Qty', dataIndex: 'pending_qty', key: 'pending_qty', width: 100, render: (v: number) => v > 0 ? <span style={{ color: '#f87171', fontWeight: 600 }}>{v}</span> : <span style={{ color: '#4ade80' }}>0</span> },
+        {
+            title: 'Selesai Unloading', dataIndex: 'finish_unloading_time', key: 'finish_unloading_time', width: 160,
+            render: (v: string) => v && v !== '-' ? <span style={{ color: '#34d399' }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>
+        },
         { title: 'First Receive', dataIndex: 'first_receive', key: 'first_receive', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#60a5fa' }}>{v}</span> },
         { title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span> },
+        {
+            title: 'Kingdee Status', dataIndex: 'kingdee_status', key: 'kingdee_status', width: 120,
+            render: (v: string) => v ? <Tag color={v === 'Done' ? 'green' : 'orange'}>{v}</Tag> : '-',
+            filters: [{ text: 'Done', value: 'Done' }, { text: 'Pending', value: 'Pending' }],
+            onFilter: (value: any, r: any) => r.kingdee_status === value,
+        },
+        { title: 'Date Publish DO', dataIndex: 'date_publish_do', key: 'date_publish_do', width: 130 },
+        { title: 'Remarks Publish DO', dataIndex: 'remarks_publish_do', key: 'remarks_publish_do', width: 170, ellipsis: true },
+        {
+            title: 'Inbound Paperwork SLA (day)', key: 'sla_days', width: 190,
+            render: (_: any, r: any) => {
+                const arrival = r.date;
+                const publishDO = r.date_publish_do;
+                if (!arrival || !publishDO || publishDO === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                const diff = dayjs(publishDO).diff(dayjs(arrival), 'day');
+                return <Tag color={diff <= 1 ? 'green' : diff <= 3 ? 'orange' : 'red'}>{diff} hari</Tag>;
+            },
+        },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
         { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
@@ -229,6 +252,8 @@ export default function ArrivalsPage() {
                 rec.date = rec.date ? (dayjs(rec.date).isValid() ? dayjs(rec.date) : null) : null;
                 rec.arrival_time = rec.arrival_time && rec.arrival_time !== '-' ? (dayjs(rec.arrival_time).isValid() ? dayjs(rec.arrival_time) : null) : null;
                 rec.scheduled_arrival_time = rec.scheduled_arrival_time && rec.scheduled_arrival_time !== '-' ? (dayjs(rec.scheduled_arrival_time).isValid() ? dayjs(rec.scheduled_arrival_time) : null) : null;
+                rec.finish_unloading_time = rec.finish_unloading_time && rec.finish_unloading_time !== '-' ? (dayjs(rec.finish_unloading_time).isValid() ? dayjs(rec.finish_unloading_time) : null) : null;
+                rec.date_publish_do = rec.date_publish_do && rec.date_publish_do !== '-' ? (dayjs(rec.date_publish_do).isValid() ? dayjs(rec.date_publish_do) : null) : null;
                 form.setFieldsValue(rec);
             } else {
                 form.resetFields();
@@ -248,6 +273,8 @@ export default function ArrivalsPage() {
             vals.date = toDateStr(vals.date, 'YYYY-MM-DD');
             vals.arrival_time = toDateStr(vals.arrival_time, 'YYYY-MM-DD HH:mm:ss');
             vals.scheduled_arrival_time = toDateStr(vals.scheduled_arrival_time, 'YYYY-MM-DD HH:mm:ss');
+            vals.finish_unloading_time = toDateStr(vals.finish_unloading_time, 'YYYY-MM-DD HH:mm:ss');
+            vals.date_publish_do = toDateStr(vals.date_publish_do, 'YYYY-MM-DD');
             if (editId) {
                 await arrivalsApi.update(editId, vals);
                 message.success('Data diupdate');
@@ -295,7 +322,7 @@ export default function ArrivalsPage() {
 
     // CSV Export
     const handleExport = () => {
-        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'operator', 'note', 'status'];
+        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             enrichedData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -387,7 +414,10 @@ export default function ArrivalsPage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
-                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'arrival_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'po_qty', 'operator', 'note'], 'Arrivals_template')}>Template</Button>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
+                        ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'operator', 'note'],
+                        'Arrivals_template'
+                    )}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {isSupervisor && data.length > 0 && (
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
@@ -448,6 +478,15 @@ export default function ArrivalsPage() {
                             style={{ width: '100%' }}
                         />
                     </Form.Item>
+                    <Form.Item name="finish_unloading_time" label="Selesai Unloading"
+                        tooltip="Waktu selesai unloading">
+                        <DatePicker
+                            showTime
+                            format="YYYY-MM-DD HH:mm:ss"
+                            placeholder="Pilih waktu selesai unloading"
+                            style={{ width: '100%' }}
+                        />
+                    </Form.Item>
                     <Form.Item name="brand" label="Brand" rules={[{ required: true }]}>
                         <Input />
                     </Form.Item>
@@ -456,6 +495,9 @@ export default function ArrivalsPage() {
                     </Form.Item>
                     <Form.Item name="po_no" label="PO No" rules={[{ required: true }]}>
                         <Input />
+                    </Form.Item>
+                    <Form.Item name="plan_qty" label="Plan Qty">
+                        <InputNumber style={{ width: '100%' }} min={0} />
                     </Form.Item>
                     <Form.Item name="po_qty" label="PO Qty" rules={[{ required: true }]}>
                         <InputNumber style={{ width: '100%' }} min={0} />
@@ -472,6 +514,18 @@ export default function ArrivalsPage() {
                             { label: 'Barang Jual', value: 'Barang Jual' },
                             { label: 'Gimmick', value: 'Gimmick' },
                         ]} />
+                    </Form.Item>
+                    <Form.Item name="kingdee_status" label="Kingdee Status">
+                        <Select allowClear placeholder="Pilih status" options={[
+                            { label: 'Done', value: 'Done' },
+                            { label: 'Pending', value: 'Pending' },
+                        ]} />
+                    </Form.Item>
+                    <Form.Item name="date_publish_do" label="Date of Publish DO" tooltip="Tanggal publish DO">
+                        <DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal" style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item name="remarks_publish_do" label="Remarks of Date Publish DO">
+                        <Input.TextArea rows={2} />
                     </Form.Item>
                 </Form>
             </Modal>
