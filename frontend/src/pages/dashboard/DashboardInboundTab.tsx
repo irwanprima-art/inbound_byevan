@@ -196,34 +196,29 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const barangJualData = buildItemTypeData('Barang Jual');
     const gimmickData = buildItemTypeData('Gimmick');
 
-    // ATK: join Receipt No from ATK arrivals with Inbound Transactions (operate_type = receive)
+    // ATK: per-SKU receive qty from Inbound Transactions where receipt_no belongs to ATK arrivals
     const atkData = (() => {
-        // Step 1: collect receipt_no and plan_qty from ATK arrivals, keyed by receipt_no
-        const atkReceiptMap: Record<string, { brand: string; plan_qty: number }> = {};
+        // Step 1: collect receipt_no set from ATK arrivals
+        const atkReceiptSet = new Set<string>();
         enrichedArrivals.forEach((a: any) => {
             if ((a.item_type || 'Barang Jual') !== 'ATK') return;
             const rn = (a.receipt_no || '').trim().toLowerCase();
-            if (!rn) return;
-            const brand = (a.brand || 'Unknown').toUpperCase();
-            if (!atkReceiptMap[rn]) atkReceiptMap[rn] = { brand, plan_qty: 0 };
-            atkReceiptMap[rn].plan_qty += parseInt(a.plan_qty) || 0;
+            if (rn) atkReceiptSet.add(rn);
         });
 
-        // Step 2: sum receive qty from transactions (all dates, not date-filtered, so ATK always has data)
-        const brandMap: Record<string, { receive_qty: number; plan_qty: number }> = {};
+        // Step 2: sum receive qty per SKU from transactions
+        const skuMap: Record<string, number> = {};
         fTransactions.forEach((tx: any) => {
             const rn = (tx.receipt_no || '').trim().toLowerCase();
-            if (!atkReceiptMap[rn]) return;
+            if (!atkReceiptSet.has(rn)) return;
             const opType = (tx.operate_type || '').trim().toLowerCase();
             if (opType !== 'receive' && opType !== 'receiving') return;
-            const { brand, plan_qty } = atkReceiptMap[rn];
-            if (!brandMap[brand]) brandMap[brand] = { receive_qty: 0, plan_qty: 0 };
-            brandMap[brand].receive_qty += parseInt(tx.qty) || 0;
-            brandMap[brand].plan_qty = plan_qty; // use arrivals plan_qty
+            const sku = (tx.sku || '-').trim();
+            skuMap[sku] = (skuMap[sku] || 0) + (parseInt(tx.qty) || 0);
         });
 
-        return Object.entries(brandMap)
-            .map(([name, v]) => ({ name, po_qty: v.receive_qty, plan_qty: v.plan_qty }))
+        return Object.entries(skuMap)
+            .map(([name, qty]) => ({ name, po_qty: qty, plan_qty: 0 }))
             .sort((a, b) => b.po_qty - a.po_qty);
     })();
 
@@ -347,7 +342,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 {([
                     { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty' },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty' },
-                    { label: '📎 ATK — Plan Qty vs Receive Qty per Brand (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty' },
+                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty' },
                 ] as const).map(({ label, data, color, barName }) => (
                     <Col xs={24} key={label}>
                         <Card
