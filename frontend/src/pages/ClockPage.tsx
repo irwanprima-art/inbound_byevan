@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Button, Typography, Space, Select, Modal, message } from 'antd';
+import { Card, Input, Button, Typography, Space, Select, Modal, message, Result } from 'antd';
 import { ClockCircleOutlined, LoginOutlined, LogoutOutlined, ArrowLeftOutlined, WarningOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
@@ -17,6 +18,8 @@ const jobdescOptions = [
 
 export default function ClockPage() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     const [nik, setNik] = useState('');
     const [jobdesc, setJobdesc] = useState('');
     const [employees, setEmployees] = useState<any[]>([]);
@@ -118,6 +121,32 @@ export default function ClockPage() {
         setLoading(false);
     };
 
+    if (!isSupervisor) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1117 100%)',
+            }}>
+                <Card style={{
+                    width: 460, borderRadius: 16,
+                    background: 'rgba(26, 31, 58, 0.95)',
+                    border: '1px solid rgba(255, 77, 79, 0.3)',
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                }} styles={{ body: { padding: 40 } }}>
+                    <Result
+                        status="403"
+                        title={<span style={{ color: '#fff' }}>Akses Ditolak</span>}
+                        subTitle={<span style={{ color: 'rgba(255,255,255,0.5)' }}>Halaman Clock In / Out hanya bisa diakses oleh Supervisor.</span>}
+                        extra={<Button type="primary" onClick={() => navigate('/')}>Kembali ke Dashboard</Button>}
+                    />
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -184,9 +213,9 @@ export default function ClockPage() {
                         </Button>
                     </Space>
 
-                    <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/login')}
+                    <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}
                         style={{ color: 'rgba(255,255,255,0.5)' }}>
-                        Kembali ke Login
+                        Kembali ke Dashboard
                     </Button>
                 </Space>
             </Card>
