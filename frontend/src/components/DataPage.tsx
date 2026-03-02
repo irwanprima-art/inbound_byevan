@@ -70,10 +70,12 @@ interface DataPageProps<T> {
     extraFilterFn?: (item: T) => boolean;
     /** Extra buttons rendered after the Export CSV button in the toolbar */
     extraButtons?: React.ReactNode;
+    /** Async callback to enrich/transform data after fetching (e.g. join from another API) */
+    enrichData?: (items: T[]) => Promise<T[]>;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -93,16 +95,17 @@ export default function DataPage<T extends { id: number }>({
         if (!silent) setLoading(true);
         try {
             const res = await api.list();
-            const items = res.data || [];
+            let items = res.data || [];
             // Sort by id descending so newest data appears first
             items.sort((a: T, b: T) => b.id - a.id);
+            if (enrichData) items = await enrichData(items);
             setData(items);
         } catch (err) {
             if (!silent) message.error('Gagal memuat data');
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [api]);
+    }, [api, enrichData]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

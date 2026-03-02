@@ -1,7 +1,7 @@
-import 'react';
+import { useCallback } from 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
-import { transactionsApi } from '../api/client';
+import { transactionsApi, arrivalsApi } from '../api/client';
 import { normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 
 const columns = [
@@ -21,6 +21,14 @@ const columns = [
     },
     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 90, sorter: (a: any, b: any) => a.qty - b.qty },
     { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 130 },
+    {
+        title: 'Item Type', dataIndex: '_item_type', key: '_item_type', width: 120,
+        render: (v: string) => {
+            if (!v || v === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+            const color = v === 'Barang Jual' ? 'blue' : v === 'Gimmick' ? 'magenta' : v === 'ATK' ? 'orange' : 'default';
+            return <Tag color={color}>{v}</Tag>;
+        },
+    },
 ];
 
 const formFields = (
@@ -67,5 +75,24 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
 };
 
 export default function TransactionsPage() {
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" />;
+    // Enrich each transaction with item_type from arrivals by receipt_no
+    const enrichData = useCallback(async (items: any[]) => {
+        try {
+            const arrRes = await arrivalsApi.list();
+            const arrivals = arrRes.data || [];
+            // Build receipt_no → item_type map
+            const map: Record<string, string> = {};
+            arrivals.forEach((a: any) => {
+                if (a.receipt_no) map[a.receipt_no] = a.item_type || '-';
+            });
+            return items.map((t: any) => ({
+                ...t,
+                _item_type: map[t.receipt_no] || '-',
+            }));
+        } catch {
+            return items;
+        }
+    }, []);
+
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} />;
 }
