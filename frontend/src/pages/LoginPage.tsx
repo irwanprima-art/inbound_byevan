@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Alert, Space } from 'antd';
-import { UserOutlined, LockOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -70,11 +70,6 @@ export default function LoginPage() {
                         </Form.Item>
                     </Form>
 
-                    <Button type="text" icon={<ClockCircleOutlined />}
-                        onClick={() => navigate('/clock')}
-                        style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        Clock In / Clock Out (Tanpa Login)
-                    </Button>
                 </Space>
             </Card>
         </div>

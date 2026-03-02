@@ -19,7 +19,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/clock" element={<ClockPage />} />
+      <Route path="/clock" element={<ProtectedRoute><ClockPage /></ProtectedRoute>} />
       <Route path="/public/aging-stock" element={<PublicAgingPage />} />
       <Route path="/public/soh" element={<PublicSohPage />} />
       <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
