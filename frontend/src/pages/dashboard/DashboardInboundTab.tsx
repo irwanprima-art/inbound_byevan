@@ -551,8 +551,8 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                 bMap[brand].tidakTerjadwal += 1;
                             }
 
-                            const urg = (a.urgensi || '').trim();
-                            if (urg) bMap[brand].urgensi += 1;
+                            const urg = (a.urgensi || '').trim().toUpperCase();
+                            if (urg === 'YA') bMap[brand].urgensi += 1;
                         });
 
                         // Merge cases
