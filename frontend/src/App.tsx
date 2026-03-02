@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import ClockPage from './pages/ClockPage';
 import PublicAgingPage from './pages/PublicAgingPage';
 import PublicSohPage from './pages/PublicSohPage';
+import PublicClockPage from './pages/PublicClockPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -22,6 +23,7 @@ function AppRoutes() {
       <Route path="/clock" element={<ProtectedRoute><ClockPage /></ProtectedRoute>} />
       <Route path="/public/aging-stock" element={<PublicAgingPage />} />
       <Route path="/public/soh" element={<PublicSohPage />} />
+      <Route path="/public/clock" element={<PublicClockPage />} />
       <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
     </Routes>
   );
