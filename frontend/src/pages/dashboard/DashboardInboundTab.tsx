@@ -340,10 +340,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 {([
-                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty' },
-                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty' },
-                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty' },
-                ] as const).map(({ label, data, color, barName }) => (
+                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true },
+                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true },
+                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false },
+                ] as { label: string; data: typeof barangJualData; color: string; barName: string; showPlan: boolean }[]).map(({ label, data, color, barName, showPlan }) => (
                     <Col xs={24} key={label}>
                         <Card
                             title={label}
@@ -359,7 +359,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                         <RTooltip content={<ItemTypeTooltip />} />
                                         <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
                                         <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
-                                        <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />
+                                        {showPlan && <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />}
                                     </ComposedChart>
                                 </ResponsiveContainer>
                             ) : (
