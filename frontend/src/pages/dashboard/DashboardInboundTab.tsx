@@ -50,15 +50,17 @@ interface Props {
     transactions: any[];
     vasList: any[];
     unloadings: any[];
+    inboundCases: any[];
     matchesDateRange: (d: string) => boolean;
 }
 
-export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, matchesDateRange }: Props) {
+export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, inboundCases, matchesDateRange }: Props) {
     const navigate = useNavigate();
 
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
     const fTransactions = useMemo(() => transactions.filter((t: any) => matchesDateRange(t.date)), [transactions, matchesDateRange]);
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
+    const fCases = useMemo(() => inboundCases.filter(c => matchesDateRange(c.date)), [inboundCases, matchesDateRange]);
 
     // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
     const txLookup = useMemo(() => {
@@ -514,6 +516,72 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     size="small"
                     pagination={false}
                     scroll={{ x: 'max-content' }}
+                />
+            </Card>
+
+            {/* Inbound by Brand */}
+            <Card
+                title="📊 Inbound by Brand"
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                styles={{ header: { color: '#fff' } }}
+            >
+                <Table
+                    dataSource={(() => {
+                        // Build case count per brand (from fCases)
+                        const caseByBrand: Record<string, number> = {};
+                        fCases.forEach((c: any) => {
+                            const brand = (c.brand || 'Unknown').toUpperCase();
+                            caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
+                        });
+
+                        const bMap: Record<string, { total: number; terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
+                        enrichedArrivals.forEach((a: any) => {
+                            const brand = (a.brand || 'Unknown').toUpperCase();
+                            if (!bMap[brand]) bMap[brand] = { total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            bMap[brand].total += 1;
+
+                            const sched = (a.scheduled_arrival_time || '').trim();
+                            const arrival = (a.arrival_time || '').trim();
+                            if (sched) {
+                                bMap[brand].terjadwal += 1;
+                                // Tepat waktu: arrival_time <= scheduled_arrival_time
+                                if (arrival && arrival <= sched) bMap[brand].tepatWaktu += 1;
+                                else if (arrival) bMap[brand].terlambat += 1;
+                            } else {
+                                bMap[brand].tidakTerjadwal += 1;
+                            }
+
+                            const urg = (a.urgensi || '').trim();
+                            if (urg) bMap[brand].urgensi += 1;
+                        });
+
+                        // Merge cases
+                        Object.entries(caseByBrand).forEach(([brand, cnt]) => {
+                            if (!bMap[brand]) bMap[brand] = { total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            bMap[brand].cases = cnt;
+                        });
+
+                        // Add TOTAL row
+                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, ...v })).sort((a, b) => b.total - a.total);
+                        const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
+                        rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakTerjadwal += r.tidakTerjadwal; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
+                        return [totalRow, ...rows];
+                    })()}
+                    columns={[
+                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                        { title: 'Total Kedatangan', dataIndex: 'total', key: 'total', width: 130, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#6366f1', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                        { title: 'Terjadwal', dataIndex: 'terjadwal', key: 'terjadwal', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Tidak Terjadwal', dataIndex: 'tidakTerjadwal', key: 'tidakTerjadwal', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Tepat Waktu', dataIndex: 'tepatWaktu', key: 'tepatWaktu', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Terlambat', dataIndex: 'terlambat', key: 'terlambat', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Case', dataIndex: 'cases', key: 'cases', width: 80, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#ec4899', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
+                        { title: 'Urgensi', dataIndex: 'urgensi', key: 'urgensi', width: 90, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#f97316', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
+                    ]}
+                    rowKey="key"
+                    size="small"
+                    pagination={false}
+                    scroll={{ x: 'max-content' }}
+                    onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.12)', fontWeight: 700 } : undefined })}
                 />
             </Card>
         </>
