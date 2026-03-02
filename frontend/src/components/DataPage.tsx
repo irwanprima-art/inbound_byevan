@@ -298,11 +298,31 @@ export default function DataPage<T extends { id: number }>({
         return false;
     };
 
+    // Filter data by date range and search (moved up so handleExport can use it)
+    const filtered = data.filter(item => {
+        if (dateField && dateRange) {
+            const val = (item as any)[dateField];
+            if (val) {
+                const d = dayjs(val);
+                if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
+            }
+        }
+        if (search === '') {
+            if (extraFilterFn) return extraFilterFn(item);
+            return true;
+        }
+        const q = search.toLowerCase();
+        const base = JSON.stringify(item).toLowerCase().includes(q);
+        if (base) return extraFilterFn ? extraFilterFn(item) : true;
+        const computed = computeSearchText ? computeSearchText(item).toLowerCase().includes(q) : false;
+        return computed && (extraFilterFn ? extraFilterFn(item) : true);
+    });
+
     const handleExport = () => {
         const headers = exportHeaders || csvHeaders;
         if (!headers) return;
         const headerLine = headers.join(',');
-        const rows = data.map(item =>
+        const rows = filtered.map(item =>
             headers.map(h => {
                 const key = h.replace(/\s+/g, '_').toLowerCase();
                 const val = (item as any)[key] ?? '';
@@ -383,27 +403,6 @@ export default function DataPage<T extends { id: number }>({
 
     const tableComponents = { header: { cell: ResizableTitle } };
 
-    // Filter data by date range and search
-    const filtered = data.filter(item => {
-        // Date range filter
-        if (dateField && dateRange) {
-            const val = (item as any)[dateField];
-            if (val) {
-                const d = dayjs(val);
-                if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
-            }
-        }
-        // Search filter
-        if (search === '') {
-            if (extraFilterFn) return extraFilterFn(item);
-            return true;
-        }
-        const q = search.toLowerCase();
-        const base = JSON.stringify(item).toLowerCase().includes(q);
-        if (base) return extraFilterFn ? extraFilterFn(item) : true;
-        const computed = computeSearchText ? computeSearchText(item).toLowerCase().includes(q) : false;
-        return computed && (extraFilterFn ? extraFilterFn(item) : true);
-    });
 
     return (
         <div>
