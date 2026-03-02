@@ -171,77 +171,58 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 </Col>
             </Row>
 
-            {/* Shortage & Gain */}
-            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                <Col xs={24} lg={12}>
-                    <Card title="📉 Shortage SKU" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#f87171' } }}>
-                        <ResizableTable
-                            dataSource={(() => {
-                                const skuBrandMap: Record<string, string> = {};
-                                fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
-                                fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
-                                const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
-                                fDccList.forEach(d => {
-                                    const v = parseInt(d.variance) || 0;
-                                    if (v >= 0) return;
-                                    const sku = (d.sku || '').trim();
-                                    if (!sku) return;
-                                    if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
-                                    map[sku].sys += parseInt(d.sys_qty) || 0;
-                                    map[sku].phy += parseInt(d.phy_qty) || 0;
-                                    map[sku].variance += v;
-                                });
-                                return Object.values(map).sort((a, b) => a.variance - b.variance);
-                            })()}
-                            columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
-                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 150 },
-                                { title: 'Sys Qty', dataIndex: 'sys', key: 'sys', width: 80 },
-                                { title: 'Phy Qty', dataIndex: 'phy', key: 'phy', width: 80 },
-                                { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="red">{v}</Tag> },
-                            ]}
-                            rowKey="sku"
-                            size="small"
-                            scroll={{ y: 200 }}
-                            pagination={false}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} lg={12}>
-                    <Card title="📈 Gain SKU" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#4ade80' } }}>
-                        <ResizableTable
-                            dataSource={(() => {
-                                const skuBrandMap: Record<string, string> = {};
-                                fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
-                                fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
-                                const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
-                                fDccList.forEach(d => {
-                                    const v = parseInt(d.variance) || 0;
-                                    if (v <= 0) return;
-                                    const sku = (d.sku || '').trim();
-                                    if (!sku) return;
-                                    if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
-                                    map[sku].sys += parseInt(d.sys_qty) || 0;
-                                    map[sku].phy += parseInt(d.phy_qty) || 0;
-                                    map[sku].variance += v;
-                                });
-                                return Object.values(map).sort((a, b) => b.variance - a.variance);
-                            })()}
-                            columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
-                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 150 },
-                                { title: 'Sys Qty', dataIndex: 'sys', key: 'sys', width: 80 },
-                                { title: 'Phy Qty', dataIndex: 'phy', key: 'phy', width: 80 },
-                                { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="green">+{v}</Tag> },
-                            ]}
-                            rowKey="sku"
-                            size="small"
-                            scroll={{ y: 200 }}
-                            pagination={false}
-                        />
-                    </Card>
-                </Col>
-            </Row>
+            {/* Shortage & Gain — net per SKU using reconcile-aware values */}
+            {(() => {
+                const skuBrandMap: Record<string, string> = {};
+                fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
+                const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
+                fDccList.forEach(d => {
+                    const sku = (d.sku || '').trim();
+                    if (!sku) return;
+                    if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
+                    map[sku].sys += effectiveSysQty(d);
+                    map[sku].phy += effectivePhyQty(d);
+                    map[sku].variance += effectiveVariance(d);
+                });
+                const allSkus = Object.values(map);
+                const shortageSkus = allSkus.filter(s => s.variance < 0).sort((a, b) => a.variance - b.variance);
+                const gainSkus = allSkus.filter(s => s.variance > 0).sort((a, b) => b.variance - a.variance);
+                const skuColumns = [
+                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
+                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 150 },
+                    { title: 'Sys Qty', dataIndex: 'sys', key: 'sys', width: 80 },
+                    { title: 'Phy Qty', dataIndex: 'phy', key: 'phy', width: 80 },
+                ];
+                return (
+                    <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                        <Col xs={24} lg={12}>
+                            <Card title={`Shortage SKU (${shortageSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#f87171' } }}>
+                                <ResizableTable
+                                    dataSource={shortageSkus}
+                                    columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="red">{v}</Tag> }]}
+                                    rowKey="sku"
+                                    size="small"
+                                    scroll={{ y: 200 }}
+                                    pagination={false}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} lg={12}>
+                            <Card title={`Gain SKU (${gainSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#4ade80' } }}>
+                                <ResizableTable
+                                    dataSource={gainSkus}
+                                    columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="green">+{v}</Tag> }]}
+                                    rowKey="sku"
+                                    size="small"
+                                    scroll={{ y: 200 }}
+                                    pagination={false}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+                );
+            })()}
 
             {/* Cycle Count Coverage */}
             {(() => {
