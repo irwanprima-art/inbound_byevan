@@ -187,17 +187,31 @@ export default function DccPage() {
             const lines = text.split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) { message.warning('File kosong'); return; }
 
+            // Helper: parse a CSV line respecting quotes
+            const parseCsvLine = (line: string): string[] => {
+                const cells: string[] = [];
+                let current = '';
+                let inQuotes = false;
+                for (const ch of line) {
+                    if (ch === '"') { inQuotes = !inQuotes; continue; }
+                    if (ch === ',' && !inQuotes) { cells.push(current.trim()); current = ''; continue; }
+                    current += ch;
+                }
+                cells.push(current.trim());
+                return cells;
+            };
+
             // Parse headers — apply columnMap aliases
-            const rawHeaders = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+            const rawHeaders = parseCsvLine(lines[0]);
             const normalHeaders = rawHeaders.map(h => {
                 const mapped = columnMap[h];
                 return mapped || h.toLowerCase().replace(/[^a-z0-9]/g, '_');
             });
 
-            // Parse rows using the same parseCSVRow logic
+            // Parse rows using proper CSV parsing
             const importedRows: Record<string, unknown>[] = [];
             for (const line of lines.slice(1)) {
-                const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                const cols = parseCsvLine(line);
                 const row = parseCSVRow(cols, normalHeaders);
                 if (row) importedRows.push(row);
             }
