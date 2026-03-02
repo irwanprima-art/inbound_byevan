@@ -30,9 +30,19 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
         return parseInt(d.variance) || 0;
     };
 
-    // Accuracy calculations
-    const totalSysQty = fDccList.reduce((sum, d) => sum + (parseInt(d.sys_qty) || 0), 0);
-    const totalPhyQty = fDccList.reduce((sum, d) => sum + (parseInt(d.phy_qty) || 0), 0);
+    // Use reconcile qty when available, otherwise fall back to Round 1
+    const effectiveSysQty = (d: any): number => {
+        if (d.reconcile_sys_qty != null && d.reconcile_sys_qty !== '') return parseInt(d.reconcile_sys_qty) || 0;
+        return parseInt(d.sys_qty) || 0;
+    };
+    const effectivePhyQty = (d: any): number => {
+        if (d.reconcile_phy_qty != null && d.reconcile_phy_qty !== '') return parseInt(d.reconcile_phy_qty) || 0;
+        return parseInt(d.phy_qty) || 0;
+    };
+
+    // Accuracy calculations — use effective (reconcile-aware) values
+    const totalSysQty = fDccList.reduce((sum, d) => sum + effectiveSysQty(d), 0);
+    const totalPhyQty = fDccList.reduce((sum, d) => sum + effectivePhyQty(d), 0);
     const shortageQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
     const gainQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v > 0 ? v : 0); }, 0);
     const accuracyQty = totalSysQty > 0 ? (((totalSysQty - shortageQty - gainQty) / totalSysQty) * 100).toFixed(2) : '0.00';
