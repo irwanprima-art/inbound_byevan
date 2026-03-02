@@ -82,6 +82,9 @@ const formFields = (
 
 const csvHeaders = ['date', 'phy_inv', 'zone', 'location', 'owner', 'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'operator'];
 
+// Export includes all fields: Round 1 + calculated + Reconcile
+const exportCsvHeaders = ['date', 'phy_inv', 'zone', 'location', 'owner', 'sku', 'brand', 'description', 'sys_qty', 'phy_qty', 'variance', 'operator', 'reconcile_sys_qty', 'reconcile_phy_qty', 'reconcile_variance'];
+
 const columnMap: Record<string, string> = {
     'Phy. Inventory#': 'phy_inv',
     'phy_inventory': 'phy_inv',
@@ -349,6 +352,7 @@ export default function DccPage() {
                 extraFilterUi={extraFilterUi}
                 extraFilterFn={extraFilterFn}
                 extraButtons={extraButtons}
+                exportHeaders={exportCsvHeaders}
             />
 
             {/* Reconcile Result Modal */}

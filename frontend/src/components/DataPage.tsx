@@ -72,10 +72,12 @@ interface DataPageProps<T> {
     extraButtons?: React.ReactNode;
     /** Async callback to enrich/transform data after fetching (e.g. join from another API) */
     enrichData?: (items: T[]) => Promise<T[]>;
+    /** Override headers used for Export CSV (when different from import csvHeaders) */
+    exportHeaders?: string[];
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -297,10 +299,11 @@ export default function DataPage<T extends { id: number }>({
     };
 
     const handleExport = () => {
-        if (!csvHeaders) return;
-        const headerLine = csvHeaders.join(',');
+        const headers = exportHeaders || csvHeaders;
+        if (!headers) return;
+        const headerLine = headers.join(',');
         const rows = data.map(item =>
-            csvHeaders.map(h => {
+            headers.map(h => {
                 const key = h.replace(/\s+/g, '_').toLowerCase();
                 const val = (item as any)[key] ?? '';
                 return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
