@@ -58,14 +58,15 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const navigate = useNavigate();
 
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
-    const fTransactions = useMemo(() => transactions.filter((t: any) => matchesDateRange(t.date)), [transactions, matchesDateRange]);
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
     const fCases = useMemo(() => inboundCases.filter(c => matchesDateRange(c.date)), [inboundCases, matchesDateRange]);
 
     // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
+    // IMPORTANT: Use ALL transactions (not date-filtered) so that receive/putaway
+    // data is correctly matched even when filtering arrivals by date range.
     const txLookup = useMemo(() => {
         const map: Record<string, { receiveQty: number; putawayQty: number; firstReceiveTime: string | null; lastPutawayTime: string | null }> = {};
-        fTransactions.forEach((tx: any) => {
+        transactions.forEach((tx: any) => {
             const key = (tx.receipt_no || '').trim().toLowerCase();
             if (!key) return;
             if (!map[key]) map[key] = { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
@@ -85,7 +86,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             }
         });
         return map;
-    }, [fTransactions]);
+    }, [transactions]);
 
     // Enriched arrivals: attach receive/putaway/pending/first_receive/last_putaway/status
     const enrichedArrivals = useMemo(() => {
@@ -210,7 +211,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
         // Step 2: sum receive qty per SKU from transactions
         const skuMap: Record<string, number> = {};
-        fTransactions.forEach((tx: any) => {
+        transactions.forEach((tx: any) => {
             const rn = (tx.receipt_no || '').trim().toLowerCase();
             if (!atkReceiptSet.has(rn)) return;
             const opType = (tx.operate_type || '').trim().toLowerCase();
