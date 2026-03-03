@@ -398,19 +398,24 @@ export default function ArrivalsPage() {
             }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0 && v != null && v !== 'Completed'));
             if (rows.length === 0) { message.warning('Tidak ada data valid'); return; }
             try {
-                // Build lookup of existing arrivals by receipt_no for upsert
-                const existingByReceipt: Record<string, any> = {};
+                // Build lookup of existing arrivals by receipt_no+date for upsert
+                // (same receipt_no on different dates = different records)
+                const existingByKey: Record<string, any> = {};
                 data.forEach((d: any) => {
-                    const key = (d.receipt_no || '').trim().toLowerCase();
-                    if (key) existingByReceipt[key] = d;
+                    const rn = (d.receipt_no || '').trim().toLowerCase();
+                    const dt = (d.date || '').trim();
+                    const key = `${rn}||${dt}`;
+                    if (rn) existingByKey[key] = d;
                 });
 
                 const toUpdate: { id: number; payload: any }[] = [];
                 const toCreate: any[] = [];
 
                 rows.forEach((row: any) => {
-                    const key = (row.receipt_no || '').trim().toLowerCase();
-                    const existing = key ? existingByReceipt[key] : null;
+                    const rn = (row.receipt_no || '').trim().toLowerCase();
+                    const dt = (row.date || '').trim();
+                    const key = `${rn}||${dt}`;
+                    const existing = rn ? existingByKey[key] : null;
                     if (existing) {
                         toUpdate.push({ id: existing.id, payload: row });
                     } else {
