@@ -377,14 +377,20 @@ export default function ArrivalsPage() {
                     date: normalizeDate(get('date', dayjs().format('YYYY-MM-DD'))),
                     scheduled_arrival_time: normalizeDateTime(get('scheduled_arrival_time', '')),
                     arrival_time: normalizeDateTime(get('arrival_time', dayjs().format('YYYY-MM-DD HH:mm:ss'))),
+                    finish_unloading_time: normalizeDateTime(get('finish_unloading_time', '')),
                     brand: get('brand'),
                     item_type: get('item_type'),
                     receipt_no: get('receipt_no'),
                     po_no: get('po_no'),
+                    plan_qty: parseInt(get('plan_qty', '0')) || 0,
                     po_qty: parseInt(get('po_qty', '0')) || 0,
                     receive_qty: parseInt(get('receive_qty', '0')) || 0,
                     putaway_qty: parseInt(get('putaway_qty', '0')) || 0,
                     pending_qty: parseInt(get('pending_qty', '0')) || 0,
+                    kingdee_status: get('kingdee_status'),
+                    date_publish_do: normalizeDate(get('date_publish_do', '')),
+                    remarks_publish_do: get('remarks_publish_do'),
+                    urgensi: get('urgensi'),
                     operator: get('operator'),
                     note: get('note'),
                     status: get('status', 'Completed'),
@@ -392,16 +398,53 @@ export default function ArrivalsPage() {
             }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0 && v != null && v !== 'Completed'));
             if (rows.length === 0) { message.warning('Tidak ada data valid'); return; }
             try {
-                const CHUNK = 1000;
-                let imported = 0;
-                const hide = message.loading(`Importing... 0/${rows.length}`, 0);
-                for (let i = 0; i < rows.length; i += CHUNK) {
-                    await arrivalsApi.batchImport(rows.slice(i, i + CHUNK));
-                    imported += Math.min(CHUNK, rows.length - i);
-                    hide();
-                    if (i + CHUNK < rows.length) message.loading(`Importing... ${imported}/${rows.length}`, 0);
+                // Build lookup of existing arrivals by receipt_no for upsert
+                const existingByReceipt: Record<string, any> = {};
+                data.forEach((d: any) => {
+                    const key = (d.receipt_no || '').trim().toLowerCase();
+                    if (key) existingByReceipt[key] = d;
+                });
+
+                const toUpdate: { id: number; payload: any }[] = [];
+                const toCreate: any[] = [];
+
+                rows.forEach((row: any) => {
+                    const key = (row.receipt_no || '').trim().toLowerCase();
+                    const existing = key ? existingByReceipt[key] : null;
+                    if (existing) {
+                        toUpdate.push({ id: existing.id, payload: row });
+                    } else {
+                        toCreate.push(row);
+                    }
+                });
+
+                let processed = 0;
+                const total = toUpdate.length + toCreate.length;
+                const hide = message.loading(`Importing... 0/${total}`, 0);
+
+                // Update existing records one by one
+                for (const item of toUpdate) {
+                    await arrivalsApi.update(item.id, item.payload);
+                    processed++;
+                    if (processed % 50 === 0) {
+                        hide();
+                        message.loading(`Importing... ${processed}/${total} (updating)`, 0);
+                    }
                 }
-                message.success(`✅ ${imported} data imported`);
+
+                // Create new records in batches
+                if (toCreate.length > 0) {
+                    const CHUNK = 1000;
+                    for (let i = 0; i < toCreate.length; i += CHUNK) {
+                        await arrivalsApi.batchImport(toCreate.slice(i, i + CHUNK));
+                        processed += Math.min(CHUNK, toCreate.length - i);
+                        hide();
+                        if (processed < total) message.loading(`Importing... ${processed}/${total} (creating)`, 0);
+                    }
+                }
+
+                hide();
+                message.success(`✅ ${toUpdate.length} updated, ${toCreate.length} created`);
                 fetchAll();
             } catch {
                 message.error('Import gagal');
