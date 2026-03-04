@@ -227,7 +227,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 })()}</>}
 
             {/* Inventory Variances — from SOH location VAR01 */}
-            {show('accuracy') && (() => {
+            {show('variances') && (() => {
                 const MONTH_LABELS: Record<string, string> = {
                     '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
                     '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
@@ -292,8 +292,8 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 return (
                     <Card
                         title="📦 Inventory Variances (VAR01)"
-                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
-                        styles={{ header: { color: '#fff' } }}
+                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: sections ? 0 : 24, ...(sections ? { height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' } : {}) }}
+                        styles={{ header: { color: '#fff' }, ...(sections ? { body: { flex: 1, overflow: 'auto', padding: '8px 16px' } } : {}) }}
                     >
                         <ResizableTable
                             dataSource={[totalRow, ...rows]}
@@ -306,7 +306,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                             ]}
                             rowKey="key"
                             size="small"
-                            scroll={{ x: 'max-content', y: 300 }}
+                            scroll={{ x: 'max-content', ...(sections ? {} : { y: 300 }) }}
                             pagination={false}
                             onRow={(record: any) => ({
                                 style: record._isTotal ? { background: 'rgba(99,102,241,0.12)', fontWeight: 700 } : undefined,

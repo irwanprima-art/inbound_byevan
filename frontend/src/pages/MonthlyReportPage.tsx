@@ -34,6 +34,7 @@ const SLIDES = [
     { key: 'inventory_1', label: '📋 Inventory — Accuracy', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy'] },
     { key: 'inventory_2', label: '📋 Inventory — Cycle Count', icon: <DatabaseOutlined />, color: '#06b6d4', sections: ['cycle_count'] },
     { key: 'inventory_3', label: '📋 Inventory — Damage & QC', icon: <DatabaseOutlined />, color: '#f87171', sections: ['damage_qc'] },
+    { key: 'inventory_4', label: '📦 Inventory — Variances', icon: <DatabaseOutlined />, color: '#a78bfa', sections: ['variances'] },
     // Other tabs
     { key: 'utilization', label: '🏭 WH Utilization', icon: <HomeOutlined />, color: '#f59e0b', sections: undefined },
     // Aging sub-slides
