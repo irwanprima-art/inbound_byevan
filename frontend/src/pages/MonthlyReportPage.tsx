@@ -36,7 +36,9 @@ const SLIDES = [
     { key: 'inventory_3', label: '📋 Inventory — Damage & QC', icon: <DatabaseOutlined />, color: '#f87171', sections: ['damage_qc'] },
     // Other tabs
     { key: 'utilization', label: '🏭 WH Utilization', icon: <HomeOutlined />, color: '#f59e0b', sections: undefined },
-    { key: 'aging_stock', label: '📅 Aging Stock', icon: <CalendarOutlined />, color: '#ec4899', sections: undefined },
+    // Aging sub-slides
+    { key: 'aging_1', label: '📅 Aging Stock — ED Note', icon: <CalendarOutlined />, color: '#ec4899', sections: ['ed_note', 'critical_ed'] },
+    { key: 'aging_2', label: '📅 Aging Stock — Aging Note', icon: <CalendarOutlined />, color: '#f472b6', sections: ['aging_note'] },
     { key: 'manpower', label: '👷 Manpower', icon: <TeamOutlined />, color: '#06b6d4', sections: undefined },
 ];
 
@@ -211,11 +213,13 @@ export default function MonthlyReportPage() {
                 />
             );
         }
+        // All aging sub-slides
+        if (slide.key.startsWith('aging_')) {
+            return <DashboardAgingTab sohList={sohList} locations={locations} sections={slide.sections} />;
+        }
         switch (slide.key) {
             case 'utilization':
                 return <DashboardUtilizationTab sohList={sohList} locations={locations} />;
-            case 'aging_stock':
-                return <DashboardAgingTab sohList={sohList} locations={locations} />;
             case 'manpower':
                 return <DashboardManpowerTab attData={attData} empData={empData} schedData={schedData} addMpData={addMpData} filterMonth={selectedMonth} />;
             default:

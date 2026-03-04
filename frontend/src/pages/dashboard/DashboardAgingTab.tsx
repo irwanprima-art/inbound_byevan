@@ -6,9 +6,11 @@ import dayjs from 'dayjs';
 interface Props {
     sohList: any[];
     locations: any[];
+    sections?: string[];
 }
 
-export default function DashboardAgingTab({ sohList, locations }: Props) {
+export default function DashboardAgingTab({ sohList, locations, sections }: Props) {
+    const show = (key: string) => !sections || sections.includes(key);
     const navigate = useNavigate();
     // Backend returns consistent YYYY-MM-DD via FlexDate
     const parseDate = (s: string) => {
@@ -143,7 +145,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
 
     return (
         <>
-            <Card
+            {show('ed_note') && <Card
                 title={<span>📅 ED Note by Brand {latestUpdate && <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginLeft: 12 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</span>}</span>}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
@@ -184,9 +186,9 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                         style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined,
                     })}
                 />
-            </Card>
+            </Card>}
 
-            {criticalItems.length > 0 && (
+            {show('critical_ed') && criticalItems.length > 0 && (
                 <Card
                     title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`}
                     style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden', position: 'relative' }}
@@ -209,7 +211,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                 </Card>
             )}
 
-            <Card
+            {show('aging_note') && <Card
                 title="📦 Aging Note by Brand"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden', position: 'relative' }}
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
@@ -249,7 +251,7 @@ export default function DashboardAgingTab({ sohList, locations }: Props) {
                         style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined,
                     })}
                 />
-            </Card>
+            </Card>}
         </>
     );
 }
