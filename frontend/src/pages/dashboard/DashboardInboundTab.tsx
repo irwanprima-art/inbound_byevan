@@ -51,10 +51,12 @@ interface Props {
     vasList: any[];
     unloadings: any[];
     inboundCases: any[];
+    rejections: any[];
+    baData: any[];
     matchesDateRange: (d: string) => boolean;
 }
 
-export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, inboundCases, matchesDateRange }: Props) {
+export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, inboundCases, rejections, baData, matchesDateRange }: Props) {
     const navigate = useNavigate();
 
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
@@ -585,6 +587,108 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.12)', fontWeight: 700 } : undefined })}
                 />
             </Card>
+
+            {/* Tolakan Inbound Summary */}
+            {(() => {
+                // Merge BA-sourced rejections + manual rejections, filtered by dateRange
+                const baRejections: any[] = [];
+                baData
+                    .filter((ba: any) => (ba.doc_type || '').toLowerCase().includes('penolakan'))
+                    .forEach((ba: any) => {
+                        let items: any[] = [];
+                        try { items = JSON.parse(ba.items || '[]'); } catch { items = []; }
+                        items.forEach((item: any) => {
+                            baRejections.push({
+                                date: ba.date,
+                                brand: ba.kepada || '',
+                                sku: item.sku || item.SKU || '',
+                                qty: parseInt(item.qty || item.Qty || '1') || 1,
+                                catatan: item.catatan || item.note || ba.notes || '',
+                            });
+                        });
+                    });
+                const allRej = [...baRejections, ...rejections];
+                const fRej = allRej.filter(r => matchesDateRange(r.date));
+
+                if (fRej.length === 0) return null;
+
+                const brandMap: Record<string, { brand: string; skuCount: number; totalQty: number; skus: Set<string> }> = {};
+                fRej.forEach(r => {
+                    const brand = (r.brand || '').trim() || '-';
+                    const sku = (r.sku || '').trim();
+                    const qty = parseInt(r.qty) || 0;
+                    if (!brandMap[brand]) brandMap[brand] = { brand, skuCount: 0, totalQty: 0, skus: new Set() };
+                    if (sku && !brandMap[brand].skus.has(sku)) { brandMap[brand].skus.add(sku); brandMap[brand].skuCount++; }
+                    brandMap[brand].totalQty += qty;
+                });
+                const rows = Object.values(brandMap).map(({ brand, skuCount, totalQty }) => ({ brand, sku: skuCount, qty: totalQty, key: brand })).sort((a, b) => b.qty - a.qty);
+                const totalRow = { brand: 'TOTAL', sku: rows.reduce((s, r) => s + r.sku, 0), qty: rows.reduce((s, r) => s + r.qty, 0), key: '_TOTAL', _isTotal: true };
+
+                return (
+                    <Card
+                        title={<span>🚫 Tolakan Inbound — Summary ({fRej.length} item)</span>}
+                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                        styles={{ header: { color: '#f87171' } }}
+                    >
+                        <Table
+                            dataSource={[totalRow, ...rows]}
+                            columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 160, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 80, align: 'center' as const, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span> },
+                                { title: 'Qty Ditolak', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#f87171', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                            ]}
+                            rowKey="key"
+                            size="small"
+                            pagination={false}
+                            onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(248,113,113,0.1)', fontWeight: 700 } : undefined })}
+                        />
+                    </Card>
+                );
+            })()}
+
+            {/* Case Inbound Summary */}
+            {(() => {
+                const fCases = inboundCases.filter(c => matchesDateRange(c.date));
+                if (fCases.length === 0) return null;
+
+                const caseMap: Record<string, { caseType: string; totalQty: number; brands: Set<string> }> = {};
+                fCases.forEach(c => {
+                    const caseType = (c.case || '').trim() || 'Lainnya';
+                    const brand = (c.brand || '').trim();
+                    const qty = parseInt(c.qty) || 0;
+                    if (!caseMap[caseType]) caseMap[caseType] = { caseType, totalQty: 0, brands: new Set() };
+                    caseMap[caseType].totalQty += qty;
+                    if (brand) caseMap[caseType].brands.add(brand);
+                });
+                const rows = Object.values(caseMap).map(({ caseType, totalQty, brands }) => ({
+                    caseType,
+                    qty: totalQty,
+                    brandCount: brands.size,
+                    key: caseType,
+                })).sort((a, b) => b.qty - a.qty);
+                const totalRow = { caseType: 'TOTAL', qty: rows.reduce((s, r) => s + r.qty, 0), brandCount: new Set(fCases.map(c => (c.brand || '').trim()).filter(Boolean)).size, key: '_TOTAL', _isTotal: true };
+
+                return (
+                    <Card
+                        title={<span>📋 Case Inbound — Summary ({fCases.length} item)</span>}
+                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                        styles={{ header: { color: '#ec4899' } }}
+                    >
+                        <Table
+                            dataSource={[totalRow, ...rows]}
+                            columns={[
+                                { title: 'Jenis Case', dataIndex: 'caseType', key: 'caseType', width: 180, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                { title: 'Brand', dataIndex: 'brandCount', key: 'brandCount', width: 80, align: 'center' as const, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span> },
+                                { title: 'Total Qty', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#ec4899', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                            ]}
+                            rowKey="key"
+                            size="small"
+                            pagination={false}
+                            onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(236,72,153,0.1)', fontWeight: 700 } : undefined })}
+                        />
+                    </Card>
+                );
+            })()}
         </>
     );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi, inboundRejectionsApi, beritaAcaraApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
@@ -38,6 +38,8 @@ export default function DashboardPage() {
     const [vasList, setVasList] = useState<any[]>([]);
     const [unloadings, setUnloadings] = useState<any[]>([]);
     const [inboundCases, setInboundCases] = useState<any[]>([]);
+    const [rejections, setRejections] = useState<any[]>([]);
+    const [baData, setBaData] = useState<any[]>([]);
 
     // Inventory group data (also used by Utilization + Aging)
     const [dccList, setDccList] = useState<any[]>([]);
@@ -60,14 +62,17 @@ export default function DashboardPage() {
         setLoadingGroup(group);
         try {
             if (group === 'inbound') {
-                const [a, t, v, ul, ic] = await Promise.all([
+                const [a, t, v, ul, ic, rej, ba] = await Promise.all([
                     arrivalsApi.list(), transactionsApi.list(), vasApi.list(), unloadingsApi.list(), inboundCasesApi.list(),
+                    inboundRejectionsApi.list(), beritaAcaraApi.list(),
                 ]);
                 setArrivals(a.data || []);
                 setTransactions(t.data || []);
                 setVasList(v.data || []);
                 setUnloadings(ul.data || []);
                 setInboundCases(ic.data || []);
+                setRejections(rej.data || []);
+                setBaData(ba.data || []);
             } else if (group === 'inventory') {
                 const [d, s, dm, q, loc] = await Promise.all([
                     dccApi.list(), sohApi.list(), damagesApi.list(), qcReturnsApi.list(), locationsApi.list(),
@@ -153,6 +158,8 @@ export default function DashboardPage() {
                                 vasList={vasList}
                                 unloadings={unloadings}
                                 inboundCases={inboundCases}
+                                rejections={rejections}
+                                baData={baData}
                                 matchesDateRange={matchesDateRange}
                             />
                         ),

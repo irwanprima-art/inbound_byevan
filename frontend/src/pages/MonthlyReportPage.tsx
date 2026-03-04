@@ -11,6 +11,7 @@ import {
     arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi,
     sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi,
     unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi,
+    inboundRejectionsApi, beritaAcaraApi,
 } from '../api/client';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
@@ -52,6 +53,8 @@ export default function MonthlyReportPage() {
     const [empData, setEmpData] = useState<any[]>([]);
     const [schedData, setSchedData] = useState<any[]>([]);
     const [addMpData, setAddMpData] = useState<any[]>([]);
+    const [rejections, setRejections] = useState<any[]>([]);
+    const [baData, setBaData] = useState<any[]>([]);
 
     // Date range for selected month
     const dateRange: [Dayjs, Dayjs] = [
@@ -73,13 +76,14 @@ export default function MonthlyReportPage() {
     const fetchAllData = useCallback(async () => {
         setLoading(true);
         try {
-            const [a, t, v, ul, ic, d, s, dm, q, loc, att, emp, sch, addMp] = await Promise.all([
+            const [a, t, v, ul, ic, d, s, dm, q, loc, att, emp, sch, addMp, rej, ba] = await Promise.all([
                 arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
                 unloadingsApi.list(), inboundCasesApi.list(),
                 dccApi.list(), sohApi.list(), damagesApi.list(),
                 qcReturnsApi.list(), locationsApi.list(),
                 attendancesApi.list(), employeesApi.list(),
                 schedulesApi.list(), additionalMpApi.list(),
+                inboundRejectionsApi.list(), beritaAcaraApi.list(),
             ]);
             setArrivals(a.data || []);
             setTransactions(t.data || []);
@@ -95,6 +99,8 @@ export default function MonthlyReportPage() {
             setEmpData(emp.data || []);
             setSchedData(sch.data || []);
             setAddMpData(addMp.data || []);
+            setRejections(rej.data || []);
+            setBaData(ba.data || []);
             setDataLoaded(true);
         } catch {
             // silently fail
@@ -172,6 +178,8 @@ export default function MonthlyReportPage() {
                         vasList={vasList}
                         unloadings={unloadings}
                         inboundCases={inboundCases}
+                        rejections={rejections}
+                        baData={baData}
                         matchesDateRange={matchesDateRange}
                     />
                 );
