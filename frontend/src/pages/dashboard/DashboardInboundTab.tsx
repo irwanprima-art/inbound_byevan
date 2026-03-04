@@ -54,9 +54,12 @@ interface Props {
     rejections: any[];
     baData: any[];
     matchesDateRange: (d: string) => boolean;
+    /** Optional: only render specific sections. When undefined, render all. */
+    sections?: string[];
 }
 
-export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, inboundCases, rejections, baData, matchesDateRange }: Props) {
+export default function DashboardInboundTab({ dateRange, setDateRange, arrivals, transactions, vasList, unloadings, inboundCases, rejections, baData, matchesDateRange, sections }: Props) {
+    const show = (key: string) => !sections || sections.includes(key);
     const navigate = useNavigate();
 
     const fArrivals = useMemo(() => arrivals.filter(a => matchesDateRange(a.date)), [arrivals, matchesDateRange]);
@@ -280,7 +283,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
     return (
         <>
-            <Space style={{ marginBottom: 16 }} wrap>
+            {show('datefilter') && <Space style={{ marginBottom: 16 }} wrap>
                 <DatePicker.RangePicker
                     value={dateRange}
                     onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
@@ -292,27 +295,27 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
                 <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
                 {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
-            </Space>
-            <Row gutter={[16, 16]}>
+            </Space>}
+            {show('cards') && <><Row gutter={[16, 16]}>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total Kedatangan" value={totalKedatangan} icon={<InboxOutlined />} color="#6366f1" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total PO" value={totalPO} icon={<InboxOutlined />} color="#8b5cf6" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total Brand" value={totalBrand} icon={<InboxOutlined />} color="#a855f7" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total Qty Kedatangan" value={totalQtyKedatangan.toLocaleString()} icon={<SwapOutlined />} color="#06b6d4" /></Col>
             </Row>
-            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Total Receive Qty" value={totalReceiveQty.toLocaleString()} icon={<SwapOutlined />} color="#3b82f6" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Total Putaway Qty" value={totalPutawayQty.toLocaleString()} icon={<CheckCircleOutlined />} color="#10b981" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Pending Receive" value={pendingReceive.toLocaleString()} icon={<ClockCircleOutlined />} color="#f59e0b" onClick={() => navigate('/arrivals?search=Pending')} /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="% Completed" value={`${pctCompleted}%`} icon={<CheckCircleOutlined />} color="#22c55e" /></Col>
-            </Row>
-            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Kedatangan → Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Avg Receive → Putaway" value={avgRecPutaway} icon={<ClockCircleOutlined />} color="#f97316" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Total VAS" value={totalVAS.toLocaleString()} icon={<ToolOutlined />} color="#14b8a6" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Avg VAS / Manpower" value={avgVasPerMP} icon={<ToolOutlined />} color="#64748b" /></Col>
-            </Row>
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Total Receive Qty" value={totalReceiveQty.toLocaleString()} icon={<SwapOutlined />} color="#3b82f6" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Total Putaway Qty" value={totalPutawayQty.toLocaleString()} icon={<CheckCircleOutlined />} color="#10b981" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Pending Receive" value={pendingReceive.toLocaleString()} icon={<ClockCircleOutlined />} color="#f59e0b" onClick={() => navigate('/arrivals?search=Pending')} /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="% Completed" value={`${pctCompleted}%`} icon={<CheckCircleOutlined />} color="#22c55e" /></Col>
+                </Row>
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Avg Kedatangan → Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Avg Receive → Putaway" value={avgRecPutaway} icon={<ClockCircleOutlined />} color="#f97316" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Total VAS" value={totalVAS.toLocaleString()} icon={<ToolOutlined />} color="#14b8a6" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Avg VAS / Manpower" value={avgVasPerMP} icon={<ToolOutlined />} color="#64748b" /></Col>
+                </Row></>}
 
-            <Card
+            {show('pending') && <Card
                 title={`⏳ Pending Inbound (${pendingArrivals.length})`}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
@@ -341,9 +344,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>✅ Tidak ada pending — semua sudah selesai</Text>
                     </div>
                 )}
-            </Card>
+            </Card>}
 
-            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+            {show('plan_vs_po') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 {([
                     { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true },
@@ -375,9 +378,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         </Card>
                     </Col>
                 ))}
-            </Row>
+            </Row>}
 
-            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+            {show('breakdown') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 <Col xs={24} lg={12}>
                     <Card title="📈 Breakdown Qty" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         {breakdownData.map(item => (
@@ -417,10 +420,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         </Row>
                     </Card>
                 </Col>
-            </Row>
+            </Row>}
 
-            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                <Col xs={24} lg={12}>
+            {show('po_qty_brand') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                <Col xs={24} lg={show('vas_type') ? 12 : 24}>
                     <Card title="📊 PO & Qty per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={brandData} margin={{ left: 0 }}>
@@ -436,7 +439,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         </ResponsiveContainer>
                     </Card>
                 </Col>
-                <Col xs={24} lg={12}>
+                <Col xs={24} lg={show('po_qty_brand') ? 12 : 24}>
                     <Card title="🏷️ VAS Type" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         {vasTypeData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={250}>
@@ -454,9 +457,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         )}
                     </Card>
                 </Col>
-            </Row>
+            </Row>}
 
-            <Card
+            {show('vas') && <Card
                 title="📦 Value-Added Services (VAS)"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
@@ -478,9 +481,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
                     </div>
                 )}
-            </Card>
+            </Card>}
 
-            <Card
+            {show('unloading') && <Card
                 title="🚚 Unloading Summary"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
                 styles={{ header: { color: '#fff' } }}
@@ -520,10 +523,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     pagination={false}
                     scroll={{ x: 'max-content' }}
                 />
-            </Card>
+            </Card>}
 
             {/* Inbound by Brand */}
-            <Card
+            {show('inbound_by_brand') && <Card
                 title="📊 Inbound by Brand"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                 styles={{ header: { color: '#fff' } }}
@@ -586,10 +589,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     scroll={{ x: 'max-content' }}
                     onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.12)', fontWeight: 700 } : undefined })}
                 />
-            </Card>
+            </Card>}
 
             {/* Tolakan Inbound Summary */}
-            {(() => {
+            {show('tolakan') && (() => {
                 // Merge BA-sourced rejections + manual rejections, filtered by dateRange
                 const baRejections: any[] = [];
                 baData
@@ -647,7 +650,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             })()}
 
             {/* Case Inbound Summary */}
-            {(() => {
+            {show('case') && (() => {
                 const fCases = inboundCases.filter(c => matchesDateRange(c.date));
                 if (fCases.length === 0) return null;
 

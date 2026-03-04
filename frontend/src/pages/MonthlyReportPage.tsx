@@ -23,11 +23,18 @@ import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
 const { Title, Text } = Typography;
 
 const SLIDES = [
-    { key: 'inbound', label: '📦 Inbound', icon: <InboxOutlined />, color: '#6366f1' },
-    { key: 'inventory', label: '📋 Inventory', icon: <DatabaseOutlined />, color: '#10b981' },
-    { key: 'utilization', label: '🏭 WH Utilization', icon: <HomeOutlined />, color: '#f59e0b' },
-    { key: 'aging_stock', label: '📅 Aging Stock', icon: <CalendarOutlined />, color: '#ec4899' },
-    { key: 'manpower', label: '👷 Manpower', icon: <TeamOutlined />, color: '#06b6d4' },
+    // Inbound sub-slides
+    { key: 'inbound_1', label: '📦 Inbound — Overview', icon: <InboxOutlined />, color: '#6366f1', sections: ['cards', 'pending'] },
+    { key: 'inbound_2', label: '📦 Inbound — Plan vs PO', icon: <InboxOutlined />, color: '#8b5cf6', sections: ['plan_vs_po'] },
+    { key: 'inbound_3', label: '📦 Inbound — By Brand', icon: <InboxOutlined />, color: '#a855f7', sections: ['inbound_by_brand'] },
+    { key: 'inbound_4', label: '📦 Inbound — VAS', icon: <InboxOutlined />, color: '#14b8a6', sections: ['vas', 'vas_type'] },
+    { key: 'inbound_5', label: '📦 Inbound — PO & Qty', icon: <InboxOutlined />, color: '#06b6d4', sections: ['po_qty_brand'] },
+    { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
+    // Other tabs
+    { key: 'inventory', label: '📋 Inventory', icon: <DatabaseOutlined />, color: '#10b981', sections: undefined },
+    { key: 'utilization', label: '🏭 WH Utilization', icon: <HomeOutlined />, color: '#f59e0b', sections: undefined },
+    { key: 'aging_stock', label: '📅 Aging Stock', icon: <CalendarOutlined />, color: '#ec4899', sections: undefined },
+    { key: 'manpower', label: '👷 Manpower', icon: <TeamOutlined />, color: '#06b6d4', sections: undefined },
 ];
 
 export default function MonthlyReportPage() {
@@ -167,22 +174,25 @@ export default function MonthlyReportPage() {
     // Render slide content
     const renderSlide = (slideIndex: number) => {
         const slide = SLIDES[slideIndex];
+        // All inbound sub-slides use the same component with different sections
+        if (slide.key.startsWith('inbound_')) {
+            return (
+                <DashboardInboundTab
+                    dateRange={dateRange}
+                    setDateRange={noop}
+                    arrivals={arrivals}
+                    transactions={transactions}
+                    vasList={vasList}
+                    unloadings={unloadings}
+                    inboundCases={inboundCases}
+                    rejections={rejections}
+                    baData={baData}
+                    matchesDateRange={matchesDateRange}
+                    sections={slide.sections}
+                />
+            );
+        }
         switch (slide.key) {
-            case 'inbound':
-                return (
-                    <DashboardInboundTab
-                        dateRange={dateRange}
-                        setDateRange={noop}
-                        arrivals={arrivals}
-                        transactions={transactions}
-                        vasList={vasList}
-                        unloadings={unloadings}
-                        inboundCases={inboundCases}
-                        rejections={rejections}
-                        baData={baData}
-                        matchesDateRange={matchesDateRange}
-                    />
-                );
             case 'inventory':
                 return (
                     <DashboardInventoryTab
