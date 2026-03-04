@@ -398,7 +398,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 )}
             </Card>}
 
-            {show('plan_vs_po') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+            {show('plan_vs_po') && <Row gutter={[16, sections ? 8 : 16]} style={{ marginTop: sections ? 8 : 24 }}>
                 {([
                     { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true, itemType: 'Gimmick' },
@@ -414,14 +414,15 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Col xs={24} key={label}>
                             <Card
                                 title={label}
+                                size={sections ? 'small' : 'default'}
                                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
-                                styles={{ header: { color: '#fff' } }}
+                                styles={{ header: { color: '#fff', padding: sections ? '0 12px' : undefined, minHeight: sections ? 36 : undefined, fontSize: sections ? 13 : undefined } }}
                             >
                                 {data.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={320}>
-                                        <ComposedChart data={data} margin={{ bottom: 20 }}>
+                                    <ResponsiveContainer width="100%" height={sections ? 155 : 320}>
+                                        <ComposedChart data={data} margin={{ bottom: sections ? 5 : 20 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
+                                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: sections ? 9 : 11 }} angle={-20} textAnchor="end" height={sections ? 40 : 60} />
                                             <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
                                             <RTooltip content={<ItemTypeTooltip />} />
                                             <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
@@ -434,7 +435,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
                                     </div>
                                 )}
-                                <div style={{ marginTop: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ marginTop: sections ? 4 : 12, padding: sections ? '4px 12px' : '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Text style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Total = {currentTotal.toLocaleString()}</Text>
                                     {momPct !== null ? (
                                         <Text style={{ color: momPct >= 0 ? '#10b981' : '#ef4444', fontSize: 13 }}>
