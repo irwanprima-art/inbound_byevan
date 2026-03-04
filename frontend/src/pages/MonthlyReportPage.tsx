@@ -30,8 +30,11 @@ const SLIDES = [
     { key: 'inbound_4', label: '📦 Inbound — VAS', icon: <InboxOutlined />, color: '#14b8a6', sections: ['vas', 'vas_operator', 'vas_type'] },
     { key: 'inbound_5', label: '📦 Inbound — PO & Qty', icon: <InboxOutlined />, color: '#06b6d4', sections: ['po_qty_brand'] },
     { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
+    // Inventory sub-slides
+    { key: 'inventory_1', label: '📋 Inventory — Accuracy', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy'] },
+    { key: 'inventory_2', label: '📋 Inventory — Cycle Count', icon: <DatabaseOutlined />, color: '#06b6d4', sections: ['cycle_count'] },
+    { key: 'inventory_3', label: '📋 Inventory — Damage & QC', icon: <DatabaseOutlined />, color: '#f87171', sections: ['damage_qc'] },
     // Other tabs
-    { key: 'inventory', label: '📋 Inventory', icon: <DatabaseOutlined />, color: '#10b981', sections: undefined },
     { key: 'utilization', label: '🏭 WH Utilization', icon: <HomeOutlined />, color: '#f59e0b', sections: undefined },
     { key: 'aging_stock', label: '📅 Aging Stock', icon: <CalendarOutlined />, color: '#ec4899', sections: undefined },
     { key: 'manpower', label: '👷 Manpower', icon: <TeamOutlined />, color: '#06b6d4', sections: undefined },
@@ -192,20 +195,23 @@ export default function MonthlyReportPage() {
                 />
             );
         }
+        // All inventory sub-slides use the same component with different sections
+        if (slide.key.startsWith('inventory_')) {
+            return (
+                <DashboardInventoryTab
+                    dateRange={dateRange}
+                    setDateRange={noop}
+                    dccList={dccList}
+                    sohList={sohList}
+                    damages={damages}
+                    qcReturns={qcReturns}
+                    locations={locations}
+                    matchesDateRange={matchesDateRange}
+                    sections={slide.sections}
+                />
+            );
+        }
         switch (slide.key) {
-            case 'inventory':
-                return (
-                    <DashboardInventoryTab
-                        dateRange={dateRange}
-                        setDateRange={noop}
-                        dccList={dccList}
-                        sohList={sohList}
-                        damages={damages}
-                        qcReturns={qcReturns}
-                        locations={locations}
-                        matchesDateRange={matchesDateRange}
-                    />
-                );
             case 'utilization':
                 return <DashboardUtilizationTab sohList={sohList} locations={locations} />;
             case 'aging_stock':

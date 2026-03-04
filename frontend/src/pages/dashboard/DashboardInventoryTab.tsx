@@ -14,9 +14,11 @@ interface Props {
     qcReturns: any[];
     locations: any[];
     matchesDateRange: (d: string) => boolean;
+    sections?: string[];
 }
 
-export default function DashboardInventoryTab({ dateRange, setDateRange, dccList, sohList, damages, qcReturns, locations, matchesDateRange }: Props) {
+export default function DashboardInventoryTab({ dateRange, setDateRange, dccList, sohList, damages, qcReturns, locations, matchesDateRange, sections }: Props) {
+    const show = (key: string) => !sections || sections.includes(key);
     const navigate = useNavigate();
 
     const fDccList = useMemo(() => dccList.filter(d => matchesDateRange(d.date)), [dccList, matchesDateRange]);
@@ -77,7 +79,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
 
     return (
         <>
-            <Space style={{ marginBottom: 16 }} wrap>
+            {show('datefilter') && <Space style={{ marginBottom: 16 }} wrap>
                 <DatePicker.RangePicker
                     value={dateRange}
                     onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
@@ -89,10 +91,10 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
                 <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
                 {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
-            </Space>
+            </Space>}
 
             {/* Accuracy Cards */}
-            <Row gutter={[16, 16]} style={{ marginTop: 24, display: 'flex', alignItems: 'stretch' }}>
+            {show('accuracy') && <><Row gutter={[16, 16]} style={{ marginTop: 24, display: 'flex', alignItems: 'stretch' }}>
                 <Col xs={24} lg={8} style={{ display: 'flex' }}>
                     <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, width: '100%', display: 'flex', flexDirection: 'column' }} styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -171,61 +173,61 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 </Col>
             </Row>
 
-            {/* Shortage & Gain — net per SKU using reconcile-aware values */}
-            {(() => {
-                const skuBrandMap: Record<string, string> = {};
-                fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
-                fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
-                const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
-                fDccList.forEach(d => {
-                    const sku = (d.sku || '').trim();
-                    if (!sku) return;
-                    if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
-                    map[sku].sys += effectiveSysQty(d);
-                    map[sku].phy += effectivePhyQty(d);
-                    map[sku].variance += effectiveVariance(d);
-                });
-                const allSkus = Object.values(map);
-                const shortageSkus = allSkus.filter(s => s.variance < 0).sort((a, b) => a.variance - b.variance);
-                const gainSkus = allSkus.filter(s => s.variance > 0).sort((a, b) => b.variance - a.variance);
-                const skuColumns = [
-                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
-                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 150 },
-                    { title: 'Sys Qty', dataIndex: 'sys', key: 'sys', width: 80 },
-                    { title: 'Phy Qty', dataIndex: 'phy', key: 'phy', width: 80 },
-                ];
-                return (
-                    <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                        <Col xs={24} lg={12}>
-                            <Card title={`Shortage SKU (${shortageSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#f87171' } }}>
-                                <ResizableTable
-                                    dataSource={shortageSkus}
-                                    columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="red">{v}</Tag> }]}
-                                    rowKey="sku"
-                                    size="small"
-                                    scroll={{ y: 200 }}
-                                    pagination={false}
-                                />
-                            </Card>
-                        </Col>
-                        <Col xs={24} lg={12}>
-                            <Card title={`Gain SKU (${gainSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#4ade80' } }}>
-                                <ResizableTable
-                                    dataSource={gainSkus}
-                                    columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="green">+{v}</Tag> }]}
-                                    rowKey="sku"
-                                    size="small"
-                                    scroll={{ y: 200 }}
-                                    pagination={false}
-                                />
-                            </Card>
-                        </Col>
-                    </Row>
-                );
-            })()}
+                {/* Shortage & Gain — net per SKU using reconcile-aware values */}
+                {(() => {
+                    const skuBrandMap: Record<string, string> = {};
+                    fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
+                    fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
+                    const map: Record<string, { sku: string; brand: string; sys: number; phy: number; variance: number }> = {};
+                    fDccList.forEach(d => {
+                        const sku = (d.sku || '').trim();
+                        if (!sku) return;
+                        if (!map[sku]) map[sku] = { sku, brand: d.brand || skuBrandMap[sku] || '-', sys: 0, phy: 0, variance: 0 };
+                        map[sku].sys += effectiveSysQty(d);
+                        map[sku].phy += effectivePhyQty(d);
+                        map[sku].variance += effectiveVariance(d);
+                    });
+                    const allSkus = Object.values(map);
+                    const shortageSkus = allSkus.filter(s => s.variance < 0).sort((a, b) => a.variance - b.variance);
+                    const gainSkus = allSkus.filter(s => s.variance > 0).sort((a, b) => b.variance - a.variance);
+                    const skuColumns = [
+                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
+                        { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 150 },
+                        { title: 'Sys Qty', dataIndex: 'sys', key: 'sys', width: 80 },
+                        { title: 'Phy Qty', dataIndex: 'phy', key: 'phy', width: 80 },
+                    ];
+                    return (
+                        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                            <Col xs={24} lg={12}>
+                                <Card title={`Shortage SKU (${shortageSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#f87171' } }}>
+                                    <ResizableTable
+                                        dataSource={shortageSkus}
+                                        columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="red">{v}</Tag> }]}
+                                        rowKey="sku"
+                                        size="small"
+                                        scroll={{ y: 200 }}
+                                        pagination={false}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} lg={12}>
+                                <Card title={`Gain SKU (${gainSkus.length})`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#4ade80' } }}>
+                                    <ResizableTable
+                                        dataSource={gainSkus}
+                                        columns={[...skuColumns, { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 90, render: (v: number) => <Tag color="green">+{v}</Tag> }]}
+                                        rowKey="sku"
+                                        size="small"
+                                        scroll={{ y: 200 }}
+                                        pagination={false}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                })()}</>}
 
             {/* Cycle Count Coverage */}
-            {(() => {
+            {show('cycle_count') && (() => {
                 const zoneTotalMap: Record<string, number> = {};
                 locations.forEach((l: any) => {
                     const zone = (l.zone || '').trim();
@@ -277,7 +279,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
             })()}
 
             {/* Project Damage */}
-            <div style={{ marginTop: 32 }}>
+            {show('damage_qc') && <><div style={{ marginTop: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                     <span style={{ fontSize: 20 }}>⚠️</span>
                     <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Project Damage — Summary</span>
@@ -340,71 +342,71 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 </Row>
             </div>
 
-            {/* QC Return */}
-            <div style={{ marginTop: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontSize: 20 }}>🔄</span>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>QC Return — Summary</span>
-                </div>
-                <Row gutter={[16, 16]}>
-                    <Col xs={24} lg={12}>
-                        <Card title="🏢 QC Return Per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
-                            <ResizableTable
-                                dataSource={(() => {
-                                    const map: Record<string, { brand: string; good: number; damage: number }> = {};
-                                    fQcReturns.forEach((q: any) => {
-                                        const brand = (q.owner || '').trim() || '-';
-                                        const qty = parseInt(q.qty) || 0;
-                                        const status = (q.status || '').trim().toLowerCase();
-                                        if (!map[brand]) map[brand] = { brand, good: 0, damage: 0 };
-                                        if (status === 'good') map[brand].good += qty;
-                                        else if (status === 'damage') map[brand].damage += qty;
-                                    });
-                                    return Object.values(map).sort((a, b) => (b.good + b.damage) - (a.good + a.damage));
-                                })()}
-                                columns={[
-                                    { title: 'Brand', dataIndex: 'brand', key: 'brand' },
-                                    { title: 'Good', dataIndex: 'good', key: 'good', width: 80, render: (v: number) => <span style={{ color: '#4ade80' }}>{v}</span> },
-                                    { title: 'Damage', dataIndex: 'damage', key: 'damage', width: 80, render: (v: number) => <span style={{ color: '#f87171' }}>{v}</span> },
-                                ]}
-                                rowKey="brand"
-                                size="small"
-                                scroll={{ y: 200 }}
-                                pagination={false}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} lg={12}>
-                        <Card title="👤 Productivity QC By" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
-                            <ResizableTable
-                                dataSource={(() => {
-                                    const map: Record<string, { operator: string; good: number; damage: number; total: number }> = {};
-                                    fQcReturns.forEach((q: any) => {
-                                        const op = (q.operator || '').trim() || '-';
-                                        const qty = parseInt(q.qty) || 0;
-                                        const status = (q.status || '').trim().toLowerCase();
-                                        if (!map[op]) map[op] = { operator: op, good: 0, damage: 0, total: 0 };
-                                        if (status === 'good') map[op].good += qty;
-                                        else if (status === 'damage') map[op].damage += qty;
-                                        map[op].total += qty;
-                                    });
-                                    return Object.values(map).sort((a, b) => b.total - a.total);
-                                })()}
-                                columns={[
-                                    { title: 'Operator', dataIndex: 'operator', key: 'operator' },
-                                    { title: 'Good', dataIndex: 'good', key: 'good', width: 70, render: (v: number) => <span style={{ color: '#4ade80' }}>{v}</span> },
-                                    { title: 'Damage', dataIndex: 'damage', key: 'damage', width: 70, render: (v: number) => <span style={{ color: '#f87171' }}>{v}</span> },
-                                    { title: 'Total', dataIndex: 'total', key: 'total', width: 70 },
-                                ]}
-                                rowKey="operator"
-                                size="small"
-                                scroll={{ y: 200 }}
-                                pagination={false}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
-            </div>
+                {/* QC Return */}
+                <div style={{ marginTop: 32 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <span style={{ fontSize: 20 }}>🔄</span>
+                        <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>QC Return — Summary</span>
+                    </div>
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} lg={12}>
+                            <Card title="🏢 QC Return Per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+                                <ResizableTable
+                                    dataSource={(() => {
+                                        const map: Record<string, { brand: string; good: number; damage: number }> = {};
+                                        fQcReturns.forEach((q: any) => {
+                                            const brand = (q.owner || '').trim() || '-';
+                                            const qty = parseInt(q.qty) || 0;
+                                            const status = (q.status || '').trim().toLowerCase();
+                                            if (!map[brand]) map[brand] = { brand, good: 0, damage: 0 };
+                                            if (status === 'good') map[brand].good += qty;
+                                            else if (status === 'damage') map[brand].damage += qty;
+                                        });
+                                        return Object.values(map).sort((a, b) => (b.good + b.damage) - (a.good + a.damage));
+                                    })()}
+                                    columns={[
+                                        { title: 'Brand', dataIndex: 'brand', key: 'brand' },
+                                        { title: 'Good', dataIndex: 'good', key: 'good', width: 80, render: (v: number) => <span style={{ color: '#4ade80' }}>{v}</span> },
+                                        { title: 'Damage', dataIndex: 'damage', key: 'damage', width: 80, render: (v: number) => <span style={{ color: '#f87171' }}>{v}</span> },
+                                    ]}
+                                    rowKey="brand"
+                                    size="small"
+                                    scroll={{ y: 200 }}
+                                    pagination={false}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} lg={12}>
+                            <Card title="👤 Productivity QC By" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
+                                <ResizableTable
+                                    dataSource={(() => {
+                                        const map: Record<string, { operator: string; good: number; damage: number; total: number }> = {};
+                                        fQcReturns.forEach((q: any) => {
+                                            const op = (q.operator || '').trim() || '-';
+                                            const qty = parseInt(q.qty) || 0;
+                                            const status = (q.status || '').trim().toLowerCase();
+                                            if (!map[op]) map[op] = { operator: op, good: 0, damage: 0, total: 0 };
+                                            if (status === 'good') map[op].good += qty;
+                                            else if (status === 'damage') map[op].damage += qty;
+                                            map[op].total += qty;
+                                        });
+                                        return Object.values(map).sort((a, b) => b.total - a.total);
+                                    })()}
+                                    columns={[
+                                        { title: 'Operator', dataIndex: 'operator', key: 'operator' },
+                                        { title: 'Good', dataIndex: 'good', key: 'good', width: 70, render: (v: number) => <span style={{ color: '#4ade80' }}>{v}</span> },
+                                        { title: 'Damage', dataIndex: 'damage', key: 'damage', width: 70, render: (v: number) => <span style={{ color: '#f87171' }}>{v}</span> },
+                                        { title: 'Total', dataIndex: 'total', key: 'total', width: 70 },
+                                    ]}
+                                    rowKey="operator"
+                                    size="small"
+                                    scroll={{ y: 200 }}
+                                    pagination={false}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+                </div></>}
         </>
     );
 }
