@@ -133,7 +133,7 @@ export default function MonthlyReportPage() {
         const handler = (e: KeyboardEvent) => {
             if (e.key === 'ArrowRight' || e.key === ' ') {
                 e.preventDefault();
-                setCurrentSlide(prev => Math.min(prev + 1, SLIDES.length - 1));
+                setCurrentSlide(prev => Math.min(prev + 1, SLIDES.length + 1));
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 setCurrentSlide(prev => Math.max(prev - 1, 0));
@@ -152,6 +152,11 @@ export default function MonthlyReportPage() {
     };
 
     const monthLabel = selectedMonth.format('MMMM YYYY');
+    const totalSlides = SLIDES.length + 2; // +1 opening, +1 closing
+    const isOpening = currentSlide === 0;
+    const isClosing = currentSlide === totalSlides - 1;
+    const contentIndex = currentSlide - 1; // index into SLIDES array
+    const currentColor = isOpening || isClosing ? '#6366f1' : SLIDES[contentIndex]?.color || '#6366f1';
 
     // Render slide content
     const renderSlide = (slideIndex: number) => {
@@ -223,20 +228,20 @@ export default function MonthlyReportPage() {
                         <span style={{ fontSize: 22 }}>📊</span>
                         <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>Monthly Report</span>
                         <span style={{
-                            color: SLIDES[currentSlide].color,
+                            color: currentColor,
                             fontSize: 14,
                             fontWeight: 600,
-                            background: `${SLIDES[currentSlide].color}22`,
+                            background: `${currentColor}22`,
                             padding: '4px 14px',
                             borderRadius: 20,
-                            border: `1px solid ${SLIDES[currentSlide].color}44`,
+                            border: `1px solid ${currentColor}44`,
                         }}>
                             {monthLabel}
                         </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-                            {currentSlide + 1} / {SLIDES.length}
+                            {currentSlide + 1} / {totalSlides}
                         </span>
                         <Button
                             type="text"
@@ -247,39 +252,161 @@ export default function MonthlyReportPage() {
                     </div>
                 </div>
 
-                {/* Slide title */}
-                <div style={{
-                    padding: '16px 24px 8px',
-                    flexShrink: 0,
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                    }}>
-                        <span style={{
-                            fontSize: 28,
-                            color: SLIDES[currentSlide].color,
-                        }}>
-                            {SLIDES[currentSlide].icon}
-                        </span>
-                        <span style={{
-                            color: '#fff',
-                            fontSize: 22,
-                            fontWeight: 700,
-                        }}>
-                            {SLIDES[currentSlide].label}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Slide content */}
+                {/* Slide content area */}
                 <div style={{
                     flex: 1,
                     overflow: 'auto',
-                    padding: '8px 24px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}>
-                    {renderSlide(currentSlide)}
+                    {isOpening ? (
+                        /* ===== OPENING SLIDE ===== */
+                        <div style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            padding: '60px 40px',
+                            background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.12) 0%, transparent 70%)',
+                        }}>
+                            <div style={{
+                                fontSize: 64,
+                                marginBottom: 24,
+                                animation: 'pulse 2s ease-in-out infinite',
+                            }}>📊</div>
+                            <div style={{
+                                color: '#fff',
+                                fontSize: 42,
+                                fontWeight: 800,
+                                letterSpacing: '-0.5px',
+                                lineHeight: 1.2,
+                                marginBottom: 12,
+                            }}>
+                                Monthly Report
+                            </div>
+                            <div style={{
+                                color: 'rgba(255,255,255,0.5)',
+                                fontSize: 18,
+                                fontWeight: 400,
+                                marginBottom: 40,
+                            }}>
+                                Warehouse Report & Monitoring System
+                            </div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                padding: '14px 48px',
+                                borderRadius: 16,
+                                fontSize: 28,
+                                fontWeight: 700,
+                                color: '#fff',
+                                boxShadow: '0 8px 40px rgba(99,102,241,0.4)',
+                                letterSpacing: '0.5px',
+                            }}>
+                                {monthLabel}
+                            </div>
+                            <div style={{
+                                marginTop: 60,
+                                display: 'flex',
+                                gap: 20,
+                                flexWrap: 'wrap',
+                                justifyContent: 'center',
+                            }}>
+                                {SLIDES.map((s, i) => (
+                                    <div key={s.key} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        padding: '8px 18px',
+                                        background: `${s.color}15`,
+                                        border: `1px solid ${s.color}33`,
+                                        borderRadius: 10,
+                                        color: s.color,
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                    }}>
+                                        <span style={{ opacity: 0.7 }}>{i + 1}.</span>
+                                        {s.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : isClosing ? (
+                        /* ===== CLOSING SLIDE ===== */
+                        <div style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            padding: '60px 40px',
+                            background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.1) 0%, transparent 70%)',
+                        }}>
+                            <div style={{ fontSize: 64, marginBottom: 24 }}>✅</div>
+                            <div style={{
+                                color: '#fff',
+                                fontSize: 42,
+                                fontWeight: 800,
+                                marginBottom: 12,
+                            }}>
+                                Terima Kasih
+                            </div>
+                            <div style={{
+                                color: 'rgba(255,255,255,0.5)',
+                                fontSize: 18,
+                                marginBottom: 40,
+                            }}>
+                                Monthly Report — {monthLabel}
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                gap: 16,
+                                flexWrap: 'wrap',
+                                justifyContent: 'center',
+                                marginBottom: 40,
+                            }}>
+                                {SLIDES.map(s => (
+                                    <div key={s.key} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        color: s.color,
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                    }}>
+                                        <span style={{ color: '#10b981' }}>✓</span>
+                                        {s.label}
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{
+                                color: 'rgba(255,255,255,0.3)',
+                                fontSize: 14,
+                            }}>
+                                Warehouse Report & Monitoring System
+                            </div>
+                        </div>
+                    ) : (
+                        /* ===== CONTENT SLIDES ===== */
+                        <>
+                            {/* Slide title */}
+                            <div style={{ padding: '16px 24px 8px', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <span style={{ fontSize: 28, color: SLIDES[contentIndex].color }}>
+                                        {SLIDES[contentIndex].icon}
+                                    </span>
+                                    <span style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>
+                                        {SLIDES[contentIndex].label}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style={{ flex: 1, overflow: 'auto', padding: '8px 24px 24px' }}>
+                                {renderSlide(contentIndex)}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Navigation arrows */}
@@ -310,7 +437,7 @@ export default function MonthlyReportPage() {
                         <LeftOutlined />
                     </div>
                 )}
-                {currentSlide < SLIDES.length - 1 && (
+                {currentSlide < totalSlides - 1 && (
                     <div
                         onClick={() => setCurrentSlide(prev => prev + 1)}
                         style={{
@@ -347,21 +474,26 @@ export default function MonthlyReportPage() {
                     background: 'linear-gradient(0deg, rgba(0,0,0,0.4), transparent)',
                     flexShrink: 0,
                 }}>
-                    {SLIDES.map((slide, i) => (
-                        <div
-                            key={slide.key}
-                            onClick={() => setCurrentSlide(i)}
-                            title={slide.label}
-                            style={{
-                                width: i === currentSlide ? 32 : 10,
-                                height: 10,
-                                borderRadius: 5,
-                                background: i === currentSlide ? slide.color : 'rgba(255,255,255,0.25)',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s',
-                            }}
-                        />
-                    ))}
+                    {Array.from({ length: totalSlides }).map((_, i) => {
+                        const dotColor = i === 0 || i === totalSlides - 1
+                            ? '#6366f1'
+                            : SLIDES[i - 1]?.color || '#6366f1';
+                        return (
+                            <div
+                                key={i}
+                                onClick={() => setCurrentSlide(i)}
+                                title={i === 0 ? 'Opening' : i === totalSlides - 1 ? 'Closing' : SLIDES[i - 1]?.label}
+                                style={{
+                                    width: i === currentSlide ? 32 : 10,
+                                    height: 10,
+                                    borderRadius: 5,
+                                    background: i === currentSlide ? dotColor : 'rgba(255,255,255,0.25)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s',
+                                }}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         );
