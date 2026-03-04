@@ -70,6 +70,7 @@ export const additionalMpApi = createResourceApi('additional-mp');
 export const masterItemsApi = createResourceApi('master-items');
 export const inboundRejectionsApi = createResourceApi('inbound-rejections');
 export const inboundCasesApi = createResourceApi('inbound-cases');
+export const returnTransactionsApi = createResourceApi('return-transactions');
 
 // User management API (custom endpoints)
 export const usersApi = {

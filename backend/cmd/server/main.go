@@ -155,6 +155,9 @@ func main() {
 	inboundCases := handlers.NewResource[models.InboundCase]("inbound-cases")
 	inboundCases.RegisterRoutes(protected.Group("/inbound-cases"))
 
+	returnTransactions := handlers.NewResource[models.ReturnTransaction]("return-transactions")
+	returnTransactions.RegisterRoutes(protected.Group("/return-transactions"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

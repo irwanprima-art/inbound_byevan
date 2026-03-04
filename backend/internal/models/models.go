@@ -50,6 +50,22 @@ type Transaction struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// ReturnTransaction represents return transaction data (same structure as Transaction)
+type ReturnTransaction struct {
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	Date            FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	TimeTransaction FlexDate       `gorm:"column:time_transaction;type:text" json:"time_transaction"`
+	ReceiptNo       string         `gorm:"column:receipt_no" json:"receipt_no"`
+	Sku             string         `gorm:"column:sku" json:"sku" binding:"required"`
+	OperateType     string         `gorm:"column:operate_type" json:"operate_type"`
+	Qty             int            `gorm:"column:qty" json:"qty" binding:"min=0"`
+	Operator        string         `gorm:"column:operator" json:"operator"`
+	UpdatedBy       string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Vas represents VAS (Value Added Service) data
 type Vas struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
