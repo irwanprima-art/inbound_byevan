@@ -35,6 +35,8 @@ import SettingsPage from '../pages/SettingsPage';
 import InboundRejectionPage from '../pages/InboundRejectionPage';
 import InboundCasePage from '../pages/InboundCasePage';
 import MonthlyReportPage from '../pages/MonthlyReportPage';
+import ReturnReceivePage from '../pages/ReturnReceivePage';
+import ReturnTransactionPage from '../pages/ReturnTransactionPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -56,6 +58,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
     { key: '/monthly-report', icon: <BarChartOutlined />, label: 'Monthly Report' },
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/return-receive', icon: <InboxOutlined />, label: 'Return Receive', group: 'return_order' },
+    { key: '/return-transaction', icon: <SwapOutlined />, label: 'Return Transaction', group: 'return_order' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
@@ -81,6 +85,8 @@ const NAV_ITEMS: NavItem[] = [
 const PAGE_ID_MAP: Record<string, string> = {
     '/': 'dashboard',
     '/monthly-report': 'monthly-report',
+    '/return-receive': 'return-receive',
+    '/return-transaction': 'return-transaction',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
     '/unloading': 'inbound-unloading',
@@ -107,6 +113,8 @@ const PAGE_ID_MAP: Record<string, string> = {
 const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/': <DashboardPage />,
     '/monthly-report': <MonthlyReportPage />,
+    '/return-receive': <ReturnReceivePage />,
+    '/return-transaction': <ReturnTransactionPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
     '/unloading': <UnloadingPage />,
@@ -134,6 +142,8 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
 const ICON_MAP: Record<string, React.ReactNode> = {
     '/': <DashboardOutlined />,
     '/monthly-report': <BarChartOutlined />,
+    '/return-receive': <InboxOutlined />,
+    '/return-transaction': <SwapOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
     '/unloading': <CarOutlined />,
@@ -220,6 +230,7 @@ export default function AppLayout() {
 
     const groupLabels: Record<string, string> = {
         main: '',
+        return_order: 'RETURN ORDER',
         inbound: 'INBOUND',
         inventory: 'INVENTORY',
         manpower: 'MANPOWER',
