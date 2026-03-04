@@ -504,6 +504,32 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                 <Bar yAxisId="right" dataKey="qty" name="Total Qty" fill="#06b6d4" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
+                        <Row gutter={8} style={{ marginTop: 12 }}>
+                            <Col span={6}>
+                                <Card size="small" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', textAlign: 'center' }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>TOTAL PO</Text>
+                                    <Text style={{ color: '#6366f1', fontWeight: 700, fontSize: 16 }}>{brandData.reduce((s, d) => s + d.po, 0).toLocaleString()}</Text>
+                                </Card>
+                            </Col>
+                            <Col span={6}>
+                                <Card size="small" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', textAlign: 'center' }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>AVG PO / BRAND</Text>
+                                    <Text style={{ color: '#8b5cf6', fontWeight: 700, fontSize: 16 }}>{brandData.length > 0 ? Math.round(brandData.reduce((s, d) => s + d.po, 0) / brandData.length).toLocaleString() : 0}</Text>
+                                </Card>
+                            </Col>
+                            <Col span={6}>
+                                <Card size="small" style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', textAlign: 'center' }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>TOTAL QTY</Text>
+                                    <Text style={{ color: '#06b6d4', fontWeight: 700, fontSize: 16 }}>{brandData.reduce((s, d) => s + d.qty, 0).toLocaleString()}</Text>
+                                </Card>
+                            </Col>
+                            <Col span={6}>
+                                <Card size="small" style={{ background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)', textAlign: 'center' }}>
+                                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>AVG QTY / BRAND</Text>
+                                    <Text style={{ color: '#14b8a6', fontWeight: 700, fontSize: 16 }}>{brandData.length > 0 ? Math.round(brandData.reduce((s, d) => s + d.qty, 0) / brandData.length).toLocaleString() : 0}</Text>
+                                </Card>
+                            </Col>
+                        </Row>
                     </Card>
                 </Col>
             </Row>}
