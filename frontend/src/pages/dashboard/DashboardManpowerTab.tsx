@@ -9,9 +9,10 @@ interface Props {
     empData: any[];
     schedData: any[];
     addMpData: any[];
+    filterMonth?: any; // Dayjs — when provided, auto-sets the month filters
 }
 
-export default function DashboardManpowerTab({ attData, empData, schedData, addMpData }: Props) {
+export default function DashboardManpowerTab({ attData, empData, schedData, addMpData, filterMonth }: Props) {
     // Build employee status map: nik -> status (Reguler/Tambahan)
     const empStatusMap: Record<string, string> = {};
     empData.forEach((e: any) => {
@@ -92,7 +93,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
     const sortedMonths = Array.from(allMonths).sort();
 
     // ========== MONTH FILTER for Monthly Headcount ==========
-    const [maxMonthPick, setMaxMonthPick] = useState<any>(null);
+    const [maxMonthPick, setMaxMonthPick] = useState<any>(filterMonth || null);
     const maxMonthKey = maxMonthPick ? dayjs(maxMonthPick).format('YYYY-MM') : null;
     const filteredMonths = maxMonthKey
         ? sortedMonths.filter(m => m <= maxMonthKey)
@@ -199,7 +200,9 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
     ] : [];
 
     // ========== DAILY HEADCOUNT (dates as columns, divisions as rows) ==========
-    const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<string | null>(
+        filterMonth ? dayjs(filterMonth).format('YYYY-MM') : null
+    );
 
     const monthOptions = useMemo(() => {
         return sortedMonths.map(m => {

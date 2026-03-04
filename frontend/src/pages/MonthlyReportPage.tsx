@@ -217,7 +217,7 @@ export default function MonthlyReportPage() {
             case 'aging_stock':
                 return <DashboardAgingTab sohList={sohList} locations={locations} />;
             case 'manpower':
-                return <DashboardManpowerTab attData={attData} empData={empData} schedData={schedData} addMpData={addMpData} />;
+                return <DashboardManpowerTab attData={attData} empData={empData} schedData={schedData} addMpData={addMpData} filterMonth={selectedMonth} />;
             default:
                 return null;
         }
