@@ -143,7 +143,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
     // Inbound stats — all from enriched arrivals
     const totalKedatangan = new Set(enrichedArrivals.map((a: any) => `${a.brand}|${a.date}|${a.arrival_time}`).filter((k: string) => k !== '||')).size;
-    const totalPO = new Set(enrichedArrivals.map((a: any) => a.po_no).filter(Boolean)).size;
+    const totalPO = new Set(enrichedArrivals.map((a: any) => `${(a.receipt_no || '').trim()}|${(a.po_no || '').trim()}`).filter((k: string) => k !== '|')).size;
     const totalBrand = new Set(enrichedArrivals.map((a: any) => a.brand).filter(Boolean)).size;
     const totalQtyKedatangan = enrichedArrivals.reduce((s: number, a: any) => s + (parseInt(a.po_qty) || 0), 0);
     const totalReceiveQty = enrichedArrivals.reduce((s: number, a: any) => s + (a.receive_qty || 0), 0);
@@ -274,7 +274,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         const brand = a.brand || 'Unknown';
         if (!brandMap[brand]) brandMap[brand] = { poSet: new Set(), qty: 0 };
         const rn = (a.receipt_no || '').trim();
-        if (rn) brandMap[brand].poSet.add(rn);
+        const pn = (a.po_no || '').trim();
+        const poKey = `${rn}|${pn}`;
+        if (rn || pn) brandMap[brand].poSet.add(poKey);
         brandMap[brand].qty += parseInt(a.po_qty) || 0;
     });
     const brandData = Object.entries(brandMap).map(([name, v]) => ({ name, po: v.poSet.size, qty: v.qty }));
