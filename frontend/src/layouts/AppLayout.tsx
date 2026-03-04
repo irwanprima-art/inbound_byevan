@@ -6,7 +6,7 @@ import {
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
-    ShoppingOutlined,
+    ShoppingOutlined, BarChartOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -34,6 +34,7 @@ import BeritaAcaraInventoryPage from '../pages/BeritaAcaraInventoryPage';
 import SettingsPage from '../pages/SettingsPage';
 import InboundRejectionPage from '../pages/InboundRejectionPage';
 import InboundCasePage from '../pages/InboundCasePage';
+import MonthlyReportPage from '../pages/MonthlyReportPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -53,6 +54,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+    { key: '/monthly-report', icon: <BarChartOutlined />, label: 'Monthly Report' },
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
@@ -78,6 +80,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const PAGE_ID_MAP: Record<string, string> = {
     '/': 'dashboard',
+    '/monthly-report': 'monthly-report',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
     '/unloading': 'inbound-unloading',
@@ -103,6 +106,7 @@ const PAGE_ID_MAP: Record<string, string> = {
 // Map route key → component
 const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/': <DashboardPage />,
+    '/monthly-report': <MonthlyReportPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
     '/unloading': <UnloadingPage />,
@@ -129,6 +133,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
 // Icon map for tabs
 const ICON_MAP: Record<string, React.ReactNode> = {
     '/': <DashboardOutlined />,
+    '/monthly-report': <BarChartOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
     '/unloading': <CarOutlined />,
