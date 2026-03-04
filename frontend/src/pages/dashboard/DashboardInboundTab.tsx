@@ -78,6 +78,18 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         });
     }, [vasList, dateRange]);
 
+    // Previous month arrivals for MoM comparison on plan_vs_po
+    const prevMonthArrivals = useMemo(() => {
+        if (!dateRange) return [];
+        const prevStart = dateRange[0].subtract(1, 'month').startOf('month');
+        const prevEnd = dateRange[0].subtract(1, 'month').endOf('month');
+        return arrivals.filter(a => {
+            const d = dayjs(a.date);
+            if (!d.isValid()) return false;
+            return (d.isAfter(prevStart) || d.isSame(prevStart, 'day')) && (d.isBefore(prevEnd) || d.isSame(prevEnd, 'day'));
+        });
+    }, [arrivals, dateRange]);
+
     // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
     // IMPORTANT: Use ALL transactions (not date-filtered) so that receive/putaway
     // data is correctly matched even when filtering arrivals by date range.
@@ -385,36 +397,54 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             {show('plan_vs_po') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 {([
-                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true },
-                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true },
-                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false },
-                ] as { label: string; data: typeof barangJualData; color: string; barName: string; showPlan: boolean }[]).map(({ label, data, color, barName, showPlan }) => (
-                    <Col xs={24} key={label}>
-                        <Card
-                            title={label}
-                            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
-                            styles={{ header: { color: '#fff' } }}
-                        >
-                            {data.length > 0 ? (
-                                <ResponsiveContainer width="100%" height={320}>
-                                    <ComposedChart data={data} margin={{ bottom: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
-                                        <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-                                        <RTooltip content={<ItemTypeTooltip />} />
-                                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
-                                        <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
-                                        {showPlan && <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />}
-                                    </ComposedChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
+                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
+                    { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true, itemType: 'Gimmick' },
+                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false, itemType: 'ATK' },
+                ] as { label: string; data: typeof barangJualData; color: string; barName: string; showPlan: boolean; itemType: string }[]).map(({ label, data, color, barName, showPlan, itemType }) => {
+                    // Compute total for current and previous month
+                    const currentTotal = data.reduce((s, d) => s + d.po_qty, 0);
+                    const prevTotal = prevMonthArrivals
+                        .filter(a => (a.item_type || 'Barang Jual') === itemType)
+                        .reduce((s: number, a: any) => s + (parseInt(a.po_qty) || 0), 0);
+                    const momPct = prevTotal > 0 ? ((currentTotal - prevTotal) / prevTotal * 100) : null;
+                    return (
+                        <Col xs={24} key={label}>
+                            <Card
+                                title={label}
+                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
+                                styles={{ header: { color: '#fff' } }}
+                            >
+                                {data.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={320}>
+                                        <ComposedChart data={data} margin={{ bottom: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
+                                            <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                                            <RTooltip content={<ItemTypeTooltip />} />
+                                            <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
+                                            <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
+                                            {showPlan && <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />}
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
+                                    </div>
+                                )}
+                                <div style={{ marginTop: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Text style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Total = {currentTotal.toLocaleString()}</Text>
+                                    {momPct !== null ? (
+                                        <Text style={{ color: momPct >= 0 ? '#10b981' : '#ef4444', fontSize: 13 }}>
+                                            {momPct >= 0 ? '▲' : '▼'} {Math.abs(momPct).toFixed(1)}% vs {prevMonthLabel || 'bulan lalu'}
+                                        </Text>
+                                    ) : (
+                                        <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>🆕 Baru — tidak ada data sebelumnya</Text>
+                                    )}
                                 </div>
-                            )}
-                        </Card>
-                    </Col>
-                ))}
+                            </Card>
+                        </Col>
+                    );
+                })}
             </Row>}
 
             {show('breakdown') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
