@@ -66,6 +66,18 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const fVasList = useMemo(() => vasList.filter(v => matchesDateRange(v.date)), [vasList, matchesDateRange]);
     const fCases = useMemo(() => inboundCases.filter(c => matchesDateRange(c.date)), [inboundCases, matchesDateRange]);
 
+    // Previous month VAS for MoM comparison
+    const prevMonthVasList = useMemo(() => {
+        if (!dateRange) return [];
+        const prevStart = dateRange[0].subtract(1, 'month').startOf('month');
+        const prevEnd = dateRange[0].subtract(1, 'month').endOf('month');
+        return vasList.filter(v => {
+            const d = dayjs(v.date);
+            if (!d.isValid()) return false;
+            return (d.isAfter(prevStart) || d.isSame(prevStart, 'day')) && (d.isBefore(prevEnd) || d.isSame(prevEnd, 'day'));
+        });
+    }, [vasList, dateRange]);
+
     // Build transaction lookup per receipt_no (same logic as ArrivalsPage)
     // IMPORTANT: Use ALL transactions (not date-filtered) so that receive/putaway
     // data is correctly matched even when filtering arrivals by date range.
@@ -294,6 +306,14 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         .map(([name, v]) => ({ name, qtyItem: v.barangJual, qtyGimmick: v.gimmick }))
         .sort((a, b) => (b.qtyItem + b.qtyGimmick) - (a.qtyItem + a.qtyGimmick));
 
+    // VAS summary stats
+    const totalVasCurrent = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
+    const totalVasPrev = prevMonthVasList.reduce((s: number, v: any) => s + (parseInt(v.qty) || 0), 0);
+    const vasMomPct = totalVasPrev > 0 ? ((totalVasCurrent - totalVasPrev) / totalVasPrev * 100) : null;
+    const avgVasPerBrand = vasBrandItemData.length > 0 ? Math.round(totalVasCurrent / vasBrandItemData.length) : 0;
+    const avgVasPerOperator = vasOperatorItemData.length > 0 ? Math.round(totalVasCurrent / vasOperatorItemData.length) : 0;
+    const prevMonthLabel = dateRange ? dateRange[0].subtract(1, 'month').format('MMM YYYY') : '';
+
     const pendingArrivals = useMemo(() => {
         return enrichedArrivals.filter((a: any) => a.status !== 'Completed');
     }, [enrichedArrivals]);
@@ -501,6 +521,32 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
                     </div>
                 )}
+                <Row gutter={8} style={{ marginTop: 16 }}>
+                    <Col span={8}>
+                        <Card size="small" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', textAlign: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>TOTAL VAS</Text>
+                            <Text style={{ color: '#3b82f6', fontWeight: 700, fontSize: 18 }}>{totalVasCurrent.toLocaleString()}</Text>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card size="small" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', textAlign: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>AVG / BRAND</Text>
+                            <Text style={{ color: '#8b5cf6', fontWeight: 700, fontSize: 18 }}>{avgVasPerBrand.toLocaleString()}</Text>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card size="small" style={{ background: vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, textAlign: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'BULAN LALU'}</Text>
+                            {vasMomPct !== null ? (
+                                <Text style={{ color: vasMomPct >= 0 ? '#10b981' : '#ef4444', fontWeight: 700, fontSize: 18 }}>
+                                    {vasMomPct >= 0 ? '▲' : '▼'} {Math.abs(vasMomPct).toFixed(1)}%
+                                </Text>
+                            ) : (
+                                <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 18 }}>—</Text>
+                            )}
+                        </Card>
+                    </Col>
+                </Row>
             </Card>}
 
             {show('vas_operator') && <Card
@@ -525,6 +571,26 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
                     </div>
                 )}
+                <Row gutter={8} style={{ marginTop: 16 }}>
+                    <Col span={12}>
+                        <Card size="small" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', textAlign: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>AVG VAS / OPERATOR</Text>
+                            <Text style={{ color: '#10b981', fontWeight: 700, fontSize: 18 }}>{avgVasPerOperator.toLocaleString()}</Text>
+                        </Card>
+                    </Col>
+                    <Col span={12}>
+                        <Card size="small" style={{ background: vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, textAlign: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'BULAN LALU'}</Text>
+                            {vasMomPct !== null ? (
+                                <Text style={{ color: vasMomPct >= 0 ? '#10b981' : '#ef4444', fontWeight: 700, fontSize: 18 }}>
+                                    {vasMomPct >= 0 ? '▲' : '▼'} {Math.abs(vasMomPct).toFixed(1)}%
+                                </Text>
+                            ) : (
+                                <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 18 }}>—</Text>
+                            )}
+                        </Card>
+                    </Col>
+                </Row>
             </Card>}
 
             {show('unloading') && <Card
