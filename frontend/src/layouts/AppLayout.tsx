@@ -236,6 +236,13 @@ export default function AppLayout() {
         manpower: 'MANPOWER',
     };
 
+    const groupIcons: Record<string, React.ReactNode> = {
+        return_order: <RollbackOutlined />,
+        inbound: <InboxOutlined />,
+        inventory: <DatabaseOutlined />,
+        manpower: <TeamOutlined />,
+    };
+
     const menuItems = Object.entries(groups).map(([group, items]) => {
         if (group === 'main') {
             return items.map((item) => ({
@@ -246,8 +253,8 @@ export default function AppLayout() {
         }
         return [{
             key: group,
+            icon: groupIcons[group],
             label: groupLabels[group],
-            type: 'group' as const,
             children: items.map((item) => ({
                 key: item.key,
                 icon: item.icon,
