@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Select, Space } from 'antd';
+import { Card, DatePicker, Select, Space } from 'antd';
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
@@ -91,30 +91,37 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
     const sortedMonths = Array.from(allMonths).sort();
 
+    // ========== MONTH FILTER for Monthly Headcount ==========
+    const [maxMonthPick, setMaxMonthPick] = useState<any>(null);
+    const maxMonthKey = maxMonthPick ? dayjs(maxMonthPick).format('YYYY-MM') : null;
+    const filteredMonths = maxMonthKey
+        ? sortedMonths.filter(m => m <= maxMonthKey)
+        : sortedMonths;
+
     const tableRows = DIVISIONS.map(div => {
         const row: any = { key: div, divisi: div };
-        sortedMonths.forEach(m => {
+        filteredMonths.forEach(m => {
             row[m] = monthDivMap[div]?.[m] || 0;
         });
         return row;
     });
 
     const actualRow: any = { key: '_actual', divisi: 'Actual', isTotal: true };
-    sortedMonths.forEach(m => {
+    filteredMonths.forEach(m => {
         actualRow[m] = DIVISIONS.reduce((sum, div) => sum + (monthDivMap[div]?.[m] || 0), 0);
     });
     tableRows.push(actualRow);
 
     // Plan row for monthly
     const monthlyPlanRow: any = { key: '_plan', divisi: 'Plan', isPlan: true };
-    sortedMonths.forEach(m => {
+    filteredMonths.forEach(m => {
         monthlyPlanRow[m] = monthlyPlanMap[m] || 0;
     });
     tableRows.push(monthlyPlanRow);
 
     // Actual vs Plan % row for monthly
     const monthlyPctRow: any = { key: '_avp', divisi: 'Actual vs Plan', isPct: true };
-    sortedMonths.forEach(m => {
+    filteredMonths.forEach(m => {
         const actual = actualRow[m] || 0;
         const plan = monthlyPlanMap[m] || 0;
         if (plan === 0) {
@@ -125,10 +132,10 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
     });
     tableRows.push(monthlyPctRow);
 
-    const lastMonth = sortedMonths[sortedMonths.length - 1];
-    const prevMonth = sortedMonths.length >= 2 ? sortedMonths[sortedMonths.length - 2] : null;
+    const lastMonth = filteredMonths[filteredMonths.length - 1];
+    const prevMonth = filteredMonths.length >= 2 ? filteredMonths[filteredMonths.length - 2] : null;
 
-    const monthCols = sortedMonths.map(m => {
+    const monthCols = filteredMonths.map(m => {
         const [, mm] = m.split('-');
         return {
             title: MONTH_LABELS[mm] || mm,
@@ -405,6 +412,20 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                 title="👷 Manpower Report — Monthly Headcount per Divisi"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
                 styles={{ header: { color: '#fff' } }}
+                extra={
+                    <Space>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Sampai Bulan:</span>
+                        <DatePicker
+                            picker="month"
+                            value={maxMonthPick}
+                            onChange={(val) => setMaxMonthPick(val)}
+                            format="MMM YYYY"
+                            placeholder="Semua"
+                            allowClear
+                            style={{ width: 140, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
+                        />
+                    </Space>
+                }
             >
                 <ResizableTable
                     dataSource={tableRows}
