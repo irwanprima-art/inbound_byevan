@@ -269,14 +269,15 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         );
     };
 
-    const brandMap: Record<string, { po: number; qty: number }> = {};
+    const brandMap: Record<string, { poSet: Set<string>; qty: number }> = {};
     enrichedArrivals.forEach((a: any) => {
         const brand = a.brand || 'Unknown';
-        if (!brandMap[brand]) brandMap[brand] = { po: 0, qty: 0 };
-        brandMap[brand].po += 1;
+        if (!brandMap[brand]) brandMap[brand] = { poSet: new Set(), qty: 0 };
+        const rn = (a.receipt_no || '').trim();
+        if (rn) brandMap[brand].poSet.add(rn);
         brandMap[brand].qty += parseInt(a.po_qty) || 0;
     });
-    const brandData = Object.entries(brandMap).map(([name, v]) => ({ name, po: v.po, qty: v.qty }));
+    const brandData = Object.entries(brandMap).map(([name, v]) => ({ name, po: v.poSet.size, qty: v.qty }));
 
     const vasTypeMap: Record<string, number> = {};
     fVasList.forEach((v: any) => {
@@ -706,11 +707,13 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        const bMap: Record<string, { total: number; terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
+                        const bMap: Record<string, { total: number; kedatanganSet: Set<string>; terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
                         enrichedArrivals.forEach((a: any) => {
                             const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
-                            bMap[brand].total += 1;
+                            if (!bMap[brand]) bMap[brand] = { total: 0, kedatanganSet: new Set(), terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            // Count kedatangan as unique brand+date+arrival_time
+                            const kedKey = `${a.date}|${a.arrival_time}`;
+                            bMap[brand].kedatanganSet.add(kedKey);
 
                             const sched = (a.scheduled_arrival_time || '').trim();
                             const arrival = (a.arrival_time || '').trim();
@@ -729,12 +732,12 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
                         // Merge cases
                         Object.entries(caseByBrand).forEach(([brand, cnt]) => {
-                            if (!bMap[brand]) bMap[brand] = { total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            if (!bMap[brand]) bMap[brand] = { total: 0, kedatanganSet: new Set(), terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
                             bMap[brand].cases = cnt;
                         });
 
                         // Add TOTAL row
-                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, ...v })).sort((a, b) => b.total - a.total);
+                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganSet.size, terjadwal: v.terjadwal, tidakTerjadwal: v.tidakTerjadwal, tepatWaktu: v.tepatWaktu, terlambat: v.terlambat, cases: v.cases, urgensi: v.urgensi })).sort((a, b) => b.total - a.total);
                         const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
                         rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakTerjadwal += r.tidakTerjadwal; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
                         return [totalRow, ...rows];
