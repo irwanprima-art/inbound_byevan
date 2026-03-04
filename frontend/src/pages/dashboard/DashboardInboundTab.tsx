@@ -277,6 +277,23 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         .map(([name, v]) => ({ name, qtyItem: v.barangJual, qtyGimmick: v.gimmick }))
         .sort((a, b) => (b.qtyItem + b.qtyGimmick) - (a.qtyItem + a.qtyGimmick));
 
+    // VAS by Operator (same chart but grouped by operator)
+    const vasOperatorItemMap: Record<string, { barangJual: number; gimmick: number }> = {};
+    fVasList.forEach((v: any) => {
+        const operator = (v.operator || 'Unknown').toUpperCase();
+        if (!vasOperatorItemMap[operator]) vasOperatorItemMap[operator] = { barangJual: 0, gimmick: 0 };
+        const qty = parseInt(v.qty) || 0;
+        const itemType = (v.item_type || 'Barang Jual').toLowerCase();
+        if (itemType === 'gimmick') {
+            vasOperatorItemMap[operator].gimmick += qty;
+        } else {
+            vasOperatorItemMap[operator].barangJual += qty;
+        }
+    });
+    const vasOperatorItemData = Object.entries(vasOperatorItemMap)
+        .map(([name, v]) => ({ name, qtyItem: v.barangJual, qtyGimmick: v.gimmick }))
+        .sort((a, b) => (b.qtyItem + b.qtyGimmick) - (a.qtyItem + a.qtyGimmick));
+
     const pendingArrivals = useMemo(() => {
         return enrichedArrivals.filter((a: any) => a.status !== 'Completed');
     }, [enrichedArrivals]);
@@ -423,7 +440,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             </Row>}
 
             {show('po_qty_brand') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                <Col xs={24} lg={show('vas_type') ? 12 : 24}>
+                <Col xs={24}>
                     <Card title="📊 PO & Qty per Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={brandData} margin={{ left: 0 }}>
@@ -439,7 +456,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         </ResponsiveContainer>
                     </Card>
                 </Col>
-                <Col xs={24} lg={show('po_qty_brand') ? 12 : 24}>
+            </Row>}
+
+            {show('vas_type') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                <Col xs={24}>
                     <Card title="🏷️ VAS Type" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
                         {vasTypeData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={250}>
@@ -474,6 +494,30 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
                             <Bar dataKey="qtyItem" name="Qty Item" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                             <Line type="monotone" dataKey="qtyGimmick" name="Qty Gimmick" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
+                    </div>
+                )}
+            </Card>}
+
+            {show('vas_operator') && <Card
+                title="👷 VAS per Operator"
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 16 }}
+                styles={{ header: { color: '#fff' } }}
+            >
+                {vasOperatorItemData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={350}>
+                        <ComposedChart data={vasOperatorItemData} margin={{ bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
+                            <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                            <RTooltip contentStyle={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.1)' }} />
+                            <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
+                            <Bar dataKey="qtyItem" name="Qty Item" fill="#10b981" radius={[4, 4, 0, 0]} />
+                            <Line type="monotone" dataKey="qtyGimmick" name="Qty Gimmick" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b' }} />
                         </ComposedChart>
                     </ResponsiveContainer>
                 ) : (
