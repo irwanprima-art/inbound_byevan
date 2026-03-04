@@ -37,6 +37,7 @@ import InboundCasePage from '../pages/InboundCasePage';
 import MonthlyReportPage from '../pages/MonthlyReportPage';
 import ReturnReceivePage from '../pages/ReturnReceivePage';
 import ReturnTransactionPage from '../pages/ReturnTransactionPage';
+import RejectReturnPage from '../pages/RejectReturnPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -60,6 +61,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/return-receive', icon: <InboxOutlined />, label: 'Return Receive', group: 'return_order' },
     { key: '/return-transaction', icon: <SwapOutlined />, label: 'Return Transaction', group: 'return_order' },
+    { key: '/reject-return', icon: <WarningOutlined />, label: 'Reject Return', group: 'return_order' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
@@ -87,6 +89,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/monthly-report': 'monthly-report',
     '/return-receive': 'return-receive',
     '/return-transaction': 'return-transaction',
+    '/reject-return': 'reject-return',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
     '/unloading': 'inbound-unloading',
@@ -115,6 +118,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/monthly-report': <MonthlyReportPage />,
     '/return-receive': <ReturnReceivePage />,
     '/return-transaction': <ReturnTransactionPage />,
+    '/reject-return': <RejectReturnPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
     '/unloading': <UnloadingPage />,
@@ -144,6 +148,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/monthly-report': <BarChartOutlined />,
     '/return-receive': <InboxOutlined />,
     '/return-transaction': <SwapOutlined />,
+    '/reject-return': <WarningOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
     '/unloading': <CarOutlined />,
