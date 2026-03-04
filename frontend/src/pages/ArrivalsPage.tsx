@@ -143,6 +143,7 @@ export default function ArrivalsPage() {
         },
         { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 120 },
         { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 120 },
+        { title: 'Supplier', dataIndex: 'supplier', key: 'supplier', width: 130 },
         { title: 'Plan Qty', dataIndex: 'plan_qty', key: 'plan_qty', width: 90, sorter: (a: any, b: any) => a.plan_qty - b.plan_qty },
         { title: 'PO Qty', dataIndex: 'po_qty', key: 'po_qty', width: 90, sorter: (a: any, b: any) => a.po_qty - b.po_qty },
         { title: 'Receive Qty', dataIndex: 'receive_qty', key: 'receive_qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa' }}>{v.toLocaleString()}</span> },
@@ -336,7 +337,7 @@ export default function ArrivalsPage() {
 
     // CSV Export — includes all columns including auto-calculated ones
     const handleExport = () => {
-        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'urgensi', 'operator', 'note', 'status'];
+        const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'supplier', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'urgensi', 'operator', 'note', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             enrichedData.map((r: any) => {
                 const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
@@ -382,6 +383,7 @@ export default function ArrivalsPage() {
                     item_type: get('item_type'),
                     receipt_no: get('receipt_no'),
                     po_no: get('po_no'),
+                    supplier: get('supplier'),
                     plan_qty: parseInt(get('plan_qty', '0')) || 0,
                     po_qty: parseInt(get('po_qty', '0')) || 0,
                     receive_qty: parseInt(get('receive_qty', '0')) || 0,
@@ -483,7 +485,7 @@ export default function ArrivalsPage() {
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
-                        ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'plan_qty', 'po_qty', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'urgensi', 'operator', 'note'],
+                        ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'supplier', 'plan_qty', 'po_qty', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'urgensi', 'operator', 'note'],
                         'Arrivals_template'
                     )}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
@@ -562,6 +564,9 @@ export default function ArrivalsPage() {
                         <Input />
                     </Form.Item>
                     <Form.Item name="po_no" label="PO No" rules={[{ required: true }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="supplier" label="Supplier">
                         <Input />
                     </Form.Item>
                     <Form.Item name="plan_qty" label="Plan Qty">

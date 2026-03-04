@@ -18,6 +18,7 @@ type Arrival struct {
 	FinishUnloadingTime  FlexDate       `gorm:"column:finish_unloading_time;type:text" json:"finish_unloading_time"`
 	ReceiptNo            string         `gorm:"column:receipt_no" json:"receipt_no"`
 	PoNo                 string         `gorm:"column:po_no" json:"po_no"`
+	Supplier             string         `gorm:"column:supplier" json:"supplier"`
 	Brand                string         `gorm:"column:brand" json:"brand" binding:"required"`
 	PlanQty              int            `gorm:"column:plan_qty" json:"plan_qty" binding:"min=0"`
 	PoQty                int            `gorm:"column:po_qty" json:"po_qty" binding:"min=0"`
