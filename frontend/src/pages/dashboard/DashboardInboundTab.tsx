@@ -398,7 +398,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 )}
             </Card>}
 
-            {show('plan_vs_po') && <Row gutter={[16, sections ? 8 : 16]} style={{ marginTop: sections ? 8 : 24 }}>
+            {show('plan_vs_po') && <Row gutter={[16, sections ? 6 : 16]} style={{ marginTop: sections ? 4 : 24, ...(sections ? { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)' } : {}) }}>
                 {([
                     { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true, itemType: 'Gimmick' },
@@ -411,25 +411,27 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         .reduce((s: number, a: any) => s + (parseInt(a.po_qty) || 0), 0);
                     const momPct = prevTotal > 0 ? ((currentTotal - prevTotal) / prevTotal * 100) : null;
                     return (
-                        <Col xs={24} key={label}>
+                        <Col xs={24} key={label} style={sections ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : undefined}>
                             <Card
                                 title={label}
                                 size={sections ? 'small' : 'default'}
-                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
-                                styles={{ header: { color: '#fff', padding: sections ? '0 12px' : undefined, minHeight: sections ? 36 : undefined, fontSize: sections ? 13 : undefined } }}
+                                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', ...(sections ? { flex: 1, display: 'flex', flexDirection: 'column' } : {}) }}
+                                styles={{ header: { color: '#fff', padding: sections ? '0 12px' : undefined, minHeight: sections ? 36 : undefined, fontSize: sections ? 13 : undefined }, ...(sections ? { body: { flex: 1, display: 'flex', flexDirection: 'column', padding: '8px 12px' } } : {}) }}
                             >
                                 {data.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={sections ? 155 : 320}>
-                                        <ComposedChart data={data} margin={{ bottom: sections ? 5 : 20 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: sections ? 9 : 11 }} angle={-20} textAnchor="end" height={sections ? 40 : 60} />
-                                            <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-                                            <RTooltip content={<ItemTypeTooltip />} />
-                                            <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
-                                            <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
-                                            {showPlan && <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />}
-                                        </ComposedChart>
-                                    </ResponsiveContainer>
+                                    <div style={sections ? { flex: 1, minHeight: 0 } : undefined}>
+                                        <ResponsiveContainer width="100%" height={sections ? '100%' : 320}>
+                                            <ComposedChart data={data} margin={{ bottom: sections ? 5 : 20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: sections ? 9 : 11 }} angle={-20} textAnchor="end" height={sections ? 40 : 60} />
+                                                <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                                                <RTooltip content={<ItemTypeTooltip />} />
+                                                <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
+                                                <Bar dataKey="po_qty" name={barName} fill={color} radius={[4, 4, 0, 0]} />
+                                                {showPlan && <Line type="monotone" dataKey="plan_qty" name="Plan Qty" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} />}
+                                            </ComposedChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 ) : (
                                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
