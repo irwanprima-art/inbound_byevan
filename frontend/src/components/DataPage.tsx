@@ -74,10 +74,12 @@ interface DataPageProps<T> {
     enrichData?: (items: T[]) => Promise<T[]>;
     /** Override headers used for Export CSV (when different from import csvHeaders) */
     exportHeaders?: string[];
+    /** Transform each row before export (to add computed fields). Return a new object with extra keys. */
+    exportRowMapper?: (item: T) => Record<string, any>;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -322,21 +324,25 @@ export default function DataPage<T extends { id: number }>({
         const headers = exportHeaders || csvHeaders;
         if (!headers) return;
         const headerLine = headers.join(',');
-        const rows = filtered.map(item =>
-            headers.map(h => {
+        const rows = filtered.map(item => {
+            const mapped = exportRowMapper ? { ...(item as any), ...exportRowMapper(item) } : item;
+            return headers.map(h => {
                 const key = h.replace(/\s+/g, '_').toLowerCase();
-                const val = (item as any)[key] ?? '';
-                return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
-            }).join(',')
-        );
-        const csv = [headerLine, ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+                const val = mapped[key] ?? '';
+                // Wrap in quotes if value contains comma, newline, or quote
+                const s = String(val);
+                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+            }).join(',');
+        });
+        const csv = '\uFEFF' + [headerLine, ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_export.csv`;
         a.click();
         URL.revokeObjectURL(url);
+        message.success('Export berhasil');
     };
 
     // Column widths state for resizable columns

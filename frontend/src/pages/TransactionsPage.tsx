@@ -94,5 +94,5 @@ export default function TransactionsPage() {
         }
     }, []);
 
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} />;
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_type']} />;
 }
