@@ -226,6 +226,96 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                     );
                 })()}</>}
 
+            {/* Inventory Variances — from SOH location VAR01 */}
+            {show('accuracy') && (() => {
+                const MONTH_LABELS: Record<string, string> = {
+                    '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+                    '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+                    '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
+                };
+
+                // Filter SOH for location VAR01
+                const varSoh = sohList.filter((s: any) => (s.location || '').trim().toUpperCase() === 'VAR01');
+
+                // Find last update_date per month
+                const lastDatePerMonth: Record<string, string> = {};
+                varSoh.forEach((s: any) => {
+                    const ud = (s.update_date || '').substring(0, 10);
+                    if (!ud) return;
+                    const mk = ud.substring(0, 7); // YYYY-MM
+                    if (!lastDatePerMonth[mk] || ud > lastDatePerMonth[mk]) lastDatePerMonth[mk] = ud;
+                });
+
+                // Build brand × month map (only records matching last date of each month)
+                const brandMonthMap: Record<string, Record<string, number>> = {};
+                const allMonths = new Set<string>();
+                varSoh.forEach((s: any) => {
+                    const ud = (s.update_date || '').substring(0, 10);
+                    if (!ud) return;
+                    const mk = ud.substring(0, 7);
+                    if (ud !== lastDatePerMonth[mk]) return; // Only last date of month
+                    allMonths.add(mk);
+                    const brand = (s.brand || 'Unknown').toUpperCase();
+                    if (!brandMonthMap[brand]) brandMonthMap[brand] = {};
+                    brandMonthMap[brand][mk] = (brandMonthMap[brand][mk] || 0) + (Number(s.qty) || 0);
+                });
+
+                const sortedMonths = Array.from(allMonths).sort();
+                const rows = Object.entries(brandMonthMap).map(([brand, months]) => {
+                    const row: any = { key: brand, brand };
+                    sortedMonths.forEach(m => { row[m] = months[m] || 0; });
+                    return row;
+                }).sort((a, b) => a.brand.localeCompare(b.brand));
+
+                // TOTAL row
+                const totalRow: any = { key: '_TOTAL', brand: 'TOTAL', _isTotal: true };
+                sortedMonths.forEach(m => {
+                    totalRow[m] = rows.reduce((sum, r) => sum + (r[m] || 0), 0);
+                });
+
+                const monthCols = sortedMonths.map(m => {
+                    const [, mm] = m.split('-');
+                    return {
+                        title: MONTH_LABELS[mm] || mm,
+                        dataIndex: m,
+                        key: m,
+                        width: 90,
+                        align: 'center' as const,
+                        render: (v: number, rec: any) => {
+                            if (!v) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
+                            const color = v < 0 ? '#ef4444' : v > 0 ? '#4ade80' : '#fff';
+                            return <span style={{ color, fontWeight: rec._isTotal ? 700 : 600 }}>{v.toLocaleString()}</span>;
+                        },
+                    };
+                });
+
+                return (
+                    <Card
+                        title="📦 Inventory Variances (VAR01)"
+                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                        styles={{ header: { color: '#fff' } }}
+                    >
+                        <ResizableTable
+                            dataSource={[totalRow, ...rows]}
+                            columns={[
+                                {
+                                    title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, fixed: 'left' as const,
+                                    render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v,
+                                },
+                                ...monthCols,
+                            ]}
+                            rowKey="key"
+                            size="small"
+                            scroll={{ x: 'max-content', y: 300 }}
+                            pagination={false}
+                            onRow={(record: any) => ({
+                                style: record._isTotal ? { background: 'rgba(99,102,241,0.12)', fontWeight: 700 } : undefined,
+                            })}
+                        />
+                    </Card>
+                );
+            })()}
+
             {/* Cycle Count Coverage */}
             {show('cycle_count') && (() => {
                 const zoneTotalMap: Record<string, number> = {};
