@@ -170,7 +170,8 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         });
         if (diffs.length === 0) return '-';
         const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-        return `${Math.floor(avg / 60)}h ${Math.round(avg % 60)}m`;
+        const h = Math.floor(avg / 60); const m = Math.floor(avg % 60); const s = Math.round((avg % 1) * 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
     // Avg Receive → Putaway: average diff between first_receive and last_putaway per receipt_no
@@ -190,7 +191,8 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         });
         if (diffs.length === 0) return '-';
         const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-        return `${Math.floor(avg / 60)}h ${Math.round(avg % 60)}m`;
+        const h = Math.floor(avg / 60); const m = Math.floor(avg % 60); const s = Math.round((avg % 1) * 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
     const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
