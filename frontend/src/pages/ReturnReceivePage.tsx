@@ -26,7 +26,7 @@ export default function ReturnReceivePage() {
     const [form] = Form.useForm();
     const editRecord = useRef<any>(null);
 
-    // Fetch return receives + return transactions
+    /* ── Fetch ── */
     const fetchAll = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
@@ -43,49 +43,40 @@ export default function ReturnReceivePage() {
     }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
-
-    // Auto-refresh every 60 seconds
     useEffect(() => {
-        const interval = setInterval(() => { fetchAll(true); }, 60000);
-        return () => clearInterval(interval);
+        const iv = setInterval(() => { fetchAll(true); }, 60000);
+        return () => clearInterval(iv);
     }, [fetchAll]);
 
-    // Build lookup from return transactions: receipt_no → { firstReceiveTime, lastPutawayTime }
+    /* ── Enrich: First Receive & Last Putaway from Return Transaction ── */
     const txLookup = useMemo(() => {
-        const map: Record<string, { firstReceiveTime: string | null; lastPutawayTime: string | null }> = {};
+        const map: Record<string, { firstReceive: string | null; lastPutaway: string | null }> = {};
         transData.forEach((tx: any) => {
             const key = (tx.receipt_no || '').trim().toLowerCase();
             if (!key) return;
-            if (!map[key]) map[key] = { firstReceiveTime: null, lastPutawayTime: null };
+            if (!map[key]) map[key] = { firstReceive: null, lastPutaway: null };
             const type = (tx.operate_type || '').trim().toLowerCase();
             const txTime = tx.time_transaction || '';
             if (type === 'receive' || type === 'receiving') {
-                if (txTime && (!map[key].firstReceiveTime || txTime < map[key].firstReceiveTime!)) {
-                    map[key].firstReceiveTime = txTime;
+                if (txTime && (!map[key].firstReceive || txTime < map[key].firstReceive!)) {
+                    map[key].firstReceive = txTime;
                 }
             } else if (type === 'putaway') {
-                if (txTime && (!map[key].lastPutawayTime || txTime > map[key].lastPutawayTime!)) {
-                    map[key].lastPutawayTime = txTime;
+                if (txTime && (!map[key].lastPutaway || txTime > map[key].lastPutaway!)) {
+                    map[key].lastPutaway = txTime;
                 }
             }
         });
         return map;
     }, [transData]);
 
-    // Enriched data with First Receive and Last Putaway
-    const enrichedData = useMemo(() => {
-        return data.map((row: any) => {
-            const key = (row.receipt_no || '').trim().toLowerCase();
-            const tx = txLookup[key] || { firstReceiveTime: null, lastPutawayTime: null };
-            return {
-                ...row,
-                first_receive: tx.firstReceiveTime || '-',
-                last_putaway: tx.lastPutawayTime || '-',
-            };
-        });
-    }, [data, txLookup]);
+    const enrichedData = useMemo(() => data.map((row: any) => {
+        const key = (row.receipt_no || '').trim().toLowerCase();
+        const tx = txLookup[key] || { firstReceive: null, lastPutaway: null };
+        return { ...row, first_receive: tx.firstReceive || '-', last_putaway: tx.lastPutaway || '-' };
+    }), [data, txLookup]);
 
-    // Filter by date range and search
+    /* ── Filter ── */
     const filteredData = useMemo(() => {
         let result = enrichedData;
         if (dateRange) {
@@ -97,11 +88,10 @@ export default function ReturnReceivePage() {
         }
         const q = search.toLowerCase();
         if (!q) return result;
-        return result.filter((d: any) =>
-            Object.values(d).some(v => String(v).toLowerCase().includes(q))
-        );
+        return result.filter((d: any) => Object.values(d).some(v => String(v).toLowerCase().includes(q)));
     }, [enrichedData, dateRange, search]);
 
+    /* ── Columns ── */
     const columns = [
         { title: 'Return Date', dataIndex: 'return_date', key: 'return_date', width: 110, sorter: (a: any, b: any) => (a.return_date || '').localeCompare(b.return_date || '') },
         { title: 'Receive Date', dataIndex: 'receive_date', key: 'receive_date', width: 110 },
@@ -124,14 +114,8 @@ export default function ReturnReceivePage() {
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 110 },
         { title: 'Return Reason', dataIndex: 'return_reason', key: 'return_reason', width: 150 },
         { title: 'Reason Group', dataIndex: 'reason_group', key: 'reason_group', width: 120 },
-        {
-            title: 'First Receive', dataIndex: 'first_receive', key: 'first_receive', width: 160,
-            render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#60a5fa' }}>{v}</span>,
-        },
-        {
-            title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160,
-            render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span>,
-        },
+        { title: 'First Receive', dataIndex: 'first_receive', key: 'first_receive', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#60a5fa' }}>{v}</span> },
+        { title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span> },
         {
             title: 'Aksi', key: 'action', width: 100, fixed: 'right' as const,
             render: (_: any, r: any) => (
@@ -145,13 +129,9 @@ export default function ReturnReceivePage() {
         },
     ];
 
-    // Add / Edit
+    /* ── CRUD ── */
     const handleAdd = () => { editRecord.current = null; setEditId(null); form.resetFields(); setModalOpen(true); };
-    const handleEdit = (record: any) => {
-        editRecord.current = record;
-        setEditId(record.id);
-        setModalOpen(true);
-    };
+    const handleEdit = (record: any) => { editRecord.current = record; setEditId(record.id); setModalOpen(true); };
 
     useEffect(() => {
         if (modalOpen) {
@@ -174,13 +154,8 @@ export default function ReturnReceivePage() {
             vals.return_date = toDateStr(vals.return_date, 'YYYY-MM-DD');
             vals.receive_date = toDateStr(vals.receive_date, 'YYYY-MM-DD');
             vals.arrival_date = toDateStr(vals.arrival_date, 'YYYY-MM-DD');
-            if (editId) {
-                await returnReceivesApi.update(editId, vals);
-                message.success('Data diupdate');
-            } else {
-                await returnReceivesApi.create(vals);
-                message.success('Data ditambahkan');
-            }
+            if (editId) { await returnReceivesApi.update(editId, vals); message.success('Data diupdate'); }
+            else { await returnReceivesApi.create(vals); message.success('Data ditambahkan'); }
             setModalOpen(false);
             fetchAll();
         } catch (err: any) {
@@ -189,52 +164,70 @@ export default function ReturnReceivePage() {
     };
 
     const handleDelete = async (id: number) => { await returnReceivesApi.remove(id); message.success('Data dihapus'); fetchAll(); };
-
-    const handleBulkDelete = async () => {
-        await returnReceivesApi.bulkDelete(selectedKeys as number[]);
-        message.success(`${selectedKeys.length} data dihapus`);
-        setSelectedKeys([]);
-        fetchAll();
-    };
-
+    const handleBulkDelete = async () => { await returnReceivesApi.bulkDelete(selectedKeys as number[]); message.success(`${selectedKeys.length} data dihapus`); setSelectedKeys([]); fetchAll(); };
     const handleClearAll = () => {
         Modal.confirm({
             title: '⚠️ Clear All Data',
             content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Return Receive? Tindakan ini tidak bisa dibatalkan!`,
             okText: 'Ya, Hapus Semua', okType: 'danger', cancelText: 'Batal',
             onOk: async () => {
-                try {
-                    await returnReceivesApi.sync([]);
-                    message.success('Semua data Return Receive berhasil dihapus');
-                    setSelectedKeys([]);
-                    fetchAll();
-                } catch { message.error('Gagal menghapus semua data'); }
+                try { await returnReceivesApi.sync([]); message.success('Semua data berhasil dihapus'); setSelectedKeys([]); fetchAll(); }
+                catch { message.error('Gagal menghapus semua data'); }
             },
         });
     };
 
-    // CSV Export — all columns including auto-calculated
+    /* ── CSV Export (all columns including auto-calculated) ── */
     const handleExport = () => {
         const headers = ['return_date', 'receive_date', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group', 'first_receive', 'last_putaway'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             filteredData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `Return_Receive_${dayjs().format('YYYY-MM-DD')}.csv`; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = `Return_Receive_${dayjs().format('YYYY-MM-DD')}.csv`; a.click();
         URL.revokeObjectURL(url);
     };
 
-    // CSV Import
+    /* ── CSV Import (header-based matching) ── */
     const handleImport = (file: File) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target?.result as string;
             const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());
             if (lines.length < 2) { message.warning('CSV kosong'); return; }
-            const headerLine = lines[0].replace(/^\uFEFF/, '');
-            const headers = headerLine.split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/#/g, '_no'));
-            const colIdx = (name: string) => headers.findIndex(h => h === name || h.includes(name));
+            const rawHeaders = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+            // Normalize header: "Return Date" → "return_date", "Ref#" → "ref_no", "Tracking#" → "tracking_no"
+            const headers = rawHeaders.map(h =>
+                h.toLowerCase()
+                    .replace(/[#]/g, '')
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_|_$/g, '')
+            );
+
+            // Exact match lookup
+            const colIdx = (name: string): number => {
+                // Try exact match first
+                let idx = headers.indexOf(name);
+                if (idx >= 0) return idx;
+                // Try alias mapping
+                const aliases: Record<string, string[]> = {
+                    ref_no: ['ref', 'ref_no', 'reference'],
+                    tracking_no: ['tracking', 'tracking_no', 'tracking_number'],
+                    return_qty: ['return_qty', 'qty', 'quantity'],
+                    stock_status: ['stock_status', 'status'],
+                    return_reason: ['return_reason', 'reason'],
+                    reason_group: ['reason_group', 'group'],
+                };
+                const aliasList = aliases[name];
+                if (aliasList) {
+                    for (const alias of aliasList) {
+                        idx = headers.indexOf(alias);
+                        if (idx >= 0) return idx;
+                    }
+                }
+                return -1;
+            };
 
             const rows = lines.slice(1).map(line => {
                 const cells = line.match(/(".*?"|[^,]*)/g)?.map(c => c.replace(/^"|"$/g, '').trim()) || [];
@@ -244,10 +237,10 @@ export default function ReturnReceivePage() {
                     receive_date: normalizeDate(get('receive_date')),
                     brand: get('brand'),
                     receipt_no: get('receipt_no'),
-                    ref_no: get('ref_no') || get('ref'),
+                    ref_no: get('ref_no'),
                     owner: get('owner'),
                     arrival_date: normalizeDate(get('arrival_date')),
-                    tracking_no: get('tracking_no') || get('tracking'),
+                    tracking_no: get('tracking_no'),
                     sku: get('sku'),
                     stock_status: get('stock_status'),
                     return_qty: parseInt(get('return_qty', '0')) || 0,
@@ -271,15 +264,13 @@ export default function ReturnReceivePage() {
                 hide();
                 message.success(`✅ ${rows.length} data berhasil diimport`);
                 fetchAll();
-            } catch {
-                message.error('Import gagal');
-            }
+            } catch { message.error('Import gagal'); }
         };
         reader.readAsText(file);
         return false;
     };
 
-    // Template headers — only manual fields (no auto-calculated)
+    // Template: only manual fields (no auto-calculated)
     const templateHeaders = ['return_date', 'receive_date', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group'];
 
     return (
@@ -287,14 +278,7 @@ export default function ReturnReceivePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: '#fff' }}>Return Receive</h2>
                 <Space wrap>
-                    <DatePicker.RangePicker
-                        value={dateRange}
-                        onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
-                        format="DD/MM/YYYY"
-                        placeholder={['Dari Tanggal', 'Sampai Tanggal']}
-                        allowClear
-                        style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
-                    />
+                    <DatePicker.RangePicker value={dateRange} onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)} format="DD/MM/YYYY" placeholder={['Dari Tanggal', 'Sampai Tanggal']} allowClear style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }} />
                     <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
@@ -306,9 +290,7 @@ export default function ReturnReceivePage() {
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(templateHeaders, 'Return_Receive_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
-                    {isSupervisor && data.length > 0 && (
-                        <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
-                    )}
+                    {isSupervisor && data.length > 0 && <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>}
                 </Space>
             </div>
 
@@ -318,61 +300,27 @@ export default function ReturnReceivePage() {
                 </Popconfirm>
             )}
 
-            <Table
-                dataSource={filteredData}
-                columns={columns}
-                rowKey="id"
-                loading={loading}
-                size="small"
-                scroll={{ x: 'max-content' }}
+            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 'max-content' }}
                 pagination={{ pageSize: 100, showSizeChanger: true, pageSizeOptions: ['50', '100', '200', '500'], showTotal: (t) => `Total ${t} data` }}
                 rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys) }}
             />
 
             <Modal title={editId ? 'Edit Return Receive' : 'Tambah Return Receive'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleSave} width={600}>
                 <Form form={form} layout="vertical">
-                    <Form.Item name="return_date" label="Return Date">
-                        <DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal return" style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item name="receive_date" label="Receive Date">
-                        <DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal receive" style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item name="brand" label="Brand">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="receipt_no" label="Receipt No" rules={[{ required: true }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="ref_no" label="Ref#">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="owner" label="Owner">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="arrival_date" label="Arrival Date">
-                        <DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal arrival" style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item name="tracking_no" label="Tracking#">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="sku" label="SKU">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="stock_status" label="Stock Status">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="return_qty" label="Return Qty">
-                        <InputNumber style={{ width: '100%' }} min={0} />
-                    </Form.Item>
-                    <Form.Item name="operator" label="Operator">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="return_reason" label="Return Reason">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="reason_group" label="Reason Group">
-                        <Input />
-                    </Form.Item>
+                    <Form.Item name="return_date" label="Return Date"><DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal return" style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="receive_date" label="Receive Date"><DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal receive" style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="brand" label="Brand"><Input /></Form.Item>
+                    <Form.Item name="receipt_no" label="Receipt No" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="ref_no" label="Ref#"><Input /></Form.Item>
+                    <Form.Item name="owner" label="Owner"><Input /></Form.Item>
+                    <Form.Item name="arrival_date" label="Arrival Date"><DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal arrival" style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="tracking_no" label="Tracking#"><Input /></Form.Item>
+                    <Form.Item name="sku" label="SKU"><Input /></Form.Item>
+                    <Form.Item name="stock_status" label="Stock Status"><Input /></Form.Item>
+                    <Form.Item name="return_qty" label="Return Qty"><InputNumber style={{ width: '100%' }} min={0} /></Form.Item>
+                    <Form.Item name="operator" label="Operator"><Input /></Form.Item>
+                    <Form.Item name="return_reason" label="Return Reason"><Input /></Form.Item>
+                    <Form.Item name="reason_group" label="Reason Group"><Input /></Form.Item>
                 </Form>
             </Modal>
         </div>
