@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Row, Col, Card, Typography, Table, DatePicker, Space, Button as AntButton } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
@@ -123,7 +125,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         orderPerBrands.forEach((o: any) => {
             if (o.month) {
                 // Try to parse "Januari 2026" or "2026-01" format
-                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY']);
+                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY']);
                 if (d.isValid()) ms.add(d.format('YYYY-MM'));
             }
         });
@@ -148,7 +150,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         orderPerBrands.forEach((o: any) => {
             const brand = normalizeBrand(o.brand || 'Unknown');
             if (o.month) {
-                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY']);
+                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY']);
                 if (d.isValid()) {
                     const month = d.format('YYYY-MM');
                     if (!orderMap[brand]) orderMap[brand] = {};
