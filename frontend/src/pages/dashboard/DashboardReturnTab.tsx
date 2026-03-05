@@ -235,7 +235,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             .sort((a, b) => b.count - a.count);
     }, [filteredRejects]);
 
-    const cardStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' };
+    const cardStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', position: 'relative' as const, zIndex: 0, overflow: 'hidden' as const };
 
     return (
         <div>
