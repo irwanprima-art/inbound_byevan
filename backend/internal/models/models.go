@@ -67,6 +67,29 @@ type ReturnTransaction struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// ReturnReceive represents return receive data
+type ReturnReceive struct {
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	ReturnDate   FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
+	ReceiveDate  FlexDate       `gorm:"column:receive_date;type:text" json:"receive_date"`
+	Brand        string         `gorm:"column:brand" json:"brand"`
+	ReceiptNo    string         `gorm:"column:receipt_no" json:"receipt_no"`
+	RefNo        string         `gorm:"column:ref_no" json:"ref_no"`
+	Owner        string         `gorm:"column:owner" json:"owner"`
+	ArrivalDate  FlexDate       `gorm:"column:arrival_date;type:text" json:"arrival_date"`
+	TrackingNo   string         `gorm:"column:tracking_no" json:"tracking_no"`
+	Sku          string         `gorm:"column:sku" json:"sku"`
+	StockStatus  string         `gorm:"column:stock_status" json:"stock_status"`
+	ReturnQty    int            `gorm:"column:return_qty" json:"return_qty"`
+	Operator     string         `gorm:"column:operator" json:"operator"`
+	ReturnReason string         `gorm:"column:return_reason" json:"return_reason"`
+	ReasonGroup  string         `gorm:"column:reason_group" json:"reason_group"`
+	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Vas represents VAS (Value Added Service) data
 type Vas struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
