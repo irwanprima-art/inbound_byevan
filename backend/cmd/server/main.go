@@ -164,6 +164,9 @@ func main() {
 	rejectReturns := handlers.NewResource[models.RejectReturn]("reject-returns")
 	rejectReturns.RegisterRoutes(protected.Group("/reject-returns"))
 
+	orderPerBrands := handlers.NewResource[models.OrderPerBrand]("order-per-brands")
+	orderPerBrands.RegisterRoutes(protected.Group("/order-per-brands"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

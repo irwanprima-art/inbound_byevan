@@ -38,6 +38,7 @@ import MonthlyReportPage from '../pages/MonthlyReportPage';
 import ReturnReceivePage from '../pages/ReturnReceivePage';
 import ReturnTransactionPage from '../pages/ReturnTransactionPage';
 import RejectReturnPage from '../pages/RejectReturnPage';
+import OrderPerBrandPage from '../pages/OrderPerBrandPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/return-receive', icon: <InboxOutlined />, label: 'Return Receive', group: 'return_order' },
     { key: '/return-transaction', icon: <SwapOutlined />, label: 'Return Transaction', group: 'return_order' },
     { key: '/reject-return', icon: <WarningOutlined />, label: 'Reject Return', group: 'return_order' },
+    { key: '/order-per-brand', icon: <BarChartOutlined />, label: 'Order per Brand', group: 'return_order' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
@@ -90,6 +92,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/return-receive': 'return-receive',
     '/return-transaction': 'return-transaction',
     '/reject-return': 'reject-return',
+    '/order-per-brand': 'order-per-brand',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
     '/unloading': 'inbound-unloading',
@@ -119,6 +122,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/return-receive': <ReturnReceivePage />,
     '/return-transaction': <ReturnTransactionPage />,
     '/reject-return': <RejectReturnPage />,
+    '/order-per-brand': <OrderPerBrandPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
     '/unloading': <UnloadingPage />,
@@ -149,6 +153,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/return-receive': <InboxOutlined />,
     '/return-transaction': <SwapOutlined />,
     '/reject-return': <WarningOutlined />,
+    '/order-per-brand': <BarChartOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
     '/unloading': <CarOutlined />,

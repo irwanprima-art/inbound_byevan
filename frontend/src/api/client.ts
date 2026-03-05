@@ -73,6 +73,7 @@ export const inboundCasesApi = createResourceApi('inbound-cases');
 export const returnTransactionsApi = createResourceApi('return-transactions');
 export const returnReceivesApi = createResourceApi('return-receives');
 export const rejectReturnsApi = createResourceApi('reject-returns');
+export const orderPerBrandsApi = createResourceApi('order-per-brands');
 
 // User management API (custom endpoints)
 export const usersApi = {

@@ -109,6 +109,19 @@ type RejectReturn struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// OrderPerBrand represents order per brand data (return order)
+type OrderPerBrand struct {
+	ID         uint           `gorm:"primaryKey" json:"id"`
+	Month      string         `gorm:"column:month" json:"month"`
+	Brand      string         `gorm:"column:brand" json:"brand"`
+	OrderCount int            `gorm:"column:order_count" json:"order_count"`
+	Qty        int            `gorm:"column:qty" json:"qty"`
+	UpdatedBy  string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Vas represents VAS (Value Added Service) data
 type Vas struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
