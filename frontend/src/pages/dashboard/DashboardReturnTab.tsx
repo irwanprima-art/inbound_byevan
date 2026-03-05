@@ -286,7 +286,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 3. Return per Reason Group (Order = unique receipt_no) */}
             {show('reason_order') && (
                 <Card title="📋 Return per Reason Group (Order - Unique Receipt)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonOrder} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols('Order')} />
+                    <Table dataSource={returnPerReasonOrder} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()} />
                 </Card>
             )}
 
