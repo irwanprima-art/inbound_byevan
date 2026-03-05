@@ -229,8 +229,29 @@ export default function ReturnReceivePage() {
                 return -1;
             };
 
+            const parseCSVLine = (line: string): string[] => {
+                const cells: string[] = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (inQuotes) {
+                        if (ch === '"') {
+                            if (i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; }
+                            else { inQuotes = false; }
+                        } else { current += ch; }
+                    } else {
+                        if (ch === '"') { inQuotes = true; }
+                        else if (ch === ',') { cells.push(current.trim()); current = ''; }
+                        else { current += ch; }
+                    }
+                }
+                cells.push(current.trim());
+                return cells;
+            };
+
             const rows = lines.slice(1).map(line => {
-                const cells = line.match(/(".*?"|[^,]*)/g)?.map(c => c.replace(/^"|"$/g, '').trim()) || [];
+                const cells = parseCSVLine(line);
                 const get = (name: string, fallback = '') => { const i = colIdx(name); return i >= 0 && cells[i] ? cells[i] : fallback; };
                 return {
                     return_date: normalizeDate(get('return_date')),
