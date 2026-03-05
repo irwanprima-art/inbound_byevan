@@ -93,6 +93,7 @@ export default function SohPage() {
     const [searchParams] = useSearchParams();
     const [data, setData] = useState<SohRecord[]>([]);
     const [locCategoryMap, setLocCategoryMap] = useState<Record<string, string>>({});
+    const [locDamageTypeMap, setLocDamageTypeMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
@@ -130,12 +131,15 @@ export default function SohPage() {
             setData(sohData);
             // Build location -> location_category map from Master Location
             const map: Record<string, string> = {};
+            const dmgMap: Record<string, string> = {};
             ((locRes.data || []) as any[]).forEach((loc: any) => {
-                if (loc.location && loc.location_category) {
-                    map[loc.location] = loc.location_category;
+                if (loc.location) {
+                    if (loc.location_category) map[loc.location] = loc.location_category;
+                    if (loc.damage_type) dmgMap[loc.location] = loc.damage_type;
                 }
             });
             setLocCategoryMap(map);
+            setLocDamageTypeMap(dmgMap);
             // Normalize brand filter from URL (dashboard sends UPPERCASED brands)
             if (filterBrand.length > 0) {
                 const allBrands = [...new Set(sohData.map(r => r.brand).filter(Boolean))];
@@ -259,10 +263,10 @@ export default function SohPage() {
     };
 
     const handleExport = () => {
-        const hdr = ['location', 'location_category', 'sku', 'sku_category', 'brand', 'zone', 'location_type', 'owner', 'status', 'qty', 'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date', 'batch_no', 'update_date', 'week', 'ed_note', 'aging_note'];
+        const hdr = ['location', 'location_category', 'sku', 'sku_category', 'brand', 'zone', 'location_type', 'damage_type', 'owner', 'status', 'qty', 'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date', 'batch_no', 'update_date', 'week', 'ed_note', 'aging_note'];
         const rows = filteredData.map(r => [
             r.location, locCategoryMap[r.location] || r.location_category || '', r.sku, r.sku_category, r.brand, r.zone,
-            r.location_type, r.owner, r.status, r.qty, r.wh_arrival_date, r.receipt_no, r.mfg_date, r.exp_date, r.batch_no, r.update_date,
+            r.location_type, locDamageTypeMap[r.location] || '', r.owner, r.status, r.qty, r.wh_arrival_date, r.receipt_no, r.mfg_date, r.exp_date, r.batch_no, r.update_date,
             calcWeek(r.update_date || r.wh_arrival_date), calcEdNote(r.exp_date, r.update_date), calcAgingNote(r.wh_arrival_date),
         ].map(v => `"${v}"`).join(','));
         const blob = new Blob([hdr.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
@@ -311,6 +315,14 @@ export default function SohPage() {
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 90 },
         { title: 'Zone', dataIndex: 'zone', key: 'zone', width: 70 },
         { title: 'Location Type', dataIndex: 'location_type', key: 'location_type', width: 110 },
+        {
+            title: 'Damage Type', key: 'damage_type', width: 120,
+            render: (_: any, r: any) => {
+                const dt = locDamageTypeMap[r.location];
+                if (!dt) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                return <Tag color="red">{dt}</Tag>;
+            },
+        },
         { title: 'Owner', dataIndex: 'owner', key: 'owner', width: 90 },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 80 },
         { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70, sorter: (a: any, b: any) => a.qty - b.qty },
