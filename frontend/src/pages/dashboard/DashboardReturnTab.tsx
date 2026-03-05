@@ -413,7 +413,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                                 rowKey="brand"
                                 size="small"
                                 pagination={false}
-                                scroll={{ y: 300 }}
+                                scroll={{ y: sections ? undefined : 300 }}
                                 columns={[
                                     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
                                     { title: 'GOOD', dataIndex: 'good', key: 'good', width: 90, render: (v: number) => <Text style={{ color: '#10b981' }}>{v.toLocaleString()}</Text> },
@@ -458,7 +458,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 2+3 Combined: Return per Reason Group (Qty + Order) */}
             {show('reason_combined') && (
                 <Card title="📋 Return per Reason Group (Qty & Order)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonCombined} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 400 }} columns={reasonCombinedCols} bordered
+                    <Table dataSource={returnPerReasonCombined} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: sections ? undefined : 400 }} columns={reasonCombinedCols} bordered
                         summary={() => {
                             const totals: Record<string, number> = {};
                             returnPerReasonCombined.forEach((r: any) => {
@@ -492,7 +492,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 4. % Return per Brand per Month */}
             {show('return_pct') && months.length > 0 && (
                 <Card title="📊 % Return per Brand" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPercentData} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={percentCols} bordered
+                    <Table dataSource={returnPercentData} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: sections ? undefined : 300 }} columns={percentCols} bordered
                         summary={() => {
                             const totals: Record<string, number> = {};
                             returnPercentData.forEach((r: any) => {
@@ -528,7 +528,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={14}>
                         <Card title="🚫 Reject Return per Logistics (Unique AWB)" size="small" style={cardStyle} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                            <Table dataSource={rejectPerLogistic} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={rejectCols}
+                            <Table dataSource={rejectPerLogistic} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: sections ? undefined : 300 }} columns={rejectCols}
                                 summary={() => {
                                     const totals: Record<string, number> = {};
                                     rejectPerLogistic.forEach((r: any) => { logistics.forEach(l => { totals[l] = (totals[l] || 0) + (r[l] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
