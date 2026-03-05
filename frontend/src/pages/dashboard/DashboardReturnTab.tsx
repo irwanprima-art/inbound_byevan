@@ -22,15 +22,17 @@ interface Props {
 export default function DashboardReturnTab({ dateRange, setDateRange, returnReceives, rejectReturns, orderPerBrands, matchesDateRange, sections }: Props) {
     const show = (key: string) => !sections || sections.includes(key);
 
-    // Brand normalization: merge similar brand names
+    // Brand normalization: merge similar brand names + case-insensitive
     const BRAND_ALIASES: [RegExp, string][] = [
         [/^Mama'?s\s*Choice/i, "Mama's Choice"],
     ];
     const normalizeBrand = (brand: string): string => {
+        // Title Case: "MAKUKU" / "makuku" → "Makuku"
+        const titleCase = brand.trim().toLowerCase().replace(/(?:^|\s|[-_])\S/g, c => c.toUpperCase());
         for (const [pattern, alias] of BRAND_ALIASES) {
-            if (pattern.test(brand)) return alias;
+            if (pattern.test(titleCase)) return alias;
         }
-        return brand;
+        return titleCase;
     };
 
     // Filter by date range
