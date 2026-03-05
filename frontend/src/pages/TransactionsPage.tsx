@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
-import { transactionsApi, arrivalsApi } from '../api/client';
+import { transactionsApi, arrivalsApi, masterItemsApi } from '../api/client';
 import { normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 
 const columns = [
@@ -27,6 +27,13 @@ const columns = [
             if (!v || v === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
             const color = v === 'Barang Jual' ? 'blue' : v === 'Gimmick' ? 'magenta' : v === 'ATK' ? 'orange' : 'default';
             return <Tag color={color}>{v}</Tag>;
+        },
+    },
+    {
+        title: 'Item Class', dataIndex: '_item_class', key: '_item_class', width: 120,
+        render: (v: string) => {
+            if (!v || v === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+            return <Tag color="green">{v}</Tag>;
         },
     },
 ];
@@ -78,21 +85,28 @@ export default function TransactionsPage() {
     // Enrich each transaction with item_type from arrivals by receipt_no
     const enrichData = useCallback(async (items: any[]) => {
         try {
-            const arrRes = await arrivalsApi.list();
+            const [arrRes, miRes] = await Promise.all([arrivalsApi.list(), masterItemsApi.list()]);
             const arrivals = arrRes.data || [];
+            const masterItems = miRes.data || [];
             // Build receipt_no → item_type map
-            const map: Record<string, string> = {};
+            const typeMap: Record<string, string> = {};
             arrivals.forEach((a: any) => {
-                if (a.receipt_no) map[a.receipt_no] = a.item_type || '-';
+                if (a.receipt_no) typeMap[a.receipt_no] = a.item_type || '-';
+            });
+            // Build sku → item_class map (case-insensitive)
+            const classMap: Record<string, string> = {};
+            masterItems.forEach((mi: any) => {
+                if (mi.sku) classMap[mi.sku.trim().toLowerCase()] = mi.item_class || '-';
             });
             return items.map((t: any) => ({
                 ...t,
-                _item_type: map[t.receipt_no] || '-',
+                _item_type: typeMap[t.receipt_no] || '-',
+                _item_class: classMap[(t.sku || '').trim().toLowerCase()] || '-',
             }));
         } catch {
             return items;
         }
     }, []);
 
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_type']} />;
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_type', '_item_class']} />;
 }

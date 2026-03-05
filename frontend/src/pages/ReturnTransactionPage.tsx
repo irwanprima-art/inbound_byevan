@@ -1,6 +1,7 @@
+import { useCallback } from 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
-import { returnTransactionsApi } from '../api/client';
+import { returnTransactionsApi, masterItemsApi } from '../api/client';
 import { normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 
 const columns = [
@@ -20,6 +21,13 @@ const columns = [
     },
     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 90, sorter: (a: any, b: any) => a.qty - b.qty },
     { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 130 },
+    {
+        title: 'Item Class', dataIndex: '_item_class', key: '_item_class', width: 120,
+        render: (v: string) => {
+            if (!v || v === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+            return <Tag color="green">{v}</Tag>;
+        },
+    },
 ];
 
 const formFields = (
@@ -66,5 +74,22 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
 };
 
 export default function ReturnTransactionPage() {
-    return <DataPage title="Return Transaction" api={returnTransactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" />;
+    const enrichData = useCallback(async (items: any[]) => {
+        try {
+            const miRes = await masterItemsApi.list();
+            const masterItems = miRes.data || [];
+            const classMap: Record<string, string> = {};
+            masterItems.forEach((mi: any) => {
+                if (mi.sku) classMap[mi.sku.trim().toLowerCase()] = mi.item_class || '-';
+            });
+            return items.map((t: any) => ({
+                ...t,
+                _item_class: classMap[(t.sku || '').trim().toLowerCase()] || '-',
+            }));
+        } catch {
+            return items;
+        }
+    }, []);
+
+    return <DataPage title="Return Transaction" api={returnTransactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_class']} />;
 }
