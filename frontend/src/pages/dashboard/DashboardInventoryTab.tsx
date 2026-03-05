@@ -497,6 +497,136 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                         </Col>
                     </Row>
                 </div></>}
+            {/* Inventory Rate */}
+            {show('inventory_rate') && <><div style={{ marginTop: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                    <span style={{ fontSize: 20 }}>📈</span>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Inventory Rate — Per Brand</span>
+                </div>
+                <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <ResizableTable
+                        dataSource={(() => {
+                            // Build location -> damage_type and location -> category/type maps
+                            const locDmgMap: Record<string, string> = {};
+                            const locCatMap: Record<string, string> = {};
+                            const locTypeMap: Record<string, string> = {};
+                            locations.forEach((loc: any) => {
+                                if (!loc.location) return;
+                                if (loc.damage_type) locDmgMap[loc.location] = loc.damage_type.trim().toLowerCase();
+                                if (loc.location_category) locCatMap[loc.location] = loc.location_category.trim().toLowerCase();
+                                if (loc.location_type) locTypeMap[loc.location] = loc.location_type.trim().toLowerCase();
+                            });
+
+                            // Use ALL SOH data (latest snapshot, not date-filtered)
+                            const brandMap: Record<string, {
+                                brand: string;
+                                storagePicking: number;
+                                variance: number;
+                                extDamage: number;
+                                intDamage: number;
+                                expired: number;
+                                pest: number;
+                            }> = {};
+
+                            sohList.forEach((s: any) => {
+                                const brand = (s.brand || '').trim() || '-';
+                                const qty = parseInt(s.qty) || 0;
+                                const loc = (s.location || '').trim();
+                                const locLower = loc.toLowerCase();
+                                const locCat = locCatMap[loc] || (s.location_category || '').trim().toLowerCase();
+                                const locType = locTypeMap[loc] || (s.location_type || '').trim().toLowerCase();
+                                const dmgType = locDmgMap[loc] || '';
+
+                                if (!brandMap[brand]) brandMap[brand] = { brand, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0 };
+
+                                // Sellable: Storage+Picking where location_category = sellable
+                                if ((locType === 'storage' || locType === 'picking') && locCat === 'sellable') {
+                                    brandMap[brand].storagePicking += qty;
+                                }
+                                // Variance: location VAR01 or suspend
+                                else if (locLower === 'var01' || locLower === 'suspend') {
+                                    brandMap[brand].variance += qty;
+                                }
+                                // Non-sellable based on damage_type
+                                else if (dmgType === 'external damage') {
+                                    brandMap[brand].extDamage += qty;
+                                } else if (dmgType === 'internal damage') {
+                                    brandMap[brand].intDamage += qty;
+                                } else if (dmgType === 'expired') {
+                                    brandMap[brand].expired += qty;
+                                } else if (dmgType === 'pest') {
+                                    brandMap[brand].pest += qty;
+                                }
+                            });
+
+                            const rows = Object.values(brandMap).map(b => {
+                                const totalSellable = b.storagePicking + b.variance;
+                                const totalNonSellable = b.extDamage + b.intDamage + b.expired + b.pest;
+                                const total = totalSellable + totalNonSellable;
+                                const nonSellableRate = total > 0 ? ((totalNonSellable / total) * 100).toFixed(2) : '0.00';
+                                return { ...b, totalSellable, totalNonSellable, nonSellableRate, total };
+                            }).sort((a, b) => b.total - a.total);
+
+                            // Add summary row
+                            const summary = rows.reduce((acc, r) => ({
+                                brand: 'TOTAL', isSummary: true,
+                                storagePicking: acc.storagePicking + r.storagePicking,
+                                variance: acc.variance + r.variance,
+                                extDamage: acc.extDamage + r.extDamage,
+                                intDamage: acc.intDamage + r.intDamage,
+                                expired: acc.expired + r.expired,
+                                pest: acc.pest + r.pest,
+                                totalSellable: acc.totalSellable + r.totalSellable,
+                                totalNonSellable: acc.totalNonSellable + r.totalNonSellable,
+                                total: acc.total + r.total,
+                                nonSellableRate: '0',
+                            }), { brand: 'TOTAL', isSummary: true, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0, totalSellable: 0, totalNonSellable: 0, total: 0, nonSellableRate: '0' });
+                            summary.nonSellableRate = summary.total > 0 ? ((summary.totalNonSellable / summary.total) * 100).toFixed(2) : '0.00';
+
+                            return [...rows, summary];
+                        })()}
+                        columns={[
+                            {
+                                title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100, fixed: 'left' as const,
+                                render: (v: string, r: any) => r.isSummary ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v,
+                            },
+                            {
+                                title: 'Sellable Qty',
+                                children: [
+                                    { title: 'Storage+Picking', dataIndex: 'storagePicking', key: 'storagePicking', width: 130, render: (v: number, r: any) => <span style={{ color: '#4ade80', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                    { title: 'Variance', dataIndex: 'variance', key: 'variance', width: 100, render: (v: number, r: any) => <span style={{ color: '#fbbf24', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                ],
+                            },
+                            { title: 'Total Sellable', dataIndex: 'totalSellable', key: 'totalSellable', width: 120, render: (v: number) => <span style={{ color: '#4ade80', fontWeight: 700 }}>{v.toLocaleString()}</span> },
+                            {
+                                title: 'Non Sellable Qty',
+                                children: [
+                                    { title: 'External Damage', dataIndex: 'extDamage', key: 'extDamage', width: 130, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                    { title: 'Internal Damage', dataIndex: 'intDamage', key: 'intDamage', width: 130, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                    { title: 'Expired', dataIndex: 'expired', key: 'expired', width: 100, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#fb923c' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                    { title: 'PEST', dataIndex: 'pest', key: 'pest', width: 80, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#c084fc' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                ],
+                            },
+                            { title: 'Total Non Sellable', dataIndex: 'totalNonSellable', key: 'totalNonSellable', width: 140, render: (v: number) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: 700 }}>{v.toLocaleString()}</span> },
+                            {
+                                title: 'Non Sellable Rate', dataIndex: 'nonSellableRate', key: 'nonSellableRate', width: 140,
+                                render: (v: string) => {
+                                    const pct = parseFloat(v);
+                                    return <Tag color={pct === 0 ? 'green' : pct <= 2 ? 'gold' : 'red'}>{v}%</Tag>;
+                                },
+                            },
+                        ]}
+                        rowKey="brand"
+                        size="small"
+                        scroll={{ x: 1200 }}
+                        pagination={false}
+                        bordered
+                        onRow={(record: any) => ({
+                            style: record.isSummary ? { background: 'rgba(99,102,241,0.15)', fontWeight: 700 } : undefined,
+                        })}
+                    />
+                </Card>
+            </div></>}
         </>
     );
 }
