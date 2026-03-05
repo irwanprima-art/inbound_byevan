@@ -2,7 +2,6 @@ import { Form, Input, Tag, DatePicker, Select } from 'antd';
 import DataPage from '../components/DataPage';
 import { rejectReturnsApi } from '../api/client';
 import { normalizeDate } from '../utils/csvTemplate';
-import dayjs from 'dayjs';
 
 const columns = [
     {
@@ -82,8 +81,6 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
     };
 };
 
-const dateFields = ['input_date', 'order_date'];
-
 export default function RejectReturnPage() {
-    return <DataPage title="Reject Return" api={rejectReturnsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} parseCSVRow={parseCSVRow} dateField="input_date" dateFields={dateFields} />;
+    return <DataPage title="Reject Return" api={rejectReturnsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} parseCSVRow={parseCSVRow} dateField="input_date" />;
 }
