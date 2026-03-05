@@ -517,7 +517,14 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 if (loc.location_type) locTypeMap[loc.location] = loc.location_type.trim().toLowerCase();
                             });
 
-                            // Use ALL SOH data (latest snapshot, not date-filtered)
+                            // Filter SOH to latest update_date only
+                            const latestDate = sohList.reduce((latest: string, s: any) => {
+                                if (s.update_date && s.update_date > latest) return s.update_date;
+                                return latest;
+                            }, '');
+                            const latestPrefix = latestDate ? latestDate.substring(0, 10) : '';
+                            const latestSoh = latestPrefix ? sohList.filter((s: any) => (s.update_date || '').startsWith(latestPrefix)) : sohList;
+
                             const brandMap: Record<string, {
                                 brand: string;
                                 storagePicking: number;
@@ -528,7 +535,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 pest: number;
                             }> = {};
 
-                            sohList.forEach((s: any) => {
+                            latestSoh.forEach((s: any) => {
                                 const brand = (s.brand || '').trim() || '-';
                                 const qty = parseInt(s.qty) || 0;
                                 const loc = (s.location || '').trim();
