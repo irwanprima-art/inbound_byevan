@@ -255,6 +255,20 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                                     { title: 'DAMAGE', dataIndex: 'damage', key: 'damage', width: 90, render: (v: number) => <Text style={{ color: '#ef4444' }}>{v.toLocaleString()}</Text> },
                                     { title: 'TOTAL', dataIndex: 'total', key: 'total', width: 90, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{v.toLocaleString()}</Text> },
                                 ]}
+                                summary={() => {
+                                    const totGood = returnPerBrand.reduce((s, r) => s + r.good, 0);
+                                    const totDamage = returnPerBrand.reduce((s, r) => s + r.damage, 0);
+                                    return (
+                                        <Table.Summary fixed>
+                                            <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                                <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1}><Text strong style={{ color: '#10b981' }}>{totGood.toLocaleString()}</Text></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={2}><Text strong style={{ color: '#ef4444' }}>{totDamage.toLocaleString()}</Text></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={3}><Text strong style={{ color: '#60a5fa' }}>{(totGood + totDamage).toLocaleString()}</Text></Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                        </Table.Summary>
+                                    );
+                                }}
                             />
                         </Card>
                     </Col>
@@ -279,14 +293,42 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 2. Return per Reason Group (Qty) */}
             {show('reason_qty') && (
                 <Card title="📋 Return per Reason Group (Qty)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonQty} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()} />
+                    <Table dataSource={returnPerReasonQty} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()}
+                        summary={() => {
+                            const totals: Record<string, number> = {};
+                            returnPerReasonQty.forEach((r: any) => { reasonGroups.forEach(g => { totals[g] = (totals[g] || 0) + (r[g] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
+                            return (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
+                                        {reasonGroups.map((g, i) => <Table.Summary.Cell key={g} index={i + 1}><Text strong style={{ color: '#fff' }}>{(totals[g] || 0).toLocaleString()}</Text></Table.Summary.Cell>)}
+                                        <Table.Summary.Cell index={reasonGroups.length + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            );
+                        }}
+                    />
                 </Card>
             )}
 
             {/* 3. Return per Reason Group (Order = unique receipt_no) */}
             {show('reason_order') && (
                 <Card title="📋 Return per Reason Group (Order - Unique Receipt)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonOrder} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()} />
+                    <Table dataSource={returnPerReasonOrder} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()}
+                        summary={() => {
+                            const totals: Record<string, number> = {};
+                            returnPerReasonOrder.forEach((r: any) => { reasonGroups.forEach(g => { totals[g] = (totals[g] || 0) + (r[g] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
+                            return (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
+                                        {reasonGroups.map((g, i) => <Table.Summary.Cell key={g} index={i + 1}><Text strong style={{ color: '#fff' }}>{(totals[g] || 0).toLocaleString()}</Text></Table.Summary.Cell>)}
+                                        <Table.Summary.Cell index={reasonGroups.length + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            );
+                        }}
+                    />
                 </Card>
             )}
 
@@ -302,7 +344,21 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={14}>
                         <Card title="🚫 Reject Return per Logistics (Unique AWB)" size="small" style={cardStyle} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                            <Table dataSource={rejectPerLogistic} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={rejectCols} />
+                            <Table dataSource={rejectPerLogistic} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={rejectCols}
+                                summary={() => {
+                                    const totals: Record<string, number> = {};
+                                    rejectPerLogistic.forEach((r: any) => { logistics.forEach(l => { totals[l] = (totals[l] || 0) + (r[l] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
+                                    return (
+                                        <Table.Summary fixed>
+                                            <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                                <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
+                                                {logistics.map((l, i) => <Table.Summary.Cell key={l} index={i + 1}><Text strong style={{ color: '#fff' }}>{(totals[l] || 0).toLocaleString()}</Text></Table.Summary.Cell>)}
+                                                <Table.Summary.Cell index={logistics.length + 1}><Text strong style={{ color: '#f59e0b' }}>{(totals.total || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                        </Table.Summary>
+                                    );
+                                }}
+                            />
                         </Card>
                     </Col>
                     {/* 6. AWB per Brand chart */}
