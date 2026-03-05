@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi, inboundRejectionsApi, beritaAcaraApi, returnReceivesApi, rejectReturnsApi, orderPerBrandsApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi, inboundRejectionsApi, beritaAcaraApi, returnReceivesApi, rejectReturnsApi, orderPerBrandsApi, returnTransactionsApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
@@ -60,6 +60,7 @@ export default function DashboardPage() {
     const [returnReceives, setReturnReceives] = useState<any[]>([]);
     const [rejectReturnsList, setRejectReturnsList] = useState<any[]>([]);
     const [orderPerBrands, setOrderPerBrands] = useState<any[]>([]);
+    const [returnTransactions, setReturnTransactions] = useState<any[]>([]);
 
     // Track if auto-refresh is active
     const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -81,12 +82,13 @@ export default function DashboardPage() {
                 setRejections(rej.data || []);
                 setBaData(ba.data || []);
             } else if (group === 'return_order') {
-                const [rr, rej, opb] = await Promise.all([
-                    returnReceivesApi.list(), rejectReturnsApi.list(), orderPerBrandsApi.list(),
+                const [rr, rej, opb, rtx] = await Promise.all([
+                    returnReceivesApi.list(), rejectReturnsApi.list(), orderPerBrandsApi.list(), returnTransactionsApi.list(),
                 ]);
                 setReturnReceives(rr.data || []);
                 setRejectReturnsList(rej.data || []);
                 setOrderPerBrands(opb.data || []);
+                setReturnTransactions(rtx.data || []);
             } else if (group === 'inventory') {
                 const [d, s, dm, q, loc] = await Promise.all([
                     dccApi.list(), sohApi.list(), damagesApi.list(), qcReturnsApi.list(), locationsApi.list(),
@@ -188,6 +190,7 @@ export default function DashboardPage() {
                                 returnReceives={returnReceives}
                                 rejectReturns={rejectReturnsList}
                                 orderPerBrands={orderPerBrands}
+                                returnTransactions={returnTransactions}
                                 matchesDateRange={matchesDateRange}
                             />
                         ),

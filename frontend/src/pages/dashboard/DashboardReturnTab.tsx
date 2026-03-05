@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Row, Col, Card, Typography, Table, DatePicker, Space, Button as AntButton } from 'antd';
+import { Row, Col, Card, Typography, Table, DatePicker, Space, Button as AntButton, Statistic } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -17,11 +17,12 @@ interface Props {
     returnReceives: any[];
     rejectReturns: any[];
     orderPerBrands: any[];
+    returnTransactions: any[];
     matchesDateRange: (d: string) => boolean;
     sections?: string[];
 }
 
-export default function DashboardReturnTab({ dateRange, setDateRange, returnReceives, rejectReturns, orderPerBrands, matchesDateRange, sections }: Props) {
+export default function DashboardReturnTab({ dateRange, setDateRange, returnReceives, rejectReturns, orderPerBrands, returnTransactions, matchesDateRange, sections }: Props) {
     const show = (key: string) => !sections || sections.includes(key);
 
     // Brand normalization: merge similar brand names + case-insensitive
@@ -253,7 +254,71 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                 </Space>
             )}
 
-            {/* 1. Return per Brand + Chart */}
+            {/* Avg Arrival→Putaway & Avg Receive→Putaway cards */}
+            {show('avg_times') && (() => {
+                // Build txLookup from returnTransactions
+                const txLookup: Record<string, { firstReceive: string | null; lastPutaway: string | null }> = {};
+                returnTransactions.forEach((tx: any) => {
+                    const key = (tx.receipt_no || '').trim().toLowerCase();
+                    if (!key) return;
+                    if (!txLookup[key]) txLookup[key] = { firstReceive: null, lastPutaway: null };
+                    const type = (tx.operate_type || '').trim().toLowerCase();
+                    const txTime = tx.time_transaction || '';
+                    if (type === 'receive' || type === 'receiving') {
+                        if (txTime && (!txLookup[key].firstReceive || txTime < txLookup[key].firstReceive!)) txLookup[key].firstReceive = txTime;
+                    } else if (type === 'putaway') {
+                        if (txTime && (!txLookup[key].lastPutaway || txTime > txLookup[key].lastPutaway!)) txLookup[key].lastPutaway = txTime;
+                    }
+                });
+
+                // Enrich filtered receives
+                const enriched = filteredReceives.map((row: any) => {
+                    const key = (row.receipt_no || '').trim().toLowerCase();
+                    const tx = txLookup[key] || { firstReceive: null, lastPutaway: null };
+                    return { ...row, first_receive: tx.firstReceive, last_putaway: tx.lastPutaway };
+                });
+
+                // Avg Arrival → Putaway
+                const calcAvg = (getStart: (r: any) => string | null, getEnd: (r: any) => string | null) => {
+                    const diffs: number[] = [];
+                    const seen = new Set<string>();
+                    enriched.forEach((a: any) => {
+                        const key = (a.receipt_no || '').trim().toLowerCase();
+                        if (!key || seen.has(key)) return;
+                        seen.add(key);
+                        const startVal = getStart(a);
+                        const endVal = getEnd(a);
+                        if (!startVal || !endVal) return;
+                        const s = dayjs(startVal);
+                        const e = dayjs(endVal);
+                        if (!s.isValid() || !e.isValid()) return;
+                        const diffMin = e.diff(s, 'minute');
+                        if (diffMin > 0) diffs.push(diffMin);
+                    });
+                    if (diffs.length === 0) return '-';
+                    const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+                    const h = Math.floor(avg / 60); const m = Math.floor(avg % 60); const s = Math.round((avg % 1) * 60);
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                };
+
+                const avgArrPut = calcAvg(r => r.arrival_date, r => r.last_putaway);
+                const avgRecPut = calcAvg(r => r.first_receive, r => r.last_putaway);
+
+                return (
+                    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                        <Col xs={12} sm={6}>
+                            <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                                <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Arrival → Putaway</span>} value={avgArrPut} valueStyle={{ color: '#f59e0b', fontSize: 24, fontWeight: 700 }} />
+                            </Card>
+                        </Col>
+                        <Col xs={12} sm={6}>
+                            <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                                <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Receive → Putaway</span>} value={avgRecPut} valueStyle={{ color: '#10b981', fontSize: 24, fontWeight: 700 }} />
+                            </Card>
+                        </Col>
+                    </Row>
+                );
+            })()}
             {show('return_per_brand') && (
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={12}>
