@@ -105,6 +105,7 @@ export default function ReturnReceivePage() {
     const columns = [
         { title: 'Return Date', dataIndex: 'return_date', key: 'return_date', width: 110, sorter: (a: any, b: any) => (a.return_date || '').localeCompare(b.return_date || '') },
         { title: 'Receive Date', dataIndex: 'receive_date', key: 'receive_date', width: 110 },
+        { title: 'Receive Time', dataIndex: 'receive_time', key: 'receive_time', width: 110 },
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
         { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 140 },
         { title: 'Ref#', dataIndex: 'ref_no', key: 'ref_no', width: 130 },
@@ -215,7 +216,7 @@ export default function ReturnReceivePage() {
 
     // CSV Export — all columns including auto-calculated
     const handleExport = () => {
-        const headers = ['return_date', 'receive_date', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group', 'first_receive', 'last_putaway'];
+        const headers = ['return_date', 'receive_date', 'receive_time', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group', 'first_receive', 'last_putaway'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             filteredData.map((r: any) => headers.map(h => `"${r[h] ?? ''}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -242,6 +243,7 @@ export default function ReturnReceivePage() {
                 return {
                     return_date: normalizeDate(get('return_date')),
                     receive_date: normalizeDate(get('receive_date')),
+                    receive_time: get('receive_time'),
                     brand: get('brand'),
                     receipt_no: get('receipt_no'),
                     ref_no: get('ref_no') || get('ref'),
@@ -280,7 +282,7 @@ export default function ReturnReceivePage() {
     };
 
     // Template headers — only manual fields (no auto-calculated)
-    const templateHeaders = ['return_date', 'receive_date', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group'];
+    const templateHeaders = ['return_date', 'receive_date', 'receive_time', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group'];
 
     return (
         <div>
@@ -336,6 +338,9 @@ export default function ReturnReceivePage() {
                     </Form.Item>
                     <Form.Item name="receive_date" label="Receive Date">
                         <DatePicker format="YYYY-MM-DD" placeholder="Pilih tanggal receive" style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item name="receive_time" label="Receive Time">
+                        <Input placeholder="HH:mm:ss" />
                     </Form.Item>
                     <Form.Item name="brand" label="Brand">
                         <Input />
