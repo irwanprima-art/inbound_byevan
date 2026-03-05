@@ -4,6 +4,7 @@ import {
     PlayCircleOutlined, LeftOutlined, RightOutlined,
     FullscreenExitOutlined, LoadingOutlined,
     InboxOutlined, DatabaseOutlined, HomeOutlined, CalendarOutlined, TeamOutlined,
+    UndoOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -12,9 +13,11 @@ import {
     sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi,
     unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi,
     inboundRejectionsApi, beritaAcaraApi,
+    returnReceivesApi, rejectReturnsApi, orderPerBrandsApi, returnTransactionsApi,
 } from '../api/client';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
+import DashboardReturnTab from './dashboard/DashboardReturnTab';
 import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
 import DashboardUtilizationTab from './dashboard/DashboardUtilizationTab';
 import DashboardAgingTab from './dashboard/DashboardAgingTab';
@@ -30,6 +33,13 @@ const SLIDES = [
     { key: 'inbound_4', label: '📦 Inbound — VAS', icon: <InboxOutlined />, color: '#14b8a6', sections: ['vas', 'vas_operator', 'vas_type'] },
 
     { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
+    // Return sub-slides
+    { key: 'return_1', label: '🔄 Return — Per Brand & Good vs Damage', icon: <UndoOutlined />, color: '#06b6d4', sections: ['return_per_brand'] },
+    { key: 'return_2', label: '🔄 Return — Avg Receive→Putaway', icon: <UndoOutlined />, color: '#14b8a6', sections: ['avg_times'] },
+    { key: 'return_3', label: '🔄 Return — Reason Group (Qty)', icon: <UndoOutlined />, color: '#0ea5e9', sections: ['reason_qty'] },
+    { key: 'return_4', label: '🔄 Return — Reason Group (Order)', icon: <UndoOutlined />, color: '#0891b2', sections: ['reason_order'] },
+    { key: 'return_5', label: '🔄 Return — % Return per Brand', icon: <UndoOutlined />, color: '#0e7490', sections: ['return_pct'] },
+    { key: 'return_6', label: '🔄 Return — Reject & AWB per Brand', icon: <UndoOutlined />, color: '#155e75', sections: ['reject_logistics'] },
     // Inventory sub-slides
     { key: 'inventory_1', label: '📋 Inventory — Accuracy', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy'] },
     { key: 'inventory_2', label: '📋 Inventory — Cycle Count', icon: <DatabaseOutlined />, color: '#06b6d4', sections: ['cycle_count'] },
@@ -68,6 +78,11 @@ export default function MonthlyReportPage() {
     const [addMpData, setAddMpData] = useState<any[]>([]);
     const [rejections, setRejections] = useState<any[]>([]);
     const [baData, setBaData] = useState<any[]>([]);
+    // Return data
+    const [returnReceives, setReturnReceives] = useState<any[]>([]);
+    const [rejectReturns, setRejectReturns] = useState<any[]>([]);
+    const [orderPerBrands, setOrderPerBrands] = useState<any[]>([]);
+    const [returnTransactions, setReturnTransactions] = useState<any[]>([]);
 
     // Date range for selected month
     const dateRange: [Dayjs, Dayjs] = [
@@ -89,7 +104,7 @@ export default function MonthlyReportPage() {
     const fetchAllData = useCallback(async () => {
         setLoading(true);
         try {
-            const [a, t, v, ul, ic, d, s, dm, q, loc, att, emp, sch, addMp, rej, ba] = await Promise.all([
+            const [a, t, v, ul, ic, d, s, dm, q, loc, att, emp, sch, addMp, rej, ba, rr, rjr, opb, rtx] = await Promise.all([
                 arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
                 unloadingsApi.list(), inboundCasesApi.list(),
                 dccApi.list(), sohApi.list(), damagesApi.list(),
@@ -97,6 +112,8 @@ export default function MonthlyReportPage() {
                 attendancesApi.list(), employeesApi.list(),
                 schedulesApi.list(), additionalMpApi.list(),
                 inboundRejectionsApi.list(), beritaAcaraApi.list(),
+                returnReceivesApi.list(), rejectReturnsApi.list(),
+                orderPerBrandsApi.list(), returnTransactionsApi.list(),
             ]);
             setArrivals(a.data || []);
             setTransactions(t.data || []);
@@ -114,6 +131,10 @@ export default function MonthlyReportPage() {
             setAddMpData(addMp.data || []);
             setRejections(rej.data || []);
             setBaData(ba.data || []);
+            setReturnReceives(rr.data || []);
+            setRejectReturns(rjr.data || []);
+            setOrderPerBrands(opb.data || []);
+            setReturnTransactions(rtx.data || []);
             setDataLoaded(true);
         } catch {
             // silently fail
@@ -193,6 +214,21 @@ export default function MonthlyReportPage() {
                     inboundCases={inboundCases}
                     rejections={rejections}
                     baData={baData}
+                    matchesDateRange={matchesDateRange}
+                    sections={slide.sections}
+                />
+            );
+        }
+        // All return sub-slides
+        if (slide.key.startsWith('return_')) {
+            return (
+                <DashboardReturnTab
+                    dateRange={dateRange}
+                    setDateRange={noop}
+                    returnReceives={returnReceives}
+                    rejectReturns={rejectReturns}
+                    orderPerBrands={orderPerBrands}
+                    returnTransactions={returnTransactions}
                     matchesDateRange={matchesDateRange}
                     sections={slide.sections}
                 />
