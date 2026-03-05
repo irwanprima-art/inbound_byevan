@@ -4,8 +4,9 @@ import {
     SearchOutlined, ReloadOutlined, DownloadOutlined, PlusOutlined,
     TrophyOutlined, InboxOutlined, SwapOutlined, TagsOutlined,
     CheckCircleOutlined, SafetyOutlined, ProjectOutlined, PrinterOutlined,
+    UndoOutlined, RollbackOutlined,
 } from '@ant-design/icons';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, qcReturnsApi, productivityApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, qcReturnsApi, productivityApi, returnTransactionsApi } from '../api/client';
 import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -194,6 +195,7 @@ export default function ProductivityPage() {
     const [damageList, setDamageList] = useState<any[]>([]);
     const [qcrList, setQcrList] = useState<any[]>([]);
     const [projectList, setProjectList] = useState<any[]>([]);
+    const [retTxList, setRetTxList] = useState<any[]>([]);
 
     // Project modal
     const [projModalOpen, setProjModalOpen] = useState(false);
@@ -202,9 +204,10 @@ export default function ProductivityPage() {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [a, t, v, d, dm, q, p] = await Promise.all([
+            const [a, t, v, d, dm, q, p, rt] = await Promise.all([
                 arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
                 dccApi.list(), damagesApi.list(), qcReturnsApi.list(), productivityApi.list(),
+                returnTransactionsApi.list(),
             ]);
             setArrivals(a.data || []);
             setTransactions(t.data || []);
@@ -213,6 +216,7 @@ export default function ProductivityPage() {
             setDamageList(dm.data || []);
             setQcrList(q.data || []);
             setProjectList(p.data || []);
+            setRetTxList(rt.data || []);
         } catch {
             message.error('Gagal memuat data');
         } finally {
@@ -241,6 +245,7 @@ export default function ProductivityPage() {
         const fDamage = (filterDate || filterMonth) ? damageList.filter(d => matchDate(d.date || '')) : damageList;
         const fQcr = (filterDate || filterMonth) ? qcrList.filter(d => matchDate(d.qc_date || d.date || '')) : qcrList;
         let fProject = (filterDate || filterMonth) ? projectList.filter(d => matchDate(d.date || '')) : projectList;
+        const fRetTx = (filterDate || filterMonth) ? retTxList.filter(d => matchDate(d.date || '')) : retTxList;
 
         // Build employee map from ALL sources
         const empMap: Record<string, { name: string; divisi: string; jobdesc: string }> = {};
@@ -256,6 +261,7 @@ export default function ProductivityPage() {
         fDcc.forEach(d => addEmp(d.operator, 'Inventory', 'Cycle Count'));
         fDamage.forEach(d => addEmp(d.operator, 'Inventory', 'Project Damage'));
         fQcr.forEach(d => addEmp(d.operator, 'Inventory', 'QC Return'));
+        fRetTx.forEach(d => addEmp(d.operator, 'Return', d.operate_type || ''));
 
         const inspection: RankItem[] = [];
         const receive: RankItem[] = [];
@@ -263,6 +269,8 @@ export default function ProductivityPage() {
         const vas: RankItem[] = [];
         const dcc: RankItem[] = [];
         const qc: RankItem[] = [];
+        const retReceive: RankItem[] = [];
+        const retPutaway: RankItem[] = [];
 
         for (const [key, emp] of Object.entries(empMap)) {
             // Inspection
@@ -305,6 +313,16 @@ export default function ProductivityPage() {
             fQcr.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key) qcrQty += (parseInt(d.qty) || 0); });
             const qcTotal = dmgQty + qcrQty;
             if (qcTotal > 0) qc.push({ ...emp, value: qcTotal, detail: `Damage: ${dmgQty.toLocaleString()} | QC Return: ${qcrQty.toLocaleString()}` });
+
+            // Return Receive
+            let rrQty = 0;
+            fRetTx.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key && ['receive', 'receiving'].includes((d.operate_type || '').trim().toLowerCase())) rrQty += (parseInt(d.qty) || 0); });
+            if (rrQty > 0) retReceive.push({ ...emp, value: rrQty, detail: `${rrQty.toLocaleString()} pcs return received` });
+
+            // Return Putaway
+            let rpQty = 0;
+            fRetTx.forEach(d => { if ((d.operator || '').trim().toLowerCase() === key && (d.operate_type || '').trim().toLowerCase() === 'putaway') rpQty += (parseInt(d.qty) || 0); });
+            if (rpQty > 0) retPutaway.push({ ...emp, value: rpQty, detail: `${rpQty.toLocaleString()} pcs return putaway` });
         }
 
         // Project (manual input)
@@ -322,7 +340,7 @@ export default function ProductivityPage() {
         }));
 
         // Sort all descending
-        [inspection, receive, putaway, vas, dcc, qc, project].forEach(arr => arr.sort((a, b) => b.value - a.value));
+        [inspection, receive, putaway, vas, dcc, qc, retReceive, retPutaway, project].forEach(arr => arr.sort((a, b) => b.value - a.value));
 
         // Apply search filter
         const q = search.toLowerCase();
@@ -336,9 +354,11 @@ export default function ProductivityPage() {
             { key: 'vas', title: 'Value Added Service', subtitle: 'VAS', icon: <TagsOutlined />, gradient: 'linear-gradient(135deg, #3b1a6b 0%, #8b5cf6 100%)', data: filterSearch(vas) },
             { key: 'dcc', title: 'Daily Cycle Count', subtitle: 'Qty & Location', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #0d4a3a 0%, #059669 100%)', data: filterSearch(dcc) },
             { key: 'qc', title: 'Damage & QC Return', subtitle: 'Project Damage + QC Return', icon: <SafetyOutlined />, gradient: 'linear-gradient(135deg, #3b1a6b 0%, #7c3aed 100%)', data: filterSearch(qc) },
+            { key: 'ret_receive', title: 'Return Receive', subtitle: 'Return Transaction (Receive)', icon: <UndoOutlined />, gradient: 'linear-gradient(135deg, #1a3a5c 0%, #06b6d4 100%)', data: filterSearch(retReceive) },
+            { key: 'ret_putaway', title: 'Return Putaway', subtitle: 'Return Transaction (Putaway)', icon: <RollbackOutlined />, gradient: 'linear-gradient(135deg, #0d4a3a 0%, #14b8a6 100%)', data: filterSearch(retPutaway) },
             { key: 'project', title: 'Project', subtitle: 'Input Manual', icon: <ProjectOutlined />, gradient: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)', data: filterSearch(project) },
         ];
-    }, [arrivals, transactions, vasList, dccList, damageList, qcrList, projectList, search, filterDate, filterMonth]);
+    }, [arrivals, transactions, vasList, dccList, damageList, qcrList, projectList, retTxList, search, filterDate, filterMonth]);
 
     // Export CSV
     const handleExport = () => {
