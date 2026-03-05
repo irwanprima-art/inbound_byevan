@@ -765,13 +765,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        const bMap: Record<string, { total: number; kedatanganSet: Set<string>; terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
+                        const bMap: Record<string, { terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
                         enrichedArrivals.forEach((a: any) => {
                             const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { total: 0, kedatanganSet: new Set(), terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
-                            // Count kedatangan as unique brand+date+arrival_time
-                            const kedKey = `${a.date}|${a.arrival_time}`;
-                            bMap[brand].kedatanganSet.add(kedKey);
+                            if (!bMap[brand]) bMap[brand] = { terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
 
                             const sched = (a.scheduled_arrival_time || '').trim();
                             const arrival = (a.arrival_time || '').trim();
@@ -790,12 +787,12 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
                         // Merge cases
                         Object.entries(caseByBrand).forEach(([brand, cnt]) => {
-                            if (!bMap[brand]) bMap[brand] = { total: 0, kedatanganSet: new Set(), terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            if (!bMap[brand]) bMap[brand] = { terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
                             bMap[brand].cases = cnt;
                         });
 
-                        // Add TOTAL row
-                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganSet.size, terjadwal: v.terjadwal, tidakTerjadwal: v.tidakTerjadwal, tepatWaktu: v.tepatWaktu, terlambat: v.terlambat, cases: v.cases, urgensi: v.urgensi })).sort((a, b) => b.total - a.total);
+                        // Total Kedatangan = Terjadwal + Tidak Terjadwal
+                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.terjadwal + v.tidakTerjadwal, terjadwal: v.terjadwal, tidakTerjadwal: v.tidakTerjadwal, tepatWaktu: v.tepatWaktu, terlambat: v.terlambat, cases: v.cases, urgensi: v.urgensi })).sort((a, b) => b.total - a.total);
                         const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
                         rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakTerjadwal += r.tidakTerjadwal; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
                         return [totalRow, ...rows];
