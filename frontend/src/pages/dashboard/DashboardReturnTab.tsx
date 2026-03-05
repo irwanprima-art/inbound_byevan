@@ -109,13 +109,49 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             return row;
         }).sort((a, b) => b.total - a.total);
     }, [filteredReceives, reasonGroups]);
+    // Combined reason group data (qty + order in one table)
+    const returnPerReasonCombined = useMemo(() => {
+        // Merge qty and order data by brand
+        const allBrands = new Set<string>();
+        returnPerReasonQty.forEach((r: any) => allBrands.add(r.brand));
+        returnPerReasonOrder.forEach((r: any) => allBrands.add(r.brand));
+        const qtyMap: Record<string, any> = {};
+        const orderMap: Record<string, any> = {};
+        returnPerReasonQty.forEach((r: any) => { qtyMap[r.brand] = r; });
+        returnPerReasonOrder.forEach((r: any) => { orderMap[r.brand] = r; });
+        return Array.from(allBrands).map(brand => {
+            const row: any = { brand };
+            let totalQty = 0, totalOrder = 0;
+            reasonGroups.forEach(g => {
+                row[`${g}_qty`] = qtyMap[brand]?.[g] || 0;
+                row[`${g}_order`] = orderMap[brand]?.[g] || 0;
+                totalQty += row[`${g}_qty`];
+                totalOrder += row[`${g}_order`];
+            });
+            row.total_qty = totalQty;
+            row.total_order = totalOrder;
+            return row;
+        }).sort((a, b) => b.total_qty - a.total_qty);
+    }, [returnPerReasonQty, returnPerReasonOrder, reasonGroups]);
 
-    // Shared columns for reason group tables
-    const reasonCols = () => [
+    // Grouped columns for combined reason table
+    const reasonCombinedCols = useMemo(() => [
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120, fixed: 'left' as const },
-        ...reasonGroups.map(g => ({ title: g, dataIndex: g, key: g, width: 120, render: (v: number) => (v || 0).toLocaleString() })),
-        { title: 'Total', dataIndex: 'total', key: 'total', width: 100, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
-    ];
+        ...reasonGroups.map(g => ({
+            title: g, key: g,
+            children: [
+                { title: 'Qty', dataIndex: `${g}_qty`, key: `${g}_qty`, width: 80, render: (v: number) => (v || 0).toLocaleString() },
+                { title: 'Order', dataIndex: `${g}_order`, key: `${g}_order`, width: 80, render: (v: number) => (v || 0).toLocaleString() },
+            ],
+        })),
+        {
+            title: 'Total', key: 'total_group',
+            children: [
+                { title: 'Qty', dataIndex: 'total_qty', key: 'total_qty', width: 80, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
+                { title: 'Order', dataIndex: 'total_order', key: 'total_order', width: 80, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
+            ],
+        },
+    ], [reasonGroups]);
 
     // ═══ 4. % Return per Brand per Month (uses ALL data, not date-filtered) ═══
     const MONTH_FORMATS = ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY'];
@@ -419,40 +455,32 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                 </Row>
             )}
 
-            {/* 2. Return per Reason Group (Qty) */}
-            {show('reason_qty') && (
-                <Card title="📋 Return per Reason Group (Qty)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonQty} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()}
+            {/* 2+3 Combined: Return per Reason Group (Qty + Order) */}
+            {show('reason_combined') && (
+                <Card title="📋 Return per Reason Group (Qty & Order)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
+                    <Table dataSource={returnPerReasonCombined} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 400 }} columns={reasonCombinedCols} bordered
                         summary={() => {
                             const totals: Record<string, number> = {};
-                            returnPerReasonQty.forEach((r: any) => { reasonGroups.forEach(g => { totals[g] = (totals[g] || 0) + (r[g] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
+                            returnPerReasonCombined.forEach((r: any) => {
+                                reasonGroups.forEach(g => {
+                                    totals[`${g}_qty`] = (totals[`${g}_qty`] || 0) + (r[`${g}_qty`] || 0);
+                                    totals[`${g}_order`] = (totals[`${g}_order`] || 0) + (r[`${g}_order`] || 0);
+                                });
+                                totals.total_qty = (totals.total_qty || 0) + (r.total_qty || 0);
+                                totals.total_order = (totals.total_order || 0) + (r.total_order || 0);
+                            });
                             return (
                                 <Table.Summary fixed>
                                     <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
                                         <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
-                                        {reasonGroups.map((g, i) => <Table.Summary.Cell key={g} index={i + 1}><Text strong style={{ color: '#fff' }}>{(totals[g] || 0).toLocaleString()}</Text></Table.Summary.Cell>)}
-                                        <Table.Summary.Cell index={reasonGroups.length + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total || 0).toLocaleString()}</Text></Table.Summary.Cell>
-                                    </Table.Summary.Row>
-                                </Table.Summary>
-                            );
-                        }}
-                    />
-                </Card>
-            )}
-
-            {/* 3. Return per Reason Group (Order = unique receipt_no) */}
-            {show('reason_order') && (
-                <Card title="📋 Return per Reason Group (Order - Unique Receipt)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonOrder} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={reasonCols()}
-                        summary={() => {
-                            const totals: Record<string, number> = {};
-                            returnPerReasonOrder.forEach((r: any) => { reasonGroups.forEach(g => { totals[g] = (totals[g] || 0) + (r[g] || 0); }); totals.total = (totals.total || 0) + (r.total || 0); });
-                            return (
-                                <Table.Summary fixed>
-                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
-                                        {reasonGroups.map((g, i) => <Table.Summary.Cell key={g} index={i + 1}><Text strong style={{ color: '#fff' }}>{(totals[g] || 0).toLocaleString()}</Text></Table.Summary.Cell>)}
-                                        <Table.Summary.Cell index={reasonGroups.length + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                        {reasonGroups.map((g, i) => (
+                                            <>
+                                                <Table.Summary.Cell key={`${g}_qty`} index={i * 2 + 1}><Text strong style={{ color: '#fff' }}>{(totals[`${g}_qty`] || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                                <Table.Summary.Cell key={`${g}_order`} index={i * 2 + 2}><Text strong style={{ color: '#fff' }}>{(totals[`${g}_order`] || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                            </>
+                                        ))}
+                                        <Table.Summary.Cell index={reasonGroups.length * 2 + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total_qty || 0).toLocaleString()}</Text></Table.Summary.Cell>
+                                        <Table.Summary.Cell index={reasonGroups.length * 2 + 2}><Text strong style={{ color: '#60a5fa' }}>{(totals.total_order || 0).toLocaleString()}</Text></Table.Summary.Cell>
                                     </Table.Summary.Row>
                                 </Table.Summary>
                             );
