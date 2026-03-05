@@ -74,6 +74,7 @@ func AutoMigrate() {
 		&models.InboundCase{},
 		&models.ReturnTransaction{},
 		&models.ReturnReceive{},
+		&models.RejectReturn{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)

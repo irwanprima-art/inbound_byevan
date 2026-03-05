@@ -90,6 +90,25 @@ type ReturnReceive struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// RejectReturn represents reject return data
+type RejectReturn struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	InputDate FlexDate       `gorm:"column:input_date;type:text" json:"input_date"`
+	OrderDate FlexDate       `gorm:"column:order_date;type:text" json:"order_date"`
+	Brand     string         `gorm:"column:brand" json:"brand"`
+	Platform  string         `gorm:"column:platform" json:"platform"`
+	OrderID   string         `gorm:"column:order_id" json:"order_id"`
+	Logistic  string         `gorm:"column:logistic" json:"logistic"`
+	AwbNum    string         `gorm:"column:awb_num" json:"awb_num"`
+	WhNote    string         `gorm:"column:wh_note" json:"wh_note"`
+	CsName    string         `gorm:"column:cs_name" json:"cs_name"`
+	Status    string         `gorm:"column:status" json:"status"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // Vas represents VAS (Value Added Service) data
 type Vas struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`

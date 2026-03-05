@@ -161,6 +161,9 @@ func main() {
 	returnReceives := handlers.NewResource[models.ReturnReceive]("return-receives")
 	returnReceives.RegisterRoutes(protected.Group("/return-receives"))
 
+	rejectReturns := handlers.NewResource[models.RejectReturn]("reject-returns")
+	rejectReturns.RegisterRoutes(protected.Group("/reject-returns"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
