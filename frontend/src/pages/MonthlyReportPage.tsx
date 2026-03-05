@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Typography, DatePicker, Button, Space, Spin, Row, Col, Card } from 'antd';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { Typography, DatePicker, Button, Space, Spin, Row, Col, Card, Modal, Progress } from 'antd';
 import {
     PlayCircleOutlined, LeftOutlined, RightOutlined,
     FullscreenExitOutlined, LoadingOutlined,
     InboxOutlined, DatabaseOutlined, HomeOutlined, CalendarOutlined, TeamOutlined,
-    UndoOutlined,
+    UndoOutlined, DownloadOutlined,
 } from '@ant-design/icons';
+import html2canvas from 'html2canvas';
+import PptxGenJS from 'pptxgenjs';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import {
@@ -22,6 +24,9 @@ import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
 import DashboardUtilizationTab from './dashboard/DashboardUtilizationTab';
 import DashboardAgingTab from './dashboard/DashboardAgingTab';
 import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
+
+import ReactDOM from 'react-dom/client';
+import { ConfigProvider, theme as antTheme } from 'antd';
 
 const { Title, Text } = Typography;
 
@@ -196,6 +201,7 @@ export default function MonthlyReportPage() {
     const contentIndex = currentSlide - 1; // index into SLIDES array
     const currentColor = isOpening || isClosing ? '#6366f1' : SLIDES[contentIndex]?.color || '#6366f1';
 
+
     // Render slide content
     const renderSlide = (slideIndex: number) => {
         const slide = SLIDES[slideIndex];
@@ -261,6 +267,103 @@ export default function MonthlyReportPage() {
                 return null;
         }
     };
+
+    // ═══ PPT DOWNLOAD ═══
+    const [pptGenerating, setPptGenerating] = useState(false);
+    const [pptProgress, setPptProgress] = useState(0);
+    const [pptStatus, setPptStatus] = useState('');
+
+    const captureSlideImage = useCallback(async (content: ReactNode, width = 1280, height = 720): Promise<string> => {
+        const container = document.createElement('div');
+        container.style.cssText = `position:fixed;left:-9999px;top:0;width:${width}px;min-height:${height}px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;z-index:-1;`;
+        document.body.appendChild(container);
+        const root = ReactDOM.createRoot(container);
+        await new Promise<void>(resolve => {
+            root.render(
+                <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
+                    <div style={{ width, minHeight: height, background: '#0a0e1a', color: '#fff' }}>{content}</div>
+                </ConfigProvider>
+            );
+            setTimeout(resolve, 600);
+        });
+        const canvas = await html2canvas(container, { backgroundColor: '#0a0e1a', width, scale: 2, useCORS: true, logging: false });
+        const imgData = canvas.toDataURL('image/png');
+        root.unmount();
+        document.body.removeChild(container);
+        return imgData;
+    }, []);
+
+    const handleDownloadPPT = useCallback(async () => {
+        if (!dataLoaded) return;
+        setPptGenerating(true);
+        setPptProgress(0);
+        const totalCount = SLIDES.length + 2;
+        try {
+            const pptx = new PptxGenJS();
+            pptx.layout = 'LAYOUT_WIDE';
+            pptx.author = 'WRM System';
+            pptx.subject = `Monthly Report - ${monthLabel}`;
+            pptx.title = `Monthly Report - ${monthLabel}`;
+
+            setPptStatus('Opening slide...');
+            const openingContent = (
+                <div style={{ width: 1280, height: 720, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px', background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, #0a0e1a 70%)' }}>
+                    <div style={{ fontSize: 64, marginBottom: 20 }}>📊</div>
+                    <div style={{ color: '#fff', fontSize: 42, fontWeight: 800, marginBottom: 10 }}>Monthly Report</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, marginBottom: 30 }}>Warehouse Report & Monitoring System</div>
+                    <div style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', padding: '12px 40px', borderRadius: 14, fontSize: 26, fontWeight: 700, color: '#fff' }}>{monthLabel}</div>
+                </div>
+            );
+            const openingImg = await captureSlideImage(openingContent);
+            const openSlide = pptx.addSlide();
+            openSlide.background = { color: '0a0e1a' };
+            openSlide.addImage({ data: openingImg, x: 0, y: 0, w: '100%', h: '100%' });
+            setPptProgress(Math.round(1 / totalCount * 100));
+
+            for (let i = 0; i < SLIDES.length; i++) {
+                const s = SLIDES[i];
+                setPptStatus(`Slide ${i + 1}/${SLIDES.length}: ${s.label}`);
+                const slideContent = (
+                    <div style={{ width: 1280, minHeight: 720 }}>
+                        <div style={{ padding: '16px 24px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontSize: 28, color: s.color }}>{s.icon}</span>
+                            <span style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{s.label}</span>
+                        </div>
+                        <div style={{ padding: '8px 24px 24px' }}>{renderSlide(i)}</div>
+                    </div>
+                );
+                const img = await captureSlideImage(slideContent);
+                const contentSlide = pptx.addSlide();
+                contentSlide.background = { color: '0a0e1a' };
+                contentSlide.addImage({ data: img, x: 0, y: 0, w: '100%', h: '100%' });
+                setPptProgress(Math.round((i + 2) / totalCount * 100));
+            }
+
+            setPptStatus('Closing slide...');
+            const closingContent = (
+                <div style={{ width: 1280, height: 720, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px', background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.12) 0%, #0a0e1a 70%)' }}>
+                    <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
+                    <div style={{ color: '#fff', fontSize: 42, fontWeight: 800, marginBottom: 10 }}>Terima Kasih</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, marginBottom: 30 }}>Monthly Report — {monthLabel}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Warehouse Report & Monitoring System</div>
+                </div>
+            );
+            const closingImg = await captureSlideImage(closingContent);
+            const closeSlide = pptx.addSlide();
+            closeSlide.background = { color: '0a0e1a' };
+            closeSlide.addImage({ data: closingImg, x: 0, y: 0, w: '100%', h: '100%' });
+            setPptProgress(100);
+
+            setPptStatus('Menyimpan file...');
+            await pptx.writeFile({ fileName: `Monthly_Report_${selectedMonth.format('YYYY_MM')}.pptx` });
+        } catch (err) {
+            console.error('PPT generation error:', err);
+        }
+        setPptGenerating(false);
+        setPptProgress(0);
+        setPptStatus('');
+    }, [dataLoaded, monthLabel, selectedMonth, captureSlideImage, renderSlide]);
+    // ═══ END PPT ═══
 
     // Presentation mode
     if (presenting) {
@@ -618,6 +721,25 @@ export default function MonthlyReportPage() {
                     >
                         Present
                     </Button>
+                    <Button
+                        size="large"
+                        icon={<DownloadOutlined />}
+                        onClick={handleDownloadPPT}
+                        disabled={loading || !dataLoaded || pptGenerating}
+                        style={{
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            border: 'none',
+                            borderRadius: 12,
+                            height: 48,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            paddingInline: 24,
+                            color: '#fff',
+                            boxShadow: '0 4px 20px rgba(16,185,129,0.3)',
+                        }}
+                    >
+                        Download PPT
+                    </Button>
                 </div>
             </Card>
 
@@ -709,6 +831,29 @@ export default function MonthlyReportPage() {
                     <span style={{ color: 'rgba(255,255,255,0.6)' }}>Esc</span> = Keluar
                 </Text>
             </div>
+
+            {/* PPT Download Progress Modal */}
+            <Modal
+                open={pptGenerating}
+                closable={false}
+                footer={null}
+                centered
+                maskClosable={false}
+                styles={{ body: { background: '#161b22', padding: 32 } }}
+                width={420}
+            >
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>📄</div>
+                    <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Generating PowerPoint...</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 20 }}>{pptStatus}</div>
+                    <Progress
+                        percent={pptProgress}
+                        strokeColor={{ '0%': '#6366f1', '100%': '#10b981' }}
+                        trailColor="rgba(255,255,255,0.08)"
+                        style={{ marginBottom: 8 }}
+                    />
+                </div>
+            </Modal>
         </div>
     );
 }
