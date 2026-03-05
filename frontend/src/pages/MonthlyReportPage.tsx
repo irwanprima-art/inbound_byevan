@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Typography, DatePicker, Button, Space, Spin, Row, Col, Card } from 'antd';
+import { Typography, DatePicker, Button, Space, Spin, Row, Col, Card, Progress } from 'antd';
 import {
     PlayCircleOutlined, LeftOutlined, RightOutlined,
     FullscreenExitOutlined, LoadingOutlined,
@@ -99,46 +99,72 @@ export default function MonthlyReportPage() {
     // Dummy setDateRange (tabs won't change the range in presentation mode)
     const noop = useCallback(() => { }, []);
 
-    // Fetch all data
+    const [loadProgress, setLoadProgress] = useState('');
+    const [loadPct, setLoadPct] = useState(0);
+
+    // Fetch all data in sequential batches to reduce browser load
     const fetchAllData = useCallback(async () => {
         setLoading(true);
+        setLoadPct(0);
         try {
-            const [a, t, v, ul, ic, d, s, dm, q, loc, att, emp, sch, addMp, rej, ba, rr, rjr, opb, rtx] = await Promise.all([
+            // Batch 1: Inbound (6 APIs)
+            setLoadProgress('Memuat data Inbound...');
+            const [a, t, v, ul, ic, rej] = await Promise.all([
                 arrivalsApi.list(), transactionsApi.list(), vasApi.list(),
-                unloadingsApi.list(), inboundCasesApi.list(),
-                dccApi.list(), sohApi.list(), damagesApi.list(),
-                qcReturnsApi.list(), locationsApi.list(),
-                attendancesApi.list(), employeesApi.list(),
-                schedulesApi.list(), additionalMpApi.list(),
-                inboundRejectionsApi.list(), beritaAcaraApi.list(),
-                returnReceivesApi.list(), rejectReturnsApi.list(),
-                orderPerBrandsApi.list(), returnTransactionsApi.list(),
+                unloadingsApi.list(), inboundCasesApi.list(), inboundRejectionsApi.list(),
             ]);
             setArrivals(a.data || []);
             setTransactions(t.data || []);
             setVasList(v.data || []);
             setUnloadings(ul.data || []);
             setInboundCases(ic.data || []);
+            setRejections(rej.data || []);
+            setLoadPct(25);
+
+            // Batch 2: Return (4 APIs)
+            setLoadProgress('Memuat data Return...');
+            const [rr, rjr, opb, rtx] = await Promise.all([
+                returnReceivesApi.list(), rejectReturnsApi.list(),
+                orderPerBrandsApi.list(), returnTransactionsApi.list(),
+            ]);
+            setReturnReceives(rr.data || []);
+            setRejectReturns(rjr.data || []);
+            setOrderPerBrands(opb.data || []);
+            setReturnTransactions(rtx.data || []);
+            setLoadPct(50);
+
+            // Batch 3: Inventory & Aging (6 APIs)
+            setLoadProgress('Memuat data Inventory...');
+            const [d, s, dm, q, loc, ba] = await Promise.all([
+                dccApi.list(), sohApi.list(), damagesApi.list(),
+                qcReturnsApi.list(), locationsApi.list(), beritaAcaraApi.list(),
+            ]);
             setDccList(d.data || []);
             setSohList(s.data || []);
             setDamages(dm.data || []);
             setQcReturns(q.data || []);
             setLocations(loc.data || []);
+            setBaData(ba.data || []);
+            setLoadPct(75);
+
+            // Batch 4: Manpower (4 APIs)
+            setLoadProgress('Memuat data Manpower...');
+            const [att, emp, sch, addMp] = await Promise.all([
+                attendancesApi.list(), employeesApi.list(),
+                schedulesApi.list(), additionalMpApi.list(),
+            ]);
             setAttData(att.data || []);
             setEmpData(emp.data || []);
             setSchedData(sch.data || []);
             setAddMpData(addMp.data || []);
-            setRejections(rej.data || []);
-            setBaData(ba.data || []);
-            setReturnReceives(rr.data || []);
-            setRejectReturns(rjr.data || []);
-            setOrderPerBrands(opb.data || []);
-            setReturnTransactions(rtx.data || []);
+            setLoadPct(100);
+
             setDataLoaded(true);
         } catch {
             // silently fail
         }
         setLoading(false);
+        setLoadProgress('');
     }, []);
 
     useEffect(() => { fetchAllData(); }, [fetchAllData]);
@@ -592,9 +618,12 @@ export default function MonthlyReportPage() {
                                 style={{ width: 200, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
                             />
                         </div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, paddingTop: 20 }}>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, paddingTop: 20, minWidth: 240 }}>
                             {loading ? (
-                                <><LoadingOutlined spin style={{ marginRight: 8 }} />Memuat data...</>
+                                <>
+                                    <div style={{ marginBottom: 6 }}><LoadingOutlined spin style={{ marginRight: 8 }} />{loadProgress || 'Memuat data...'}</div>
+                                    <Progress percent={loadPct} size="small" strokeColor={{ '0%': '#6366f1', '100%': '#10b981' }} trailColor="rgba(255,255,255,0.08)" showInfo={false} />
+                                </>
                             ) : dataLoaded ? (
                                 <span style={{ color: '#10b981' }}>✅ Data siap</span>
                             ) : null}
