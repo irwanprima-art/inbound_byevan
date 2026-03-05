@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Tabs, Spin } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi, inboundRejectionsApi, beritaAcaraApi } from '../api/client';
+import { arrivalsApi, transactionsApi, vasApi, dccApi, damagesApi, sohApi, qcReturnsApi, locationsApi, attendancesApi, employeesApi, unloadingsApi, schedulesApi, additionalMpApi, inboundCasesApi, inboundRejectionsApi, beritaAcaraApi, returnReceivesApi, rejectReturnsApi, orderPerBrandsApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 import DashboardInboundTab from './dashboard/DashboardInboundTab';
 import DashboardInventoryTab from './dashboard/DashboardInventoryTab';
 import DashboardUtilizationTab from './dashboard/DashboardUtilizationTab';
 import DashboardAgingTab from './dashboard/DashboardAgingTab';
+import DashboardReturnTab from './dashboard/DashboardReturnTab';
 import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
 
 const { Title } = Typography;
@@ -16,6 +17,7 @@ const { Title } = Typography;
 // Tab groups: only fetch the APIs each group needs
 const TAB_GROUPS: Record<string, string> = {
     inbound: 'inbound',
+    return_order: 'return_order',
     inventory: 'inventory',
     utilization: 'inventory', // shares data with inventory group
     aging_stock: 'inventory', // shares data with inventory group
@@ -54,6 +56,11 @@ export default function DashboardPage() {
     const [schedData, setSchedData] = useState<any[]>([]);
     const [addMpData, setAddMpData] = useState<any[]>([]);
 
+    // Return group data
+    const [returnReceives, setReturnReceives] = useState<any[]>([]);
+    const [rejectReturnsList, setRejectReturnsList] = useState<any[]>([]);
+    const [orderPerBrands, setOrderPerBrands] = useState<any[]>([]);
+
     // Track if auto-refresh is active
     const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -73,6 +80,13 @@ export default function DashboardPage() {
                 setInboundCases(ic.data || []);
                 setRejections(rej.data || []);
                 setBaData(ba.data || []);
+            } else if (group === 'return_order') {
+                const [rr, rej, opb] = await Promise.all([
+                    returnReceivesApi.list(), rejectReturnsApi.list(), orderPerBrandsApi.list(),
+                ]);
+                setReturnReceives(rr.data || []);
+                setRejectReturnsList(rej.data || []);
+                setOrderPerBrands(opb.data || []);
             } else if (group === 'inventory') {
                 const [d, s, dm, q, loc] = await Promise.all([
                     dccApi.list(), sohApi.list(), damagesApi.list(), qcReturnsApi.list(), locationsApi.list(),
@@ -160,6 +174,20 @@ export default function DashboardPage() {
                                 inboundCases={inboundCases}
                                 rejections={rejections}
                                 baData={baData}
+                                matchesDateRange={matchesDateRange}
+                            />
+                        ),
+                    },
+                    {
+                        key: 'return_order',
+                        label: '🔄 Return',
+                        children: groupSpinner('return_order') || (
+                            <DashboardReturnTab
+                                dateRange={dateRange}
+                                setDateRange={setDateRange}
+                                returnReceives={returnReceives}
+                                rejectReturns={rejectReturnsList}
+                                orderPerBrands={orderPerBrands}
                                 matchesDateRange={matchesDateRange}
                             />
                         ),
