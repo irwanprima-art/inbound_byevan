@@ -6,7 +6,7 @@ import {
     InboxOutlined, SwapOutlined, ToolOutlined, CheckCircleOutlined,
     ClockCircleOutlined,
 } from '@ant-design/icons';
-import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, LineChart } from 'recharts';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -194,6 +194,45 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         const h = Math.floor(avg / 60); const m = Math.floor(avg % 60); const s = Math.round((avg % 1) * 60);
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
+
+    // Monthly avg Receive → Putaway for line chart (uses ALL arrivals for full year view)
+    const monthlyAvgRecPut = useMemo(() => {
+        const monthlyMap: Record<string, number[]> = {};
+        const allEnriched = arrivals.map((row: any) => {
+            const key = (row.receipt_no || '').trim().toLowerCase();
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
+            return { ...row, first_receive: tx.firstReceiveTime, last_putaway: tx.lastPutawayTime };
+        });
+        const seen = new Set<string>();
+        allEnriched.forEach((a: any) => {
+            const rkey = (a.receipt_no || '').trim().toLowerCase();
+            if (!rkey || seen.has(rkey)) return;
+            seen.add(rkey);
+            if (!a.first_receive || !a.last_putaway) return;
+            const s = dayjs(a.first_receive);
+            const e = dayjs(a.last_putaway);
+            if (!s.isValid() || !e.isValid()) return;
+            const diffMin = e.diff(s, 'minute');
+            if (diffMin <= 0) return;
+            const month = s.format('YYYY-MM');
+            if (!monthlyMap[month]) monthlyMap[month] = [];
+            monthlyMap[month].push(diffMin);
+        });
+        const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const fmtMin = (min: number) => {
+            const hh = Math.floor(min / 60); const mm = Math.floor(min % 60); const ss = Math.round((min % 1) * 60);
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        };
+        return {
+            data: Object.keys(monthlyMap).sort().map(m => {
+                const diffs = monthlyMap[m];
+                const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+                const d = dayjs(m, 'YYYY-MM');
+                return { month: d.isValid() ? monthLabels[d.month()] + ' ' + d.format('YYYY') : m, avgMin: Math.round(avg * 100) / 100, label: fmtMin(avg) };
+            }),
+            fmtMin,
+        };
+    }, [arrivals, txLookup]);
 
     const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
     const vasOperators = new Set(fVasList.map(v => v.operator).filter(Boolean)).size;
@@ -496,6 +535,23 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </Card>
                 </Col>
             </Row>}
+
+            {show('avg_recv_put_chart') && monthlyAvgRecPut.data.length > 0 && (
+                <Card title="📈 Avg Receive → Putaway per Month (Inbound)" size="small" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginTop: 24, position: 'relative' as const, zIndex: 0, overflow: 'hidden' as const }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={monthlyAvgRecPut.data} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                            <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                            <YAxis tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }} tickFormatter={(v) => monthlyAvgRecPut.fmtMin(v)} />
+                            <RTooltip
+                                contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
+                                formatter={(value: any) => [monthlyAvgRecPut.fmtMin(value || 0), 'Avg Time']}
+                            />
+                            <Line type="monotone" dataKey="avgMin" stroke="#06b6d4" strokeWidth={3} dot={{ fill: '#06b6d4', r: 5 }} activeDot={{ r: 7 }} name="Avg Receive→Putaway" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </Card>
+            )}
 
             {show('po_qty_brand') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
                 <Col xs={24}>

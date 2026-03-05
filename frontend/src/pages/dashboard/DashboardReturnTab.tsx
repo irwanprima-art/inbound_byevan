@@ -6,6 +6,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
+    LineChart, Line,
 } from 'recharts';
 
 const { Text } = Typography;
@@ -305,19 +306,66 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                 const avgArrPut = calcAvg(r => r.arrival_date, r => r.last_putaway);
                 const avgRecPut = calcAvg(r => r.first_receive, r => r.last_putaway);
 
+                // Monthly avg Receive → Putaway for line chart
+                const monthlyMap: Record<string, number[]> = {};
+                const seenMonthly = new Set<string>();
+                enriched.forEach((a: any) => {
+                    const rkey = (a.receipt_no || '').trim().toLowerCase();
+                    if (!rkey || seenMonthly.has(rkey)) return;
+                    seenMonthly.add(rkey);
+                    if (!a.first_receive || !a.last_putaway) return;
+                    const s = dayjs(a.first_receive);
+                    const e = dayjs(a.last_putaway);
+                    if (!s.isValid() || !e.isValid()) return;
+                    const diffMin = e.diff(s, 'minute');
+                    if (diffMin <= 0) return;
+                    const month = s.format('YYYY-MM');
+                    if (!monthlyMap[month]) monthlyMap[month] = [];
+                    monthlyMap[month].push(diffMin);
+                });
+                const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const fmtMin = (min: number) => {
+                    const h = Math.floor(min / 60); const m = Math.floor(min % 60); const sec = Math.round((min % 1) * 60);
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+                };
+                const monthlyChartData = Object.keys(monthlyMap).sort().map(m => {
+                    const diffs = monthlyMap[m];
+                    const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+                    const d = dayjs(m, 'YYYY-MM');
+                    return { month: d.isValid() ? monthLabels[d.month()] + ' ' + d.format('YYYY') : m, avgMin: Math.round(avg * 100) / 100, label: fmtMin(avg) };
+                });
+
                 return (
-                    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                        <Col xs={12} sm={6}>
-                            <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
-                                <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Arrival → Putaway</span>} value={avgArrPut} valueStyle={{ color: '#f59e0b', fontSize: 24, fontWeight: 700 }} />
+                    <>
+                        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                            <Col xs={12} sm={6}>
+                                <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                                    <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Arrival → Putaway</span>} value={avgArrPut} valueStyle={{ color: '#f59e0b', fontSize: 24, fontWeight: 700 }} />
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                                    <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Receive → Putaway</span>} value={avgRecPut} valueStyle={{ color: '#10b981', fontSize: 24, fontWeight: 700 }} />
+                                </Card>
+                            </Col>
+                        </Row>
+                        {monthlyChartData.length > 0 && (
+                            <Card title="📈 Avg Receive → Putaway per Month (Return)" size="small" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 24, position: 'relative' as const, zIndex: 0, overflow: 'hidden' as const }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={monthlyChartData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                        <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                                        <YAxis tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }} tickFormatter={(v) => fmtMin(v)} />
+                                        <Tooltip
+                                            contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
+                                            formatter={(value: any) => [fmtMin(value || 0), 'Avg Time']}
+                                        />
+                                        <Line type="monotone" dataKey="avgMin" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 5 }} activeDot={{ r: 7 }} name="Avg Receive→Putaway" />
+                                    </LineChart>
+                                </ResponsiveContainer>
                             </Card>
-                        </Col>
-                        <Col xs={12} sm={6}>
-                            <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
-                                <Statistic title={<span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>⏱ Avg Receive → Putaway</span>} value={avgRecPut} valueStyle={{ color: '#10b981', fontSize: 24, fontWeight: 700 }} />
-                            </Card>
-                        </Col>
-                    </Row>
+                        )}
+                    </>
                 );
             })()}
             {show('return_per_brand') && (
