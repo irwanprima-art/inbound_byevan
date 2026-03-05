@@ -195,16 +195,11 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
-    // Monthly avg Receive → Putaway for line chart (uses ALL arrivals for full year view)
+    // Monthly avg Receive → Putaway for line chart (follows date filter)
     const monthlyAvgRecPut = useMemo(() => {
         const monthlyMap: Record<string, number[]> = {};
-        const allEnriched = arrivals.map((row: any) => {
-            const key = (row.receipt_no || '').trim().toLowerCase();
-            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
-            return { ...row, first_receive: tx.firstReceiveTime, last_putaway: tx.lastPutawayTime };
-        });
         const seen = new Set<string>();
-        allEnriched.forEach((a: any) => {
+        enrichedArrivals.forEach((a: any) => {
             const rkey = (a.receipt_no || '').trim().toLowerCase();
             if (!rkey || seen.has(rkey)) return;
             seen.add(rkey);
@@ -232,7 +227,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             }),
             fmtMin,
         };
-    }, [arrivals, txLookup]);
+    }, [enrichedArrivals]);
 
     const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
     const vasOperators = new Set(fVasList.map(v => v.operator).filter(Boolean)).size;
