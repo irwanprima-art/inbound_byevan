@@ -22,6 +22,17 @@ interface Props {
 export default function DashboardReturnTab({ dateRange, setDateRange, returnReceives, rejectReturns, orderPerBrands, matchesDateRange, sections }: Props) {
     const show = (key: string) => !sections || sections.includes(key);
 
+    // Brand normalization: merge similar brand names
+    const BRAND_ALIASES: [RegExp, string][] = [
+        [/^Mama'?s\s*Choice/i, "Mama's Choice"],
+    ];
+    const normalizeBrand = (brand: string): string => {
+        for (const [pattern, alias] of BRAND_ALIASES) {
+            if (pattern.test(brand)) return alias;
+        }
+        return brand;
+    };
+
     // Filter by date range
     const filteredReceives = useMemo(() =>
         returnReceives.filter(r => matchesDateRange(r.return_date || r.receive_date)),
@@ -36,7 +47,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
     const returnPerBrand = useMemo(() => {
         const map: Record<string, { good: number; damage: number }> = {};
         filteredReceives.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             if (!map[brand]) map[brand] = { good: 0, damage: 0 };
             const qty = r.return_qty || 0;
             const status = (r.stock_status || '').toLowerCase();
@@ -58,7 +69,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
     const returnPerReasonQty = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
         filteredReceives.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             const rg = r.reason_group || 'Unknown';
             if (!map[brand]) map[brand] = {};
             map[brand][rg] = (map[brand][rg] || 0) + (r.return_qty || 0);
@@ -76,7 +87,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
     const returnPerReasonOrder = useMemo(() => {
         const map: Record<string, Record<string, Set<string>>> = {};
         filteredReceives.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             const rg = r.reason_group || 'Unknown';
             const receipt = r.receipt_no || '';
             if (!receipt) return;
@@ -121,7 +132,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         // Count unique receipt_no per brand per month from return receives
         const returnMap: Record<string, Record<string, Set<string>>> = {};
         filteredReceives.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             const d = dayjs(r.return_date || r.receive_date);
             if (!d.isValid()) return;
             const month = d.format('YYYY-MM');
@@ -133,7 +144,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         // Order counts from Order per Brand
         const orderMap: Record<string, Record<string, number>> = {};
         orderPerBrands.forEach((o: any) => {
-            const brand = o.brand || 'Unknown';
+            const brand = normalizeBrand(o.brand || 'Unknown');
             if (o.month) {
                 const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY']);
                 if (d.isValid()) {
@@ -182,7 +193,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
     const rejectPerLogistic = useMemo(() => {
         const map: Record<string, Record<string, Set<string>>> = {};
         filteredRejects.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             const log = r.logistic || 'Unknown';
             const awb = r.awb_num || '';
             if (!awb) return;
@@ -209,7 +220,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
     const awbPerBrandChart = useMemo(() => {
         const map: Record<string, Set<string>> = {};
         filteredRejects.forEach((r: any) => {
-            const brand = r.brand || 'Unknown';
+            const brand = normalizeBrand(r.brand || 'Unknown');
             if (!map[brand]) map[brand] = new Set();
             if (r.awb_num) map[brand].add(r.awb_num);
         });
@@ -335,7 +346,34 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 4. % Return per Brand per Month */}
             {show('return_pct') && months.length > 0 && (
                 <Card title="📊 % Return per Brand" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPercentData} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={percentCols} bordered />
+                    <Table dataSource={returnPercentData} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: 300 }} columns={percentCols} bordered
+                        summary={() => {
+                            const totals: Record<string, number> = {};
+                            returnPercentData.forEach((r: any) => {
+                                months.forEach(m => {
+                                    totals[`${m}_return`] = (totals[`${m}_return`] || 0) + (r[`${m}_return`] || 0);
+                                    totals[`${m}_order`] = (totals[`${m}_order`] || 0) + (r[`${m}_order`] || 0);
+                                });
+                            });
+                            return (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
+                                        {months.map((m, mi) => {
+                                            const ret = totals[`${m}_return`] || 0;
+                                            const ord = totals[`${m}_order`] || 0;
+                                            const pct = ord > 0 ? ((ret / ord) * 100).toFixed(1) : '-';
+                                            return [
+                                                <Table.Summary.Cell key={`${m}_r`} index={mi * 3 + 1}><Text strong style={{ color: '#fff' }}>{ret.toLocaleString()}</Text></Table.Summary.Cell>,
+                                                <Table.Summary.Cell key={`${m}_o`} index={mi * 3 + 2}><Text strong style={{ color: '#fff' }}>{ord.toLocaleString()}</Text></Table.Summary.Cell>,
+                                                <Table.Summary.Cell key={`${m}_p`} index={mi * 3 + 3}><Text strong style={{ color: pct === '-' ? 'rgba(255,255,255,0.3)' : parseFloat(pct) > 5 ? '#ef4444' : '#10b981' }}>{pct === '-' ? '-' : `${pct}%`}</Text></Table.Summary.Cell>,
+                                            ];
+                                        })}
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            );
+                        }}
+                    />
                 </Card>
             )}
 
