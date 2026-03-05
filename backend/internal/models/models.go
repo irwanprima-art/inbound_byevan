@@ -72,7 +72,6 @@ type ReturnReceive struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
 	ReturnDate   FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
 	ReceiveDate  FlexDate       `gorm:"column:receive_date;type:text" json:"receive_date"`
-	ReceiveTime  FlexDate       `gorm:"column:receive_time;type:text" json:"receive_time"`
 	Brand        string         `gorm:"column:brand" json:"brand"`
 	ReceiptNo    string         `gorm:"column:receipt_no" json:"receipt_no"`
 	RefNo        string         `gorm:"column:ref_no" json:"ref_no"`
