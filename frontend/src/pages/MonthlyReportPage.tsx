@@ -24,11 +24,11 @@ const { Title, Text } = Typography;
 
 const SLIDES = [
     // Inbound sub-slides
-    { key: 'inbound_1', label: '📦 Inbound — Overview', icon: <InboxOutlined />, color: '#6366f1', sections: ['cards', 'pending'] },
+    { key: 'inbound_1', label: '📦 Inbound — Overview', icon: <InboxOutlined />, color: '#6366f1', sections: ['cards', 'pending', 'po_qty_brand'] },
     { key: 'inbound_2', label: '📦 Inbound — Plan vs PO', icon: <InboxOutlined />, color: '#8b5cf6', sections: ['plan_vs_po'] },
     { key: 'inbound_3', label: '📦 Inbound — By Brand', icon: <InboxOutlined />, color: '#a855f7', sections: ['inbound_by_brand'] },
     { key: 'inbound_4', label: '📦 Inbound — VAS', icon: <InboxOutlined />, color: '#14b8a6', sections: ['vas', 'vas_operator', 'vas_type'] },
-    { key: 'inbound_5', label: '📦 Inbound — PO & Qty', icon: <InboxOutlined />, color: '#06b6d4', sections: ['po_qty_brand'] },
+
     { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
     // Inventory sub-slides
     { key: 'inventory_1', label: '📋 Inventory — Accuracy', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy'] },
