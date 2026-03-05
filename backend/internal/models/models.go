@@ -250,7 +250,7 @@ type MasterItem struct {
 	Brand       string         `gorm:"column:brand" json:"brand"`
 	SkuCategory string         `gorm:"column:sku_category" json:"sku_category"`
 	ItemClass   string         `gorm:"column:item_class" json:"item_class"`
-	Price       float64        `gorm:"column:price" json:"price"`
+	Owner       string         `gorm:"column:owner" json:"owner"`
 	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`

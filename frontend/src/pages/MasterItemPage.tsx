@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, InputNumber, Select, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
+import { Form, Input, Select, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     UploadOutlined, DownloadOutlined, FileExcelOutlined, ClearOutlined,
@@ -16,7 +16,7 @@ interface MasterItemRecord {
     brand: string;
     sku_category: string;
     item_class: string;
-    price: number;
+    owner: string;
 }
 
 export default function MasterItemPage() {
@@ -118,7 +118,7 @@ export default function MasterItemPage() {
         sku: 'sku', description: 'description', brand: 'brand',
         sku_category: 'sku_category', category: 'sku_category',
         item_class: 'item_class', class: 'item_class',
-        price: 'price',
+        price: 'owner', owner: 'owner',
     };
 
     const handleImport = (file: File) => {
@@ -138,11 +138,7 @@ export default function MasterItemPage() {
                 const vals = parseCsvLine(line);
                 const obj: Record<string, unknown> = {};
                 headers.forEach((h, i) => {
-                    if (h === 'price') {
-                        obj[h] = parseFloat(vals[i] || '0') || 0;
-                    } else {
-                        obj[h] = (vals[i] || '').trim();
-                    }
+                    obj[h] = (vals[i] || '').trim();
                 });
                 return obj;
             }).filter(r => r.sku);
@@ -161,7 +157,7 @@ export default function MasterItemPage() {
 
     const handleExport = () => {
         const bom = '\uFEFF';
-        const headers = ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Price'];
+        const headers = ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Owner'];
         const csvRows = [headers.join(',')];
         const filtered = getFilteredData();
         filtered.forEach(r => {
@@ -171,7 +167,7 @@ export default function MasterItemPage() {
                 `"${(r.brand || '').replace(/"/g, '""')}"`,
                 `"${(r.sku_category || '').replace(/"/g, '""')}"`,
                 `"${(r.item_class || '').replace(/"/g, '""')}"`,
-                r.price || 0,
+                `"${(r.owner || '').replace(/"/g, '""')}"`,
             ].join(','));
         });
         const blob = new Blob([bom + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -226,9 +222,8 @@ export default function MasterItemPage() {
             },
         },
         {
-            title: 'Price', dataIndex: 'price', key: 'price', width: 130, align: 'right',
-            sorter: (a, b) => (a.price || 0) - (b.price || 0),
-            render: (v: number) => v ? v.toLocaleString('id-ID', { minimumFractionDigits: 0 }) : '-',
+            title: 'Owner', dataIndex: 'owner', key: 'owner', width: 150,
+            sorter: (a, b) => (a.owner || '').localeCompare(b.owner || ''),
         },
     ];
 
@@ -270,7 +265,7 @@ export default function MasterItemPage() {
                         onChange={e => !e.target.value && setSearchText('')}
                     />
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
-                        ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Price'],
+                        ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Owner'],
                         'master_items_template.csv'
                     )}>Template</Button>
                     {!readOnly && (
@@ -330,8 +325,8 @@ export default function MasterItemPage() {
                             ]}
                         />
                     </Form.Item>
-                    <Form.Item name="price" label="Price">
-                        <InputNumber style={{ width: '100%' }} min={0} precision={0} />
+                    <Form.Item name="owner" label="Owner">
+                        <Input />
                     </Form.Item>
                 </Form>
             </Modal>
