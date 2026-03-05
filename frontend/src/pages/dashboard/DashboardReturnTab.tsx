@@ -116,27 +116,28 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         { title: 'Total', dataIndex: 'total', key: 'total', width: 100, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
     ];
 
-    // ═══ 4. % Return per Brand per Month ═══
+    // ═══ 4. % Return per Brand per Month (uses ALL data, not date-filtered) ═══
+    const MONTH_FORMATS = ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY'];
     const months = useMemo(() => {
         const ms = new Set<string>();
-        filteredReceives.forEach((r: any) => {
+        // Use ALL return receives (not filtered) so all months appear
+        returnReceives.forEach((r: any) => {
             const d = dayjs(r.return_date || r.receive_date);
             if (d.isValid()) ms.add(d.format('YYYY-MM'));
         });
         orderPerBrands.forEach((o: any) => {
             if (o.month) {
-                // Try to parse "Januari 2026" or "2026-01" format
-                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY']);
+                const d = dayjs(o.month, MONTH_FORMATS);
                 if (d.isValid()) ms.add(d.format('YYYY-MM'));
             }
         });
         return Array.from(ms).sort();
-    }, [filteredReceives, orderPerBrands]);
+    }, [returnReceives, orderPerBrands]);
 
     const returnPercentData = useMemo(() => {
-        // Count unique receipt_no per brand per month from return receives
+        // Count unique receipt_no per brand per month from ALL return receives
         const returnMap: Record<string, Record<string, Set<string>>> = {};
-        filteredReceives.forEach((r: any) => {
+        returnReceives.forEach((r: any) => {
             const brand = normalizeBrand(r.brand || 'Unknown');
             const d = dayjs(r.return_date || r.receive_date);
             if (!d.isValid()) return;
@@ -151,7 +152,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         orderPerBrands.forEach((o: any) => {
             const brand = normalizeBrand(o.brand || 'Unknown');
             if (o.month) {
-                const d = dayjs(o.month, ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY']);
+                const d = dayjs(o.month, MONTH_FORMATS);
                 if (d.isValid()) {
                     const month = d.format('YYYY-MM');
                     if (!orderMap[brand]) orderMap[brand] = {};
@@ -174,7 +175,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             });
             return row;
         }).sort((a, b) => a.brand.localeCompare(b.brand));
-    }, [filteredReceives, orderPerBrands, months]);
+    }, [returnReceives, orderPerBrands, months]);
 
     const percentCols = useMemo(() => [
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100, fixed: 'left' as const },
