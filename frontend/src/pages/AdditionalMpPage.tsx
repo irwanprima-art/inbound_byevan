@@ -293,7 +293,8 @@ export default function AdditionalMpPage() {
                                                     const actual = tambahanPerDate[row.date] || 0;
                                                     const diff = requested - actual;
                                                     if (requested === 0) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
-                                                    if (diff <= 0) return <span style={{ color: '#4ade80', fontWeight: 600 }}>✅ Terpenuhi ({actual}/{requested})</span>;
+                                                    if (diff === 0) return <span style={{ color: '#4ade80', fontWeight: 600 }}>✅ Terpenuhi ({actual}/{requested})</span>;
+                                                    if (diff < 0) return <span style={{ color: '#60a5fa', fontWeight: 600 }}>📈 Lebih {Math.abs(diff)} MP ({actual}/{requested})</span>;
                                                     return <span style={{ color: '#f87171', fontWeight: 600 }}>⚠️ Kurang {diff} MP ({actual}/{requested})</span>;
                                                 })()}
                                             </td>
