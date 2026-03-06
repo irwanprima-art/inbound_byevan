@@ -6,11 +6,11 @@ import {
     InboxOutlined, SwapOutlined, ToolOutlined, CheckCircleOutlined,
     ClockCircleOutlined,
 } from '@ant-design/icons';
-import { PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, LineChart } from 'recharts';
+import { Tooltip as RTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, LineChart } from 'recharts';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
-const CHART_COLORS = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#06b6d4', '#f97316', '#8b5cf6', '#ef4444'];
+
 
 interface StatCardProps {
     title: string;
@@ -316,13 +316,6 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         brandMap[brand].qty += parseInt(a.po_qty) || 0;
     });
     const brandData = Object.entries(brandMap).map(([name, v]) => ({ name, po: v.poSet.size, qty: v.qty }));
-
-    const vasTypeMap: Record<string, number> = {};
-    fVasList.forEach((v: any) => {
-        const t = v.vas_type || 'Unknown';
-        vasTypeMap[t] = (vasTypeMap[t] || 0) + (parseInt(v.qty) || 0);
-    });
-    const vasTypeData = Object.entries(vasTypeMap).map(([name, value]) => ({ name, value }));
 
     const vasBrandItemMap: Record<string, { barangJual: number; gimmick: number }> = {};
     fVasList.forEach((v: any) => {

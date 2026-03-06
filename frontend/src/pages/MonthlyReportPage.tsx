@@ -39,8 +39,7 @@ const SLIDES = [
 
     { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
     // Return sub-slides
-    { key: 'return_1', label: '🔄 Return — Per Brand & Good vs Damage', icon: <UndoOutlined />, color: '#06b6d4', sections: ['return_per_brand'] },
-    { key: 'return_2', label: '🔄 Return — Avg Receive→Putaway', icon: <UndoOutlined />, color: '#14b8a6', sections: ['avg_times'] },
+    { key: 'return_1', label: '🔄 Return — Per Brand & Good vs Damage', icon: <UndoOutlined />, color: '#06b6d4', sections: ['avg_times', 'return_per_brand'] },
     { key: 'return_3', label: '🔄 Return — Reason Group (Qty & Order)', icon: <UndoOutlined />, color: '#0ea5e9', sections: ['reason_combined'] },
     { key: 'return_4', label: '🔄 Return — % Return per Brand', icon: <UndoOutlined />, color: '#0e7490', sections: ['return_pct'] },
     { key: 'return_5', label: '🔄 Return — Reject & AWB per Brand', icon: <UndoOutlined />, color: '#155e75', sections: ['reject_logistics'] },
