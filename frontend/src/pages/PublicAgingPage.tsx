@@ -198,7 +198,8 @@ export default function PublicAgingPage() {
     };
 
     // Filter sellable by SKU category
-    const sellableItem = sellable.filter((s: any) => (s.sku_category || '').toString().toUpperCase() === 'ITEM');
+    const itemCategories = ['ITEM', 'BARANG JUAL'];
+    const sellableItem = sellable.filter((s: any) => itemCategories.includes((s.sku_category || '').toString().toUpperCase()));
     const sellableGimmick = sellable.filter((s: any) => (s.sku_category || '').toString().toUpperCase() === 'GIMMICK');
 
     // ED Note pivot per SKU Category
@@ -433,7 +434,7 @@ export default function PublicAgingPage() {
                             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — ED Note &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
                         <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
-                            {[{ label: 'ITEM', rows: edRowsItem }, { label: 'GIMMICK', rows: edRowsGimmick }].map(({ label, rows }) => (
+                            {[{ label: 'ITEM / Barang Jual', rows: edRowsItem, linkParam: 'ITEM,Barang Jual' }, { label: 'GIMMICK', rows: edRowsGimmick, linkParam: 'GIMMICK' }].map(({ label, rows, linkParam }) => (
                                 <div key={label} style={{ marginBottom: 20 }}>
                                     <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
                                         <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
@@ -444,7 +445,7 @@ export default function PublicAgingPage() {
                                             title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
                                             dataIndex: cat, key: cat, width: 130,
                                             render: (v: number, r: any) => v ? (
-                                                <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(label)}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                                <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(linkParam)}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
                                                     {v.toLocaleString()}
                                                 </a>
                                             ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
@@ -465,7 +466,7 @@ export default function PublicAgingPage() {
                             <Card title={`⚠️ Critical ED Stock (Expired – NED 3 Month) — ${criticalItems.length} items`} style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#ff6b6b' }, body: { overflow: 'hidden' } }}>
                                 <ResizableTable dataSource={criticalItems} columns={[
                                     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
-                                    { title: 'SKU Category', dataIndex: 'sku_category', key: 'sku_category', width: 120, render: (v: string) => <Tag color={v === 'ITEM' ? '#6366f1' : v === 'GIMMICK' ? '#ec4899' : '#6b7280'} style={{ border: 'none', fontWeight: 600 }}>{v}</Tag> },
+                                    { title: 'SKU Category', dataIndex: 'sku_category', key: 'sku_category', width: 120, render: (v: string) => <Tag color={v === 'ITEM' || v === 'BARANG JUAL' ? '#6366f1' : v === 'GIMMICK' ? '#ec4899' : '#6b7280'} style={{ border: 'none', fontWeight: 600 }}>{v}</Tag> },
                                     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
                                     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span> },
                                     { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp_date', width: 120 },
@@ -494,7 +495,7 @@ export default function PublicAgingPage() {
                             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
                         <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
-                            {[{ label: 'ITEM', rows: agingRowsItem }, { label: 'GIMMICK', rows: agingRowsGimmick }].map(({ label, rows }) => (
+                            {[{ label: 'ITEM / Barang Jual', rows: agingRowsItem, linkParam: 'ITEM,Barang Jual' }, { label: 'GIMMICK', rows: agingRowsGimmick, linkParam: 'GIMMICK' }].map(({ label, rows, linkParam }) => (
                                 <div key={label} style={{ marginBottom: 20 }}>
                                     <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
                                         <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
@@ -504,7 +505,7 @@ export default function PublicAgingPage() {
                                         ...agingCats.map((cat: string) => ({
                                             title: cat, dataIndex: cat, key: cat, width: 120,
                                             render: (v: number, r: any) => v ? (
-                                                <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(label)}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                                <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(linkParam)}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
                                                     {v.toLocaleString()}
                                                 </a>
                                             ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
