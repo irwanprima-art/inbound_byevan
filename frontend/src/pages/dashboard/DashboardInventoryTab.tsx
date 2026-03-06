@@ -47,7 +47,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
     const totalPhyQty = fDccList.reduce((sum, d) => sum + effectivePhyQty(d), 0);
     const shortageQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v < 0 ? Math.abs(v) : 0); }, 0);
     const gainQty = fDccList.reduce((sum, d) => { const v = effectiveVariance(d); return sum + (v > 0 ? v : 0); }, 0);
-    const accuracyQty = totalSysQty > 0 ? (((totalSysQty - shortageQty - gainQty) / totalSysQty) * 100).toFixed(2) : '0.00';
+    const accuracyQty = totalSysQty > 0 ? (((totalSysQty - Math.abs(totalSysQty - totalPhyQty)) / totalSysQty) * 100).toFixed(2) : '0.00';
 
     // SKU Accuracy
     const skuVarianceMap: Record<string, number> = {};
