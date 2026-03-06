@@ -610,7 +610,13 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         let hadirCount = 0;
                         let tidakHadirCount = 0;
                         let liburCount = 0;
+                        const today = dayjs().format('YYYY-MM-DD');
                         sortedDates.forEach(date => {
+                            // Future dates: don't evaluate yet
+                            if (date > today) {
+                                row[date] = 'future';
+                                return;
+                            }
                             const lookupKey = `${nik}|${date}`;
                             const schedClock = schedLookup[lookupKey];
                             const hasClockin = attLookup.has(lookupKey);
@@ -672,6 +678,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                                 if (v === 'hadir') return <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 11 }}>Hadir</span>;
                                 if (v === 'tidak_hadir') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11 }}>Tidak Hadir</span>;
                                 if (v === 'hadir_luar_jadwal') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11, fontStyle: 'italic' }}>Hadir*</span>;
+                                if (v === 'future') return <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11 }}>-</span>;
                                 return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>Libur</span>;
                             },
                         };
