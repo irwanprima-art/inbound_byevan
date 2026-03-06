@@ -417,7 +417,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         <>
             <Card
                 title="👷 Manpower Report — Monthly Headcount per Divisi"
-                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}
                 styles={{ header: { color: '#fff' } }}
                 extra={
                     <Space>
@@ -538,7 +538,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
             <Card
                 title={`📅 Daily Headcount per Divisi — ${activeMonthLabel}`}
-                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
                 styles={{ header: { color: '#fff' } }}
             >
                 <ResizableTable
