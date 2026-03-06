@@ -699,6 +699,18 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         title: <span style={{ color: 'rgba(255,255,255,0.4)' }}>L</span>, dataIndex: '_libur', key: '_libur', width: 40, align: 'center' as const, fixed: 'right' as const,
                         render: (v: number) => <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{v}</span>,
                     },
+                    {
+                        title: <span style={{ color: '#fbbf24' }}>%</span>, key: '_pct', width: 55, align: 'center' as const, fixed: 'right' as const,
+                        render: (_: any, rec: any) => {
+                            const hadir = rec._hadir || 0;
+                            const tidak = rec._tidak || 0;
+                            const total = hadir + tidak;
+                            if (total === 0) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                            const pct = (hadir / total) * 100;
+                            const color = pct >= 90 ? '#4ade80' : pct >= 75 ? '#fbbf24' : '#f87171';
+                            return <span style={{ color, fontWeight: 700, fontSize: 11 }}>{pct.toFixed(0)}%</span>;
+                        },
+                    },
                 ];
 
                 return (
