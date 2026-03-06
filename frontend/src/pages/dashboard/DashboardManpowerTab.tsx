@@ -555,6 +555,166 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     })}
                 />
             </Card>
+
+            {/* Team Statistics (Reguler) */}
+            {activeMonth && (() => {
+                // Build schedule lookup: nik|date → clock_in value
+                const schedLookup: Record<string, string> = {};
+                schedData.forEach((s: any) => {
+                    const mk = getMonthKey(s.date);
+                    if (mk !== activeMonth) return;
+                    const key = `${(s.nik || '').toLowerCase()}|${s.date}`;
+                    schedLookup[key] = (s.clock_in || '').trim();
+                });
+
+                // Build attendance lookup: nik|date → true (has clock-in)
+                const attLookup = new Set<string>();
+                attData.forEach((a: any) => {
+                    const mk = getMonthKey(a.date);
+                    if (mk !== activeMonth) return;
+                    const key = `${(a.nik || '').toLowerCase()}|${a.date}`;
+                    attLookup.add(key);
+                });
+
+                // Get all dates in this month from schedule + attendance
+                const allDatesSet = new Set<string>();
+                schedData.forEach((s: any) => { if (getMonthKey(s.date) === activeMonth) allDatesSet.add(s.date); });
+                attData.forEach((a: any) => { if (getMonthKey(a.date) === activeMonth) allDatesSet.add(a.date); });
+                const sortedDates = Array.from(allDatesSet).sort();
+
+                // Get reguler employees who appear in schedule or attendance for this month
+                const regulerNiks = new Set<string>();
+                empData.forEach((e: any) => {
+                    if ((e.status || '').trim() === 'Reguler' && e.nik) regulerNiks.add(e.nik.toLowerCase());
+                });
+
+                // Build employee info map
+                const empInfoMap: Record<string, { nik: string; name: string }> = {};
+                empData.forEach((e: any) => {
+                    if (e.nik) empInfoMap[e.nik.toLowerCase()] = { nik: e.nik, name: e.name || '' };
+                });
+
+                // Only include reguler employees that have schedule or attendance in this month
+                const activeNiks = new Set<string>();
+                sortedDates.forEach(date => {
+                    regulerNiks.forEach(nik => {
+                        const key = `${nik}|${date}`;
+                        if (schedLookup[key] !== undefined || attLookup.has(key)) activeNiks.add(nik);
+                    });
+                });
+
+                const teamRows = Array.from(activeNiks)
+                    .map(nik => {
+                        const info = empInfoMap[nik] || { nik, name: nik };
+                        const row: any = { key: nik, nik: info.nik, name: info.name };
+                        let hadirCount = 0;
+                        let tidakHadirCount = 0;
+                        let liburCount = 0;
+                        sortedDates.forEach(date => {
+                            const lookupKey = `${nik}|${date}`;
+                            const schedClock = schedLookup[lookupKey];
+                            const hasClockin = attLookup.has(lookupKey);
+                            const isScheduled = schedClock !== undefined && schedClock !== '' && schedClock.toLowerCase() !== 'off';
+                            const isOff = schedClock === undefined || schedClock === '' || schedClock.toLowerCase() === 'off';
+
+                            if (isScheduled && hasClockin) {
+                                row[date] = 'hadir';
+                                hadirCount++;
+                            } else if (isScheduled && !hasClockin) {
+                                row[date] = 'tidak_hadir';
+                                tidakHadirCount++;
+                            } else if (isOff && hasClockin) {
+                                row[date] = 'hadir_luar_jadwal';
+                                hadirCount++;
+                            } else {
+                                row[date] = 'libur';
+                                liburCount++;
+                            }
+                        });
+                        row._hadir = hadirCount;
+                        row._tidak = tidakHadirCount;
+                        row._libur = liburCount;
+                        return row;
+                    })
+                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                const DAY_NAMES: Record<string, string> = {
+                    '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+                };
+
+                const teamCols: any[] = [
+                    {
+                        title: 'NIK', dataIndex: 'nik', key: 'nik', width: 80, fixed: 'left' as const,
+                        render: (v: string) => <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{v}</span>,
+                    },
+                    {
+                        title: 'Nama', dataIndex: 'name', key: 'name', width: 170, fixed: 'left' as const,
+                        render: (v: string) => <span style={{ fontWeight: 600, color: '#fff' }}>{v}</span>,
+                    },
+                    ...sortedDates.map(date => {
+                        const d = dayjs(date);
+                        const dayNum = d.format('D');
+                        const dayOfWeek = d.day();
+                        const dayName = DAY_NAMES[String(dayOfWeek)] || '';
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        return {
+                            title: (
+                                <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
+                                    <div style={{ fontSize: 10, color: isWeekend ? '#f87171' : 'rgba(255,255,255,0.4)' }}>{dayName}</div>
+                                    <div style={{ fontSize: 11, fontWeight: 600, color: isWeekend ? '#f87171' : '#fff' }}>{dayNum}</div>
+                                </div>
+                            ),
+                            dataIndex: date,
+                            key: date,
+                            width: 65,
+                            align: 'center' as const,
+                            render: (v: string) => {
+                                if (v === 'hadir') return <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 11 }}>Hadir</span>;
+                                if (v === 'tidak_hadir') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11 }}>Tidak Hadir</span>;
+                                if (v === 'hadir_luar_jadwal') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11, fontStyle: 'italic' }}>Hadir*</span>;
+                                return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>Libur</span>;
+                            },
+                        };
+                    }),
+                    {
+                        title: <span style={{ color: '#4ade80' }}>H</span>, dataIndex: '_hadir', key: '_hadir', width: 40, align: 'center' as const, fixed: 'right' as const,
+                        render: (v: number) => <span style={{ color: '#4ade80', fontWeight: 700 }}>{v}</span>,
+                    },
+                    {
+                        title: <span style={{ color: '#f87171' }}>TH</span>, dataIndex: '_tidak', key: '_tidak', width: 40, align: 'center' as const, fixed: 'right' as const,
+                        render: (v: number) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: 700 }}>{v}</span>,
+                    },
+                    {
+                        title: <span style={{ color: 'rgba(255,255,255,0.4)' }}>L</span>, dataIndex: '_libur', key: '_libur', width: 40, align: 'center' as const, fixed: 'right' as const,
+                        render: (v: number) => <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{v}</span>,
+                    },
+                ];
+
+                return (
+                    <Card
+                        title={`👥 Team Statistics (Reguler) — ${activeMonthLabel}`}
+                        style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
+                        styles={{ header: { color: '#fff' } }}
+                        extra={
+                            <Space style={{ fontSize: 11 }}>
+                                <span style={{ color: '#4ade80' }}>● Hadir</span>
+                                <span style={{ color: '#f87171' }}>● Tidak Hadir</span>
+                                <span style={{ color: '#f87171', fontStyle: 'italic' }}>● Hadir* (diluar jadwal)</span>
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>● Libur</span>
+                            </Space>
+                        }
+                    >
+                        <ResizableTable
+                            dataSource={teamRows}
+                            columns={teamCols}
+                            rowKey="key"
+                            size="small"
+                            scroll={{ x: 'max-content' }}
+                            pagination={false}
+                        />
+                    </Card>
+                );
+            })()}
         </>
     );
 }
