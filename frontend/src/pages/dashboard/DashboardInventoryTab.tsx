@@ -503,7 +503,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                     <span style={{ fontSize: 20 }}>📈</span>
                     <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Inventory Rate — Per Brand</span>
                 </div>
-                <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ body: { overflow: 'hidden' } }}>
                     <ResizableTable
                         dataSource={(() => {
                             // Build location -> damage_type and location -> category/type maps
