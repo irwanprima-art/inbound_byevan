@@ -10,9 +10,10 @@ interface Props {
     schedData: any[];
     addMpData: any[];
     filterMonth?: any; // Dayjs — when provided, auto-sets the month filters
+    isPresentation?: boolean;
 }
 
-export default function DashboardManpowerTab({ attData, empData, schedData, addMpData, filterMonth }: Props) {
+export default function DashboardManpowerTab({ attData, empData, schedData, addMpData, filterMonth, isPresentation }: Props) {
     // Build employee status map: nik -> status (Reguler/Tambahan)
     const empStatusMap: Record<string, string> = {};
     empData.forEach((e: any) => {
@@ -561,7 +562,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             </Card>
 
             {/* Team Statistics (Reguler) */}
-            {activeMonth && (() => {
+            {activeMonth && !isPresentation && (() => {
                 // Build schedule lookup: nik|date → clock_in value
                 const schedLookup: Record<string, string> = {};
                 schedData.forEach((s: any) => {

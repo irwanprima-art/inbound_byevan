@@ -262,7 +262,7 @@ export default function MonthlyReportPage() {
             case 'utilization':
                 return <DashboardUtilizationTab sohList={sohList} locations={locations} />;
             case 'manpower':
-                return <DashboardManpowerTab attData={attData} empData={empData} schedData={schedData} addMpData={addMpData} filterMonth={selectedMonth} />;
+                return <DashboardManpowerTab attData={attData} empData={empData} schedData={schedData} addMpData={addMpData} filterMonth={selectedMonth} isPresentation />;
             default:
                 return null;
         }
