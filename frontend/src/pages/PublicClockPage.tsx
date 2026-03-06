@@ -138,7 +138,10 @@ export default function PublicClockPage() {
         const totalMin = calcWorkhourMin(active.clock_in, now);
         try {
             await axios.put(`${API}/clock/attendances/${active.id}`, { ...active, clock_out: now, status: `Done (${formatMinutes(totalMin)})` });
-            Modal.success({ title: '🎉 Clock Out Berhasil, ' + emp.name + '!', content: '"Kerja tuntas tanpa drama,\nwaktunya rebahan penuh bahagia!" 🛌' });
+            const clockOutMsg = emp.nik.toUpperCase() === 'E000026'
+                ? `Wingbox datang bawa kartonan,\n${emp.name} clock out duluan, pendingan jangan dilupakan 📦`
+                : '"Kerja tuntas tanpa drama,\nwaktunya rebahan penuh bahagia!" 🛌';
+            Modal.success({ title: '🎉 Clock Out Berhasil, ' + emp.name + '!', content: clockOutMsg });
             setNik(''); setJobdesc(''); fetchData();
         } catch (err: any) { message.error(err?.response?.data?.error || 'Gagal clock out'); }
         setLoading(false);
