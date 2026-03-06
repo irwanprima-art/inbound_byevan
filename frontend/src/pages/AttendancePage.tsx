@@ -192,15 +192,23 @@ export default function AttendancePage() {
         { title: 'Name', dataIndex: 'name', key: 'name', width: 130, sorter: (a: any, b: any) => a.name?.localeCompare(b.name) },
         {
             title: 'Status', key: 'emp_status', width: 90,
+            filters: [{ text: 'Reguler', value: 'Reguler' }, { text: 'Tambahan', value: 'Tambahan' }],
+            onFilter: (value: any, r: AttRecord) => (empMap[r.nik?.toLowerCase()]?.status || '') === value,
             render: (_: any, r: AttRecord) => {
                 const emp = empMap[r.nik?.toLowerCase()];
                 const st = emp?.status || '-';
                 return st === 'Reguler' ? <Tag color="blue">Reguler</Tag> : st === 'Tambahan' ? <Tag color="orange">Tambahan</Tag> : st;
             },
         },
-        { title: 'Jobdesc', dataIndex: 'jobdesc', key: 'jobdesc', width: 130 },
+        {
+            title: 'Jobdesc', dataIndex: 'jobdesc', key: 'jobdesc', width: 130,
+            filters: jobdescOptions.map(o => ({ text: o.label, value: o.value })),
+            onFilter: (value: any, r: AttRecord) => r.jobdesc === value,
+        },
         {
             title: 'Divisi', key: 'divisi', width: 100,
+            filters: [{ text: 'Inbound', value: 'Inbound' }, { text: 'Inventory', value: 'Inventory' }, { text: 'Return', value: 'Return' }],
+            onFilter: (value: any, r: AttRecord) => (divisiMap[r.jobdesc] || '') === value,
             render: (_: any, r: AttRecord) => {
                 const d = divisiMap[r.jobdesc] || '-';
                 const color = d === 'Inbound' ? 'blue' : d === 'Inventory' ? 'green' : d === 'Return' ? 'orange' : 'default';
