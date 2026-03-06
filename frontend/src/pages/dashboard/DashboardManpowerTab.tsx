@@ -331,6 +331,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
             const dayOfWeek = d.day();
             const dayName = DAY_NAMES[String(dayOfWeek)] || '';
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const isFuture = date > dayjs().format('YYYY-MM-DD');
 
             return {
                 title: (
@@ -345,6 +346,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                 align: 'center' as const,
                 render: (v: any, rec: any) => {
                     if (rec.isPct) {
+                        if (isFuture) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
                         const strVal = String(v || '-');
                         const numVal = parseFloat(strVal);
                         let color = 'rgba(255,255,255,0.3)';
@@ -356,6 +358,8 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     if (rec.isPlan) {
                         return <span style={{ fontWeight: 600, color: '#c084fc' }}>{v || 0}</span>;
                     }
+                    // Future dates: show '-' for actual rows
+                    if (isFuture) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
                     if (!v && !rec.isTotal) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>;
                     return (
                         <span style={{
