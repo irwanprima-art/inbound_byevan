@@ -116,7 +116,10 @@ export default function PublicClockPage() {
         const now = dayjs().format('HH:mm:ss');
         try {
             await axios.post(`${API}/clock/attendances`, { date: today, nik: emp.nik, name: emp.name, jobdesc, clock_in: now, clock_out: '', status: 'Active' });
-            Modal.success({ title: '🎉 Clock In Berhasil, ' + emp.name + '!', content: '"Langkah pelan kaya zombie,\ntapi rezeki nggak boleh lari!" 🧟' });
+            const clockInMsg = emp.nik.toUpperCase() === 'E000026'
+                ? `Tarik pallet pakai handpallet,\nJalan pelan jangan sampai miring.\n${emp.name} sudah clock in,\nPendingan kemarin mohon dicek sebelum makin pusing. 📋`
+                : '"Langkah pelan kaya zombie,\ntapi rezeki nggak boleh lari!" 🧟';
+            Modal.success({ title: '🎉 Clock In Berhasil, ' + emp.name + '!', content: clockInMsg });
             setNik(''); setJobdesc(''); fetchData();
         } catch (err: any) { message.error(err?.response?.data?.error || 'Gagal clock in'); }
         setLoading(false);
