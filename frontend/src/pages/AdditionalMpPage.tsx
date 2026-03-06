@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Select, Space, Typography, message, Modal, DatePicker, InputNumber, Input, Popconfirm } from 'antd';
 import { LeftOutlined, RightOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { additionalMpApi } from '../api/client';
+import { additionalMpApi, attendancesApi, employeesApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 
@@ -25,6 +25,8 @@ export default function AdditionalMpPage() {
     const canEdit = CAN_EDIT_ROLES.includes(user?.role || '');
 
     const [data, setData] = useState<any[]>([]);
+    const [attData, setAttData] = useState<any[]>([]);
+    const [empData, setEmpData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(dayjs().format('YYYY-MM'));
 
@@ -39,8 +41,14 @@ export default function AdditionalMpPage() {
     const fetchData = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const res = await additionalMpApi.list();
-            setData(res.data || []);
+            const [mpRes, attRes, empRes] = await Promise.all([
+                additionalMpApi.list(),
+                attendancesApi.list(),
+                employeesApi.list(),
+            ]);
+            setData(mpRes.data || []);
+            setAttData(attRes.data || []);
+            setEmpData(empRes.data || []);
         } catch {
             if (!silent) message.error('Gagal memuat data');
         } finally {
@@ -65,6 +73,21 @@ export default function AdditionalMpPage() {
             })
             .sort((a: any, b: any) => a.date.localeCompare(b.date));
     }, [data, currentMonth]);
+
+    // Build lookup: date → count of 'Tambahan' employees who clocked in
+    const tambahanPerDate = useMemo(() => {
+        const empMap: Record<string, string> = {};
+        empData.forEach((e: any) => { if (e.nik) empMap[e.nik.toLowerCase()] = e.status || ''; });
+        const map: Record<string, number> = {};
+        attData.forEach((a: any) => {
+            const empStatus = empMap[a.nik?.toLowerCase()] || '';
+            if (empStatus !== 'Tambahan') return;
+            const date = (a.date || '').trim();
+            if (!date) return;
+            map[date] = (map[date] || 0) + 1;
+        });
+        return map;
+    }, [attData, empData]);
 
     // Month options
     const monthOptions = useMemo(() => {
@@ -218,13 +241,14 @@ export default function AdditionalMpPage() {
                                 <th style={thStyle}>Hari</th>
                                 <th style={{ ...thStyle, textAlign: 'center' }}>Additional MP</th>
                                 <th style={thStyle}>Task</th>
+                                <th style={{ ...thStyle, textAlign: 'center', width: 180 }}>Remarks</th>
                                 {canEdit && <th style={{ ...thStyle, textAlign: 'center', width: 100 }}>Aksi</th>}
                             </tr>
                         </thead>
                         <tbody>
                             {filteredData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={canEdit ? 5 : 4} style={{ ...tdStyle, textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: 40 }}>
+                                    <td colSpan={canEdit ? 6 : 5} style={{ ...tdStyle, textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: 40 }}>
                                         Tidak ada data untuk bulan ini
                                     </td>
                                 </tr>
@@ -263,6 +287,16 @@ export default function AdditionalMpPage() {
                                                     ))}
                                                 </div>
                                             </td>
+                                            <td style={{ ...tdStyle, textAlign: 'center', width: 180 }}>
+                                                {(() => {
+                                                    const requested = row.additional_mp || 0;
+                                                    const actual = tambahanPerDate[row.date] || 0;
+                                                    const diff = requested - actual;
+                                                    if (requested === 0) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                                                    if (diff <= 0) return <span style={{ color: '#4ade80', fontWeight: 600 }}>✅ Terpenuhi ({actual}/{requested})</span>;
+                                                    return <span style={{ color: '#f87171', fontWeight: 600 }}>⚠️ Kurang {diff} MP ({actual}/{requested})</span>;
+                                                })()}
+                                            </td>
                                             {canEdit && (
                                                 <td style={{ ...tdStyle, textAlign: 'center', width: 100 }}>
                                                     <Space size={4}>
@@ -299,7 +333,7 @@ export default function AdditionalMpPage() {
                                     <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, fontSize: 16, color: '#60a5fa' }}>
                                         {totalMp}
                                     </td>
-                                    <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.4)', fontSize: 12 }} colSpan={canEdit ? 2 : 1}>
+                                    <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.4)', fontSize: 12 }} colSpan={canEdit ? 3 : 2}>
                                         {filteredData.length} hari
                                     </td>
                                 </tr>
