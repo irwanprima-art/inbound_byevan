@@ -765,34 +765,39 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        const bMap: Record<string, { terjadwal: number; tidakTerjadwal: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: number }> = {};
+                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tidakTerjadwal: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
                         enrichedArrivals.forEach((a: any) => {
                             const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakTerjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
+
+                            // Unique kedatangan key = brand|date|arrival_time (same as stat card)
+                            const kedKey = `${a.brand}|${a.date}|${a.arrival_time}`;
+
+                            bMap[brand].kedatanganKeys.add(kedKey);
 
                             const sched = (a.scheduled_arrival_time || '').trim();
                             const arrival = (a.arrival_time || '').trim();
-                            if (sched) {
-                                bMap[brand].terjadwal += 1;
+                            if (sched && sched !== '-') {
+                                bMap[brand].terjadwal.add(kedKey);
                                 // Tepat waktu: arrival_time <= scheduled_arrival_time
-                                if (arrival && arrival <= sched) bMap[brand].tepatWaktu += 1;
-                                else if (arrival) bMap[brand].terlambat += 1;
+                                if (arrival && arrival !== '-' && arrival <= sched) bMap[brand].tepatWaktu.add(kedKey);
+                                else if (arrival && arrival !== '-') bMap[brand].terlambat.add(kedKey);
                             } else {
-                                bMap[brand].tidakTerjadwal += 1;
+                                bMap[brand].tidakTerjadwal.add(kedKey);
                             }
 
                             const urg = (a.urgensi || '').trim().toUpperCase();
-                            if (urg === 'YA') bMap[brand].urgensi += 1;
+                            if (urg === 'YA') bMap[brand].urgensi.add(kedKey);
                         });
 
                         // Merge cases
                         Object.entries(caseByBrand).forEach(([brand, cnt]) => {
-                            if (!bMap[brand]) bMap[brand] = { terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0 };
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakTerjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
                             bMap[brand].cases = cnt;
                         });
 
-                        // Total Kedatangan = Terjadwal + Tidak Terjadwal
-                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.terjadwal + v.tidakTerjadwal, terjadwal: v.terjadwal, tidakTerjadwal: v.tidakTerjadwal, tepatWaktu: v.tepatWaktu, terlambat: v.terlambat, cases: v.cases, urgensi: v.urgensi })).sort((a, b) => b.total - a.total);
+                        // Total Kedatangan = unique kedatangan per brand (consistent with stat card)
+                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganKeys.size, terjadwal: v.terjadwal.size, tidakTerjadwal: v.tidakTerjadwal.size, tepatWaktu: v.tepatWaktu.size, terlambat: v.terlambat.size, cases: v.cases, urgensi: v.urgensi.size })).sort((a, b) => b.total - a.total);
                         const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
                         rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakTerjadwal += r.tidakTerjadwal; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
                         return [totalRow, ...rows];
