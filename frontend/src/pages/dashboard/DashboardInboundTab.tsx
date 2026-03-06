@@ -594,22 +594,16 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             </Row>}
 
             {show('vas_type') && <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-                <Col xs={24}>
-                    <Card title="🏷️ VAS Type" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }} styles={{ header: { color: '#fff' } }}>
-                        {vasTypeData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                    <Pie data={vasTypeData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent = 0 }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                                        {vasTypeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                                    </Pie>
-                                    <RTooltip contentStyle={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
-                            </div>
-                        )}
+                <Col xs={24} sm={12}>
+                    <Card size="small" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))', border: '1px solid rgba(59,130,246,0.3)', textAlign: 'center', borderRadius: 12, padding: '16px 0' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, display: 'block', marginBottom: 4 }}>📦 TOTAL VAS</Text>
+                        <Text style={{ color: '#3b82f6', fontWeight: 700, fontSize: 32 }}>{totalVasCurrent.toLocaleString()}</Text>
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12}>
+                    <Card size="small" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))', border: '1px solid rgba(16,185,129,0.3)', textAlign: 'center', borderRadius: 12, padding: '16px 0' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, display: 'block', marginBottom: 4 }}>👷 AVG VAS / MANPOWER</Text>
+                        <Text style={{ color: '#10b981', fontWeight: 700, fontSize: 32 }}>{avgVasPerOperator.toLocaleString()}</Text>
                     </Card>
                 </Col>
             </Row>}
