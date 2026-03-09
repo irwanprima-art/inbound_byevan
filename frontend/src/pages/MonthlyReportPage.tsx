@@ -37,7 +37,7 @@ const SLIDES = [
     { key: 'inbound_3', label: '📦 Inbound — By Brand', icon: <InboxOutlined />, color: '#a855f7', sections: ['inbound_by_brand'] },
     { key: 'inbound_4', label: '📦 Inbound — VAS', icon: <InboxOutlined />, color: '#14b8a6', sections: ['vas', 'vas_operator', 'vas_type'] },
 
-    { key: 'inbound_6', label: '📦 Inbound — Tolakan & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
+    { key: 'inbound_6', label: '📦 Inbound — Rejection & Case', icon: <InboxOutlined />, color: '#f87171', sections: ['tolakan', 'case'] },
     // Return sub-slides
     { key: 'return_1', label: '🔄 Return — Per Brand & Good vs Damage', icon: <UndoOutlined />, color: '#06b6d4', sections: ['avg_times', 'return_per_brand'] },
     { key: 'return_3', label: '🔄 Return — Reason Group (Qty & Order)', icon: <UndoOutlined />, color: '#0ea5e9', sections: ['reason_combined'] },
@@ -273,20 +273,24 @@ export default function MonthlyReportPage() {
     const [pptProgress, setPptProgress] = useState(0);
     const [pptStatus, setPptStatus] = useState('');
 
-    const captureSlideImage = useCallback(async (content: ReactNode, width = 1280, height = 720): Promise<string> => {
+    const captureSlideImage = useCallback(async (content: ReactNode, width = 1280, _height = 720): Promise<string> => {
         const container = document.createElement('div');
-        container.style.cssText = `position:fixed;left:-9999px;top:0;width:${width}px;min-height:${height}px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;z-index:-1;`;
+        // Allow the container to grow to fit all content (no overflow:hidden / fixed height)
+        container.style.cssText = `position:fixed;left:-9999px;top:0;width:${width}px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;z-index:-1;`;
         document.body.appendChild(container);
         const root = ReactDOM.createRoot(container);
         await new Promise<void>(resolve => {
             root.render(
                 <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
-                    <div style={{ width, minHeight: height, background: '#0a0e1a', color: '#fff' }}>{content}</div>
+                    <div style={{ width, background: '#0a0e1a', color: '#fff' }}>{content}</div>
                 </ConfigProvider>
             );
-            setTimeout(resolve, 600);
+            // Wait longer so Recharts SVGs & large Ant Design tables fully render
+            setTimeout(resolve, 2500);
         });
-        const canvas = await html2canvas(container, { backgroundColor: '#0a0e1a', width, scale: 2, useCORS: true, logging: false });
+        // Capture actual rendered height (may be taller than 720px for tables)
+        const actualHeight = Math.max(container.scrollHeight, _height);
+        const canvas = await html2canvas(container, { backgroundColor: '#0a0e1a', width, height: actualHeight, scale: 2, useCORS: true, logging: false });
         const imgData = canvas.toDataURL('image/png');
         root.unmount();
         document.body.removeChild(container);
@@ -343,7 +347,7 @@ export default function MonthlyReportPage() {
             const closingContent = (
                 <div style={{ width: 1280, height: 720, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px', background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.12) 0%, #0a0e1a 70%)' }}>
                     <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
-                    <div style={{ color: '#fff', fontSize: 42, fontWeight: 800, marginBottom: 10 }}>Terima Kasih</div>
+                    <div style={{ color: '#fff', fontSize: 42, fontWeight: 800, marginBottom: 10 }}>Thank You</div>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, marginBottom: 30 }}>Monthly Report — {monthLabel}</div>
                     <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Warehouse Report & Monitoring System</div>
                 </div>
@@ -354,7 +358,7 @@ export default function MonthlyReportPage() {
             closeSlide.addImage({ data: closingImg, x: 0, y: 0, w: '100%', h: '100%' });
             setPptProgress(100);
 
-            setPptStatus('Menyimpan file...');
+            setPptStatus('Saving file...');
             await pptx.writeFile({ fileName: `Monthly_Report_${selectedMonth.format('YYYY_MM')}.pptx` });
         } catch (err) {
             console.error('PPT generation error:', err);
@@ -517,7 +521,7 @@ export default function MonthlyReportPage() {
                                 fontWeight: 800,
                                 marginBottom: 12,
                             }}>
-                                Terima Kasih
+                                Thank You
                             </div>
                             <div style={{
                                 color: 'rgba(255,255,255,0.5)',
@@ -684,7 +688,7 @@ export default function MonthlyReportPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
                     <Space size="large">
                         <div>
-                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, display: 'block', marginBottom: 4 }}>Pilih Bulan</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, display: 'block', marginBottom: 4 }}>Select Month</Text>
                             <DatePicker
                                 picker="month"
                                 value={selectedMonth}
@@ -696,9 +700,9 @@ export default function MonthlyReportPage() {
                         </div>
                         <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, paddingTop: 20 }}>
                             {loading ? (
-                                <><LoadingOutlined spin style={{ marginRight: 8 }} />Memuat data dari semua modul...</>
+                                <><LoadingOutlined spin style={{ marginRight: 8 }} />Loading data from all modules...</>
                             ) : dataLoaded ? (
-                                <span style={{ color: '#10b981' }}>✅ Data siap</span>
+                                <span style={{ color: '#10b981' }}>✅ Data ready</span>
                             ) : null}
                         </div>
                     </Space>
@@ -747,7 +751,7 @@ export default function MonthlyReportPage() {
             {loading && !dataLoaded ? (
                 <div style={{ textAlign: 'center', padding: 60 }}>
                     <Spin size="large" />
-                    <div style={{ color: 'rgba(255,255,255,0.4)', marginTop: 16 }}>Memuat data dari semua modul...</div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', marginTop: 16 }}>Loading data from all modules...</div>
                 </div>
             ) : (
                 <Row gutter={[16, 16]}>
