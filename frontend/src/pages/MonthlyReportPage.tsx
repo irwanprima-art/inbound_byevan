@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import html2canvas from 'html2canvas';
 import PptxGenJS from 'pptxgenjs';
+import { MemoryRouter } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import {
@@ -281,9 +282,11 @@ export default function MonthlyReportPage() {
         const root = ReactDOM.createRoot(container);
         await new Promise<void>(resolve => {
             root.render(
-                <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
-                    <div style={{ width, background: '#0a0e1a', color: '#fff' }}>{content}</div>
-                </ConfigProvider>
+                <MemoryRouter>
+                    <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
+                        <div style={{ width, background: '#0a0e1a', color: '#fff' }}>{content}</div>
+                    </ConfigProvider>
+                </MemoryRouter>
             );
             // Wait longer so Recharts SVGs & large Ant Design tables fully render
             setTimeout(resolve, 2500);
@@ -327,19 +330,27 @@ export default function MonthlyReportPage() {
             for (let i = 0; i < SLIDES.length; i++) {
                 const s = SLIDES[i];
                 setPptStatus(`Slide ${i + 1}/${SLIDES.length}: ${s.label}`);
-                const slideContent = (
-                    <div style={{ width: 1280, minHeight: 720 }}>
-                        <div style={{ padding: '16px 24px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span style={{ fontSize: 28, color: s.color }}>{s.icon}</span>
-                            <span style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{s.label}</span>
+                try {
+                    const slideContent = (
+                        <div style={{ width: 1280, minHeight: 720 }}>
+                            <div style={{ padding: '16px 24px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <span style={{ fontSize: 28, color: s.color }}>{s.icon}</span>
+                                <span style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{s.label}</span>
+                            </div>
+                            <div style={{ padding: '8px 24px 24px' }}>{renderSlide(i)}</div>
                         </div>
-                        <div style={{ padding: '8px 24px 24px' }}>{renderSlide(i)}</div>
-                    </div>
-                );
-                const img = await captureSlideImage(slideContent);
-                const contentSlide = pptx.addSlide();
-                contentSlide.background = { color: '0a0e1a' };
-                contentSlide.addImage({ data: img, x: 0, y: 0, w: '100%', h: '100%' });
+                    );
+                    const img = await captureSlideImage(slideContent);
+                    const contentSlide = pptx.addSlide();
+                    contentSlide.background = { color: '0a0e1a' };
+                    contentSlide.addImage({ data: img, x: 0, y: 0, w: '100%', h: '100%' });
+                } catch (slideErr) {
+                    console.warn(`Failed to capture slide ${s.key}:`, slideErr);
+                    // Add an error placeholder slide so numbering stays correct
+                    const errSlide = pptx.addSlide();
+                    errSlide.background = { color: '0a0e1a' };
+                    errSlide.addText(`⚠ ${s.label} — Failed to render`, { x: 1, y: 3, w: 10, h: 1, fontSize: 24, color: 'ff6b6b', align: 'center' });
+                }
                 setPptProgress(Math.round((i + 2) / totalCount * 100));
             }
 
