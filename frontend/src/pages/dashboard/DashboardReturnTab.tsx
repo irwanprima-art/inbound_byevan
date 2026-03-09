@@ -286,8 +286,8 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                         allowClear
                         style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
                     />
-                    <AntButton size="small" onClick={() => { const n = dayjs(); setDateRange([n.startOf('month'), n.endOf('month')]); }}>Bulan Ini</AntButton>
-                    <AntButton size="small" onClick={() => { const p = dayjs().subtract(1, 'month'); setDateRange([p.startOf('month'), p.endOf('month')]); }}>Bulan Lalu</AntButton>
+                    <AntButton size="small" onClick={() => { const n = dayjs(); setDateRange([n.startOf('month'), n.endOf('month')]); }}>This Month</AntButton>
+                    <AntButton size="small" onClick={() => { const p = dayjs().subtract(1, 'month'); setDateRange([p.startOf('month'), p.endOf('month')]); }}>Last Month</AntButton>
                     {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
                 </Space>
             )}

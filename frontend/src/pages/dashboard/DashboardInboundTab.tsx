@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Statistic, Typography, Tag, Table, Progress, DatePicker, Space, Button as AntButton } from 'antd';
 import type { Dayjs } from 'dayjs';
@@ -152,7 +152,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const completedCount = enrichedArrivals.filter((a: any) => a.status === 'Completed').length;
     const pctCompleted = enrichedArrivals.length > 0 ? ((completedCount / enrichedArrivals.length) * 100).toFixed(1) : '0.0';
 
-    // Avg Kedatangan → Putaway: average diff between arrival_time and last_putaway per receipt_no
+    // Avg Arrival → Putaway: average diff between arrival_time and last_putaway per receipt_no
     const calcAvgKedatanganPutaway = () => {
         const diffs: number[] = [];
         // Group by receipt_no to get one diff per receipt
@@ -369,19 +369,19 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     value={dateRange}
                     onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                     format="DD/MM/YYYY"
-                    placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                    placeholder={['From Date', 'To Date']}
                     allowClear
                     style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
                 />
-                <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
-                <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
+                <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>This Month</AntButton>
+                <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Last Month</AntButton>
                 {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
             </Space>}
             {show('cards') && <><Row gutter={[16, 16]}>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Total Kedatangan" value={totalKedatangan} icon={<InboxOutlined />} color="#6366f1" /></Col>
+                <Col xs={12} sm={8} lg={6}><StatCard title="Total Arrivals" value={totalKedatangan} icon={<InboxOutlined />} color="#6366f1" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total PO" value={totalPO} icon={<InboxOutlined />} color="#8b5cf6" /></Col>
                 <Col xs={12} sm={8} lg={6}><StatCard title="Total Brand" value={totalBrand} icon={<InboxOutlined />} color="#a855f7" /></Col>
-                <Col xs={12} sm={8} lg={6}><StatCard title="Total Qty Kedatangan" value={totalQtyKedatangan.toLocaleString()} icon={<SwapOutlined />} color="#06b6d4" /></Col>
+                <Col xs={12} sm={8} lg={6}><StatCard title="Total Arrival Qty" value={totalQtyKedatangan.toLocaleString()} icon={<SwapOutlined />} color="#06b6d4" /></Col>
             </Row>
                 <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                     <Col xs={12} sm={8} lg={6}><StatCard title="Total Receive Qty" value={totalReceiveQty.toLocaleString()} icon={<SwapOutlined />} color="#3b82f6" /></Col>
@@ -390,7 +390,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     <Col xs={12} sm={8} lg={6}><StatCard title="% Completed" value={`${pctCompleted}%`} icon={<CheckCircleOutlined />} color="#22c55e" /></Col>
                 </Row>
                 <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                    <Col xs={12} sm={8} lg={6}><StatCard title="Avg Kedatangan → Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
+                    <Col xs={12} sm={8} lg={6}><StatCard title="Avg Arrival → Putaway" value={avgKedPutaway} icon={<ClockCircleOutlined />} color="#ec4899" /></Col>
                     <Col xs={12} sm={8} lg={6}><StatCard title="Avg Receive → Putaway" value={avgRecPutaway} icon={<ClockCircleOutlined />} color="#f97316" /></Col>
                     <Col xs={12} sm={8} lg={6}><StatCard title="Total VAS" value={totalVAS.toLocaleString()} icon={<ToolOutlined />} color="#14b8a6" /></Col>
                     <Col xs={12} sm={8} lg={6}><StatCard title="Avg VAS / Manpower" value={avgVasPerMP} icon={<ToolOutlined />} color="#64748b" /></Col>
@@ -405,7 +405,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     <Table
                         dataSource={pendingArrivals}
                         columns={[
-                            { title: 'Tgl Kedatangan', dataIndex: 'date', key: 'date', width: 110 },
+                            { title: 'Arrival Date', dataIndex: 'date', key: 'date', width: 110 },
                             { title: 'Waktu', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
                             { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
                             { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 130 },
@@ -422,7 +422,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     />
                 ) : (
                     <div style={{ textAlign: 'center', padding: 24 }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>✅ Tidak ada pending — semua sudah selesai</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>✅ No pending items — all completed</Text>
                     </div>
                 )}
             </Card>}
@@ -463,17 +463,17 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                     </div>
                                 ) : (
                                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data {label.split('—')[0].trim()}</Text>
+                                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available {label.split('—')[0].trim()}</Text>
                                     </div>
                                 )}
                                 <div style={{ marginTop: sections ? 4 : 12, padding: sections ? '4px 12px' : '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Text style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Total = {currentTotal.toLocaleString()}</Text>
                                     {momPct !== null ? (
                                         <Text style={{ color: momPct >= 0 ? '#10b981' : '#ef4444', fontSize: 13 }}>
-                                            {momPct >= 0 ? '▲' : '▼'} {Math.abs(momPct).toFixed(1)}% vs {prevMonthLabel || 'bulan lalu'}
+                                            {momPct >= 0 ? '▲' : '▼'} {Math.abs(momPct).toFixed(1)}% vs {prevMonthLabel || 'last month'}
                                         </Text>
                                     ) : (
-                                        <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>🆕 Baru — tidak ada data sebelumnya</Text>
+                                        <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>🆕 Baru — no previous data</Text>
                                     )}
                                 </div>
                             </Card>
@@ -620,7 +620,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </ResponsiveContainer>
                 ) : (
                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available VAS</Text>
                     </div>
                 )}
                 <Row gutter={8} style={{ marginTop: 16 }}>
@@ -638,7 +638,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </Col>
                     <Col span={8}>
                         <Card size="small" style={{ background: vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, textAlign: 'center' }}>
-                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'BULAN LALU'}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'LAST MONTH'}</Text>
                             {vasMomPct !== null ? (
                                 <Text style={{ color: vasMomPct >= 0 ? '#10b981' : '#ef4444', fontWeight: 700, fontSize: 18 }}>
                                     {vasMomPct >= 0 ? '▲' : '▼'} {Math.abs(vasMomPct).toFixed(1)}%
@@ -670,7 +670,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </ResponsiveContainer>
                 ) : (
                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>Belum ada data VAS</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available VAS</Text>
                     </div>
                 )}
                 <Row gutter={8} style={{ marginTop: 16 }}>
@@ -682,7 +682,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </Col>
                     <Col span={12}>
                         <Card size="small" style={{ background: vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${vasMomPct !== null && vasMomPct >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, textAlign: 'center' }}>
-                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'BULAN LALU'}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, display: 'block' }}>VS {prevMonthLabel.toUpperCase() || 'LAST MONTH'}</Text>
                             {vasMomPct !== null ? (
                                 <Text style={{ color: vasMomPct >= 0 ? '#10b981' : '#ef4444', fontWeight: 700, fontSize: 18 }}>
                                     {vasMomPct >= 0 ? '▲' : '▼'} {Math.abs(vasMomPct).toFixed(1)}%
@@ -722,7 +722,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     columns={[
                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 200 },
                         {
-                            title: 'Total Unloading (Hari)', dataIndex: 'total_unloading', key: 'total_unloading', width: 160, align: 'center' as const,
+                            title: 'Total Unloading (Days)', dataIndex: 'total_unloading', key: 'total_unloading', width: 160, align: 'center' as const,
                             render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span>
                         },
                         {
@@ -752,10 +752,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tidakTerjadwal: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
+                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tidakScheduled: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
                         enrichedArrivals.forEach((a: any) => {
                             const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakTerjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakScheduled: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
 
                             // Unique kedatangan key = brand|date|arrival_time (same as stat card)
                             const kedKey = `${a.brand}|${a.date}|${a.arrival_time}`;
@@ -770,7 +770,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                 if (arrival && arrival !== '-' && arrival <= sched) bMap[brand].tepatWaktu.add(kedKey);
                                 else if (arrival && arrival !== '-') bMap[brand].terlambat.add(kedKey);
                             } else {
-                                bMap[brand].tidakTerjadwal.add(kedKey);
+                                bMap[brand].tidakScheduled.add(kedKey);
                             }
 
                             const urg = (a.urgensi || '').trim().toUpperCase();
@@ -779,23 +779,23 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
                         // Merge cases
                         Object.entries(caseByBrand).forEach(([brand, cnt]) => {
-                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakTerjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakScheduled: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
                             bMap[brand].cases = cnt;
                         });
 
-                        // Total Kedatangan = unique kedatangan per brand (consistent with stat card)
-                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganKeys.size, terjadwal: v.terjadwal.size, tidakTerjadwal: v.tidakTerjadwal.size, tepatWaktu: v.tepatWaktu.size, terlambat: v.terlambat.size, cases: v.cases, urgensi: v.urgensi.size })).sort((a, b) => b.total - a.total);
-                        const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakTerjadwal: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
-                        rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakTerjadwal += r.tidakTerjadwal; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
+                        // Total Arrivals = unique kedatangan per brand (consistent with stat card)
+                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganKeys.size, terjadwal: v.terjadwal.size, tidakScheduled: v.tidakScheduled.size, tepatWaktu: v.tepatWaktu.size, terlambat: v.terlambat.size, cases: v.cases, urgensi: v.urgensi.size })).sort((a, b) => b.total - a.total);
+                        const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakScheduled: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
+                        rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakScheduled += r.tidakScheduled; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
                         return [totalRow, ...rows];
                     })()}
                     columns={[
                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                        { title: 'Total Kedatangan', dataIndex: 'total', key: 'total', width: 130, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#6366f1', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
-                        { title: 'Terjadwal', dataIndex: 'terjadwal', key: 'terjadwal', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 600 }}>{v || '-'}</span> },
-                        { title: 'Tidak Terjadwal', dataIndex: 'tidakTerjadwal', key: 'tidakTerjadwal', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
-                        { title: 'Tepat Waktu', dataIndex: 'tepatWaktu', key: 'tepatWaktu', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v || '-'}</span> },
-                        { title: 'Terlambat', dataIndex: 'terlambat', key: 'terlambat', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Total Arrivals', dataIndex: 'total', key: 'total', width: 130, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#6366f1', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                        { title: 'Scheduled', dataIndex: 'terjadwal', key: 'terjadwal', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Tidak Scheduled', dataIndex: 'tidakScheduled', key: 'tidakScheduled', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'On Time', dataIndex: 'tepatWaktu', key: 'tepatWaktu', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Late', dataIndex: 'terlambat', key: 'terlambat', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'Case', dataIndex: 'cases', key: 'cases', width: 80, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#ec4899', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
                         { title: 'Urgensi', dataIndex: 'urgensi', key: 'urgensi', width: 90, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#f97316', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
                     ]}
@@ -807,7 +807,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                 />
             </Card>}
 
-            {/* Tolakan Inbound Summary */}
+            {/* Inbound Rejection Summary */}
             {show('tolakan') && (() => {
                 // Merge BA-sourced rejections + manual rejections, filtered by dateRange
                 const baRejections: any[] = [];
@@ -845,7 +845,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
                 return (
                     <Card
-                        title={<span>🚫 Tolakan Inbound — Summary ({fRej.length} item)</span>}
+                        title={<span>🚫 Inbound Rejection — Summary ({fRej.length} item)</span>}
                         style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                         styles={{ header: { color: '#f87171' } }}
                     >
@@ -854,7 +854,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             columns={[
                                 { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 160, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                                 { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 80, align: 'center' as const, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span> },
-                                { title: 'Qty Ditolak', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#f87171', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                                { title: 'Rejected Qty', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#f87171', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
                             ]}
                             rowKey="key"
                             size="small"
@@ -872,7 +872,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
                 const caseMap: Record<string, { caseType: string; totalQty: number; brands: Set<string> }> = {};
                 fCases.forEach(c => {
-                    const caseType = (c.case || '').trim() || 'Lainnya';
+                    const caseType = (c.case || '').trim() || 'Others';
                     const brand = (c.brand || '').trim();
                     const qty = parseInt(c.qty) || 0;
                     if (!caseMap[caseType]) caseMap[caseType] = { caseType, totalQty: 0, brands: new Set() };
@@ -896,7 +896,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         <Table
                             dataSource={[totalRow, ...rows]}
                             columns={[
-                                { title: 'Jenis Case', dataIndex: 'caseType', key: 'caseType', width: 180, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                { title: 'Case Type', dataIndex: 'caseType', key: 'caseType', width: 180, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                                 { title: 'Brand', dataIndex: 'brandCount', key: 'brandCount', width: 80, align: 'center' as const, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span> },
                                 { title: 'Total Qty', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#ec4899', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
                             ]}

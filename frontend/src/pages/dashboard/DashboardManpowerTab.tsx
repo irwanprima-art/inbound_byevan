@@ -29,7 +29,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         'Receive': 'Inbound', 'STO': 'Inventory',
     };
 
-    const DIVISIONS = ['Inbound', 'Inventory', 'Return', 'Bongkaran/Project/Tambahan'];
+    const DIVISIONS = ['Inbound', 'Inventory', 'Return', 'Unloading/Project/Additional'];
 
     const getMonthKey = (dateStr: string) => {
         const d = dayjs(dateStr, 'YYYY-MM-DD');
@@ -43,7 +43,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         const jobdesc = (r.jobdesc || '').trim();
         const divisi = divisiMap[jobdesc] || '';
 
-        if (empStatus === 'Tambahan') return 'Bongkaran/Project/Tambahan';
+        if (empStatus === 'Tambahan') return 'Unloading/Project/Additional';
         if (empStatus === 'Reguler' && DIVISIONS.includes(divisi)) return divisi;
         return null;
     };
@@ -308,7 +308,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
         // Build chart data
         const DAY_SHORT: Record<string, string> = {
-            '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+            '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat',
         };
         const cData = sortedDates.map(date => {
             const d = dayjs(date);
@@ -323,7 +323,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
         // Build columns
         const DAY_NAMES: Record<string, string> = {
-            '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+            '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat',
         };
 
         const dateCols = sortedDates.map(date => {
@@ -376,7 +376,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
         const cols = [
             {
-                title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 180, fixed: 'left' as const,
+                title: 'Division', dataIndex: 'divisi', key: 'divisi', width: 180, fixed: 'left' as const,
                 render: (v: string, rec: any) => (
                     <span style={{
                         fontWeight: rec.isTotal || rec.isPlan || rec.isPct ? 700 : 500,
@@ -417,18 +417,18 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
     return (
         <>
             <Card
-                title="👷 Manpower Report — Monthly Headcount per Divisi"
+                title="👷 Manpower Report — Monthly Headcount per Division"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
                 extra={
                     <Space>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Sampai Bulan:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Up to Month:</span>
                         <DatePicker
                             picker="month"
                             value={maxMonthPick}
                             onChange={(val) => setMaxMonthPick(val)}
                             format="MMM YYYY"
-                            placeholder="Semua"
+                            placeholder="All"
                             allowClear
                             style={{ width: 140, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
                         />
@@ -439,7 +439,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     dataSource={tableRows}
                     columns={[
                         {
-                            title: 'Divisi', dataIndex: 'divisi', key: 'divisi', width: 200, fixed: 'left' as const,
+                            title: 'Division', dataIndex: 'divisi', key: 'divisi', width: 200, fixed: 'left' as const,
                             render: (v: string, rec: any) => (
                                 <span style={{
                                     fontWeight: rec.isTotal || rec.isPlan || rec.isPct ? 700 : 500,
@@ -473,13 +473,13 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                 styles={{ header: { color: '#fff' } }}
                 extra={
                     <Space>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Filter Bulan:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Filter Month:</span>
                         <Select
                             value={activeMonth || undefined}
                             onChange={(val) => setSelectedMonth(val)}
                             options={monthOptions}
                             style={{ width: 160 }}
-                            placeholder="Pilih Bulan"
+                            placeholder="Select Month"
                             allowClear
                             onClear={() => setSelectedMonth(null)}
                         />
@@ -532,13 +532,13 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     </ResponsiveContainer>
                 ) : (
                     <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)' }}>
-                        Tidak ada data untuk bulan ini
+                        No data available for this month
                     </div>
                 )}
             </Card>
 
             <Card
-                title={`📅 Daily Headcount per Divisi — ${activeMonthLabel}`}
+                title={`📅 Daily Headcount per Division — ${activeMonthLabel}`}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden' }}
                 styles={{ header: { color: '#fff' }, body: { overflow: 'hidden' } }}
             >
@@ -561,7 +561,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                 />
             </Card>
 
-            {/* Team Statistics (Reguler) */}
+            {/* Team Statistics (Regular) */}
             {activeMonth && !isPresentation && (() => {
                 // Build schedule lookup: nik|date → clock_in value
                 const schedLookup: Record<string, string> = {};
@@ -650,7 +650,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                     .sort((a, b) => a.name.localeCompare(b.name));
 
                 const DAY_NAMES: Record<string, string> = {
-                    '0': 'Min', '1': 'Sen', '2': 'Sel', '3': 'Rab', '4': 'Kam', '5': 'Jum', '6': 'Sab',
+                    '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat',
                 };
 
                 const teamCols: any[] = [
@@ -659,7 +659,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         render: (v: string) => <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{v}</span>,
                     },
                     {
-                        title: 'Nama', dataIndex: 'name', key: 'name', width: 170, fixed: 'left' as const,
+                        title: 'Name', dataIndex: 'name', key: 'name', width: 170, fixed: 'left' as const,
                         render: (v: string) => <span style={{ fontWeight: 600, color: '#fff' }}>{v}</span>,
                     },
                     ...sortedDates.map(date => {
@@ -680,11 +680,11 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                             width: 65,
                             align: 'center' as const,
                             render: (v: string) => {
-                                if (v === 'hadir') return <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 11 }}>Hadir</span>;
-                                if (v === 'tidak_hadir') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11 }}>Tidak Hadir</span>;
-                                if (v === 'hadir_luar_jadwal') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11, fontStyle: 'italic' }}>Hadir*</span>;
+                                if (v === 'hadir') return <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 11 }}>Present</span>;
+                                if (v === 'tidak_hadir') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11 }}>Absent</span>;
+                                if (v === 'hadir_luar_jadwal') return <span style={{ color: '#f87171', fontWeight: 600, fontSize: 11, fontStyle: 'italic' }}>Present*</span>;
                                 if (v === 'future') return <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11 }}>-</span>;
-                                return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>Libur</span>;
+                                return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>Day Off</span>;
                             },
                         };
                     }),
@@ -716,15 +716,15 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
 
                 return (
                     <Card
-                        title={`👥 Team Statistics (Reguler) — ${activeMonthLabel}`}
+                        title={`👥 Team Statistics (Regular) — ${activeMonthLabel}`}
                         style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                         styles={{ header: { color: '#fff' } }}
                         extra={
                             <Space style={{ fontSize: 11 }}>
-                                <span style={{ color: '#4ade80' }}>● Hadir</span>
-                                <span style={{ color: '#f87171' }}>● Tidak Hadir</span>
-                                <span style={{ color: '#f87171', fontStyle: 'italic' }}>● Hadir* (diluar jadwal)</span>
-                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>● Libur</span>
+                                <span style={{ color: '#4ade80' }}>● Present</span>
+                                <span style={{ color: '#f87171' }}>● Tidak Present</span>
+                                <span style={{ color: '#f87171', fontStyle: 'italic' }}>● Present* (unscheduled)</span>
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>● Day Off</span>
                             </Space>
                         }
                     >

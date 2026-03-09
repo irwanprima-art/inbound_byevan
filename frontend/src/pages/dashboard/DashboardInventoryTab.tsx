@@ -84,12 +84,12 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                     value={dateRange}
                     onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                     format="DD/MM/YYYY"
-                    placeholder={['Dari Tanggal', 'Sampai Tanggal']}
+                    placeholder={['From Date', 'To Date']}
                     allowClear
                     style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}
                 />
-                <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</AntButton>
-                <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</AntButton>
+                <AntButton size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>This Month</AntButton>
+                <AntButton size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Last Month</AntButton>
                 {dateRange && <AntButton size="small" danger onClick={() => setDateRange(null)}>Reset</AntButton>}
             </Space>}
 
