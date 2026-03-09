@@ -142,9 +142,11 @@ export default function PublicAgingPage() {
     const [sohList, setSohList] = useState<any[]>([]);
     const [locations, setLocations] = useState<any[]>([]);
     const [capturing, setCapturing] = useState<string | null>(null);
-    const edNoteRef = useRef<HTMLDivElement>(null);
+    const edNoteItemRef = useRef<HTMLDivElement>(null);
+    const edNoteGimmickRef = useRef<HTMLDivElement>(null);
     const criticalRef = useRef<HTMLDivElement>(null);
-    const agingRef = useRef<HTMLDivElement>(null);
+    const agingItemRef = useRef<HTMLDivElement>(null);
+    const agingGimmickRef = useRef<HTMLDivElement>(null);
 
     const captureSection = useCallback(async (ref: React.MutableRefObject<HTMLDivElement | null>, filename: string, label: string) => {
         if (!ref.current) return;
@@ -494,63 +496,57 @@ export default function PublicAgingPage() {
                         <Title level={3} style={{ color: '#fff', margin: 0 }}>📅 Aging Stock Report</Title>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             {latestUpdate && <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>📆 Data Update: {dayjs(latestUpdate).format('DD MMM YYYY')}</Text>}
-                            <Button
-                                icon={<CameraOutlined />}
-                                onClick={() => captureSection(edNoteRef, `aging_EDNote_report_${dayjs().format('YYYY-MM-DD')}.png`, 'ED Note')}
-                                loading={capturing === 'ED Note'}
-                                disabled={capturing !== null && capturing !== 'ED Note'}
-                                style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff', fontWeight: 600 }}
-                            >
-                                Screenshot ED Note
-                            </Button>
-                            <Button
-                                icon={<CameraOutlined />}
-                                onClick={() => captureSection(criticalRef, `aging_Critical_report_${dayjs().format('YYYY-MM-DD')}.png`, 'Critical')}
-                                loading={capturing === 'Critical'}
-                                disabled={capturing !== null && capturing !== 'Critical'}
-                                style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', fontWeight: 600 }}
-                            >
-                                Screenshot Critical
-                            </Button>
-                            <Button
-                                icon={<CameraOutlined />}
-                                onClick={() => captureSection(agingRef, `aging_Aging_report_${dayjs().format('YYYY-MM-DD')}.png`, 'Aging')}
-                                loading={capturing === 'Aging'}
-                                disabled={capturing !== null && capturing !== 'Aging'}
-                                style={{ background: '#f59e0b', borderColor: '#f59e0b', color: '#fff', fontWeight: 600 }}
-                            >
-                                Screenshot Aging
-                            </Button>
+                            <Button icon={<CameraOutlined />} onClick={() => captureSection(edNoteItemRef, `aging_EDNote_Item_${dayjs().format('YYYY-MM-DD')}.png`, 'ED Item')} loading={capturing === 'ED Item'} disabled={capturing !== null && capturing !== 'ED Item'} style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff', fontWeight: 600 }}>📅 ED Item</Button>
+                            <Button icon={<CameraOutlined />} onClick={() => captureSection(edNoteGimmickRef, `aging_EDNote_Gimmick_${dayjs().format('YYYY-MM-DD')}.png`, 'ED Gimmick')} loading={capturing === 'ED Gimmick'} disabled={capturing !== null && capturing !== 'ED Gimmick'} style={{ background: '#ec4899', borderColor: '#ec4899', color: '#fff', fontWeight: 600 }}>📅 ED Gimmick</Button>
+                            <Button icon={<CameraOutlined />} onClick={() => captureSection(criticalRef, `aging_Critical_${dayjs().format('YYYY-MM-DD')}.png`, 'Critical')} loading={capturing === 'Critical'} disabled={capturing !== null && capturing !== 'Critical'} style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', fontWeight: 600 }}>⚠️ Critical</Button>
+                            <Button icon={<CameraOutlined />} onClick={() => captureSection(agingItemRef, `aging_Aging_Item_${dayjs().format('YYYY-MM-DD')}.png`, 'Aging Item')} loading={capturing === 'Aging Item'} disabled={capturing !== null && capturing !== 'Aging Item'} style={{ background: '#3b82f6', borderColor: '#3b82f6', color: '#fff', fontWeight: 600 }}>📦 Aging Item</Button>
+                            <Button icon={<CameraOutlined />} onClick={() => captureSection(agingGimmickRef, `aging_Aging_Gimmick_${dayjs().format('YYYY-MM-DD')}.png`, 'Aging Gimmick')} loading={capturing === 'Aging Gimmick'} disabled={capturing !== null && capturing !== 'Aging Gimmick'} style={{ background: '#8b5cf6', borderColor: '#8b5cf6', color: '#fff', fontWeight: 600 }}>📦 Aging Gimmick</Button>
                         </div>
                     </div>
 
-                    {/* ED Note Section */}
-                    <div ref={edNoteRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8 }}>
+                    {/* ED Note ITEM Section */}
+                    <div ref={edNoteItemRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8 }}>
                         <div style={{ marginBottom: 16 }}>
-                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — ED Note &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — ED Note (ITEM) &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
-                        <Card title="📅 ED Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
-                            {[{ label: 'ITEM / Barang Jual', rows: edRowsItem, linkParam: 'ITEM,Barang Jual' }, { label: 'GIMMICK', rows: edRowsGimmick, linkParam: 'GIMMICK' }].map(({ label, rows, linkParam }) => (
-                                <div key={label} style={{ marginBottom: 20 }}>
-                                    <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
-                                        <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
-                                    </div>
-                                    <AgingBarChart rows={rows} categories={edCats} colorFn={edNoteColor} />
-                                    <ResizableTable dataSource={rows} columns={[
-                                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                                        ...edCats.map((cat: string) => ({
-                                            title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
-                                            dataIndex: cat, key: cat, width: 130,
-                                            render: (v: number, r: any) => v ? (
-                                                <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(linkParam)}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                                    {v.toLocaleString()}
-                                                </a>
-                                            ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                                        })),
-                                    ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
-                                        onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                                </div>
-                            ))}
+                        <Card title="📅 ED Note by Brand — ITEM / Barang Jual" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            <AgingBarChart rows={edRowsItem} categories={edCats} colorFn={edNoteColor} />
+                            <ResizableTable dataSource={edRowsItem} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...edCats.map((cat: string) => ({
+                                    title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
+                                    dataIndex: cat, key: cat, width: 130,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent('ITEM,Barang Jual')}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        </Card>
+                    </div>
+
+                    {/* ED Note GIMMICK Section */}
+                    <div ref={edNoteGimmickRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — ED Note (GIMMICK) &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                        </div>
+                        <Card title="📅 ED Note by Brand — GIMMICK" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            <AgingBarChart rows={edRowsGimmick} categories={edCats} colorFn={edNoteColor} />
+                            <ResizableTable dataSource={edRowsGimmick} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...edCats.map((cat: string) => ({
+                                    title: <span style={{ color: '#fff', background: edNoteColor(cat), padding: '2px 8px', borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap' as const }}>{cat}</span>,
+                                    dataIndex: cat, key: cat, width: 130,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?edNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent('GIMMICK')}`} style={{ color: r._isTotal ? '#fff' : edNoteColor(cat), fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
                     </div>
 
@@ -586,32 +582,47 @@ export default function PublicAgingPage() {
                         </Card>
                     )}
 
-                    {/* Aging Section: Aging Note + Aging W2W */}
-                    <div ref={agingRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
+                    {/* Aging Note ITEM Section */}
+                    <div ref={agingItemRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
                         <div style={{ marginBottom: 16 }}>
-                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging (ITEM) &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
                         </div>
-                        <Card title="📦 Aging Note by Brand" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
-                            {[{ label: 'ITEM / Barang Jual', rows: agingRowsItem, linkParam: 'ITEM,Barang Jual' }, { label: 'GIMMICK', rows: agingRowsGimmick, linkParam: 'GIMMICK' }].map(({ label, rows, linkParam }) => (
-                                <div key={label} style={{ marginBottom: 20 }}>
-                                    <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
-                                        <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
-                                    </div>
-                                    <AgingBarChart rows={rows} categories={agingCats} colorFn={getAgingColor} />
-                                    <ResizableTable dataSource={rows} columns={[
-                                        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                                        ...agingCats.map((cat: string) => ({
-                                            title: cat, dataIndex: cat, key: cat, width: 120,
-                                            render: (v: number, r: any) => v ? (
-                                                <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent(linkParam)}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
-                                                    {v.toLocaleString()}
-                                                </a>
-                                            ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
-                                        })),
-                                    ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
-                                        onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
-                                </div>
-                            ))}
+                        <Card title="📦 Aging Note by Brand — ITEM / Barang Jual" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            <AgingBarChart rows={agingRowsItem} categories={agingCats} colorFn={getAgingColor} />
+                            <ResizableTable dataSource={agingRowsItem} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...agingCats.map((cat: string) => ({
+                                    title: cat, dataIndex: cat, key: cat, width: 120,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent('ITEM,Barang Jual')}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
+                        </Card>
+                    </div>
+
+                    {/* Aging Note GIMMICK Section */}
+                    <div ref={agingGimmickRef} style={{ background: '#0d1117', padding: 16, borderRadius: 8, marginTop: 24 }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>📅 Aging Stock Report — Aging (GIMMICK) &nbsp;|&nbsp; {latestUpdate ? dayjs(latestUpdate).format('DD MMM YYYY') : ''}</Text>
+                        </div>
+                        <Card title="📦 Aging Note by Brand — GIMMICK" style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ header: { color: '#fff' }, body: { overflow: 'hidden', padding: '12px 16px' } }}>
+                            <AgingBarChart rows={agingRowsGimmick} categories={agingCats} colorFn={getAgingColor} />
+                            <ResizableTable dataSource={agingRowsGimmick} columns={[
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
+                                ...agingCats.map((cat: string) => ({
+                                    title: cat, dataIndex: cat, key: cat, width: 120,
+                                    render: (v: number, r: any) => v ? (
+                                        <a href={`/public/soh?agingNote=${encodeURIComponent(cat)}&locCategory=Sellable&skuCategory=${encodeURIComponent('GIMMICK')}`} style={{ color: r._isTotal ? '#fff' : '#60a5fa', fontWeight: 600, textDecoration: 'underline dotted' }}>
+                                            {v.toLocaleString()}
+                                        </a>
+                                    ) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>-</span>,
+                                })),
+                            ]} rowKey="key" size="small" scroll={{ x: 'max-content', y: 400 }} pagination={false}
+                                onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(99,102,241,0.18)', fontWeight: 700 } : undefined })} />
                         </Card>
                     </div>
 
