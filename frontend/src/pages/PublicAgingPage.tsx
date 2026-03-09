@@ -42,13 +42,8 @@ const edNoteColor = (note: string): string => {
     return '#6b7280';
 };
 
-// Format large numbers: 1500 -> "1.5K", 2300000 -> "2.3M", 1200000000 -> "1.2B"
-const formatQty = (v: number): string => {
-    if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-    if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-    return v.toString();
-};
+// Format numbers with thousand separators
+const formatQty = (v: number): string => v.toLocaleString();
 
 // Stacked bar chart component for aging/ED data
 const AgingBarChart = ({ rows, categories, colorFn }: { rows: any[]; categories: string[]; colorFn: (cat: string) => string }) => {
