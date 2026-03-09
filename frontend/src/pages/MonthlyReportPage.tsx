@@ -291,6 +291,59 @@ export default function MonthlyReportPage() {
             // Wait longer so Recharts SVGs & large Ant Design tables fully render
             setTimeout(resolve, 2500);
         });
+
+        // Pre-process: convert all SVGs to canvas images (html2canvas can't render SVG properly)
+        const svgs = container.querySelectorAll('svg');
+        for (const svg of Array.from(svgs)) {
+            try {
+                const svgRect = svg.getBoundingClientRect();
+                if (svgRect.width === 0 || svgRect.height === 0) continue;
+                // Inline all computed styles into SVG elements for accurate rendering
+                const deepClone = svg.cloneNode(true) as SVGElement;
+                const allEls = svg.querySelectorAll('*');
+                const cloneEls = deepClone.querySelectorAll('*');
+                allEls.forEach((el, idx) => {
+                    const cs = window.getComputedStyle(el);
+                    const clone = cloneEls[idx] as SVGElement;
+                    if (clone) {
+                        clone.setAttribute('style',
+                            `fill:${cs.fill};stroke:${cs.stroke};stroke-width:${cs.strokeWidth};` +
+                            `stroke-dasharray:${cs.strokeDasharray};opacity:${cs.opacity};` +
+                            `font-size:${cs.fontSize};font-family:${cs.fontFamily};font-weight:${cs.fontWeight};` +
+                            `visibility:${cs.visibility};display:${cs.display};`
+                        );
+                    }
+                });
+                // Set explicit dimensions on the SVG clone
+                deepClone.setAttribute('width', String(svgRect.width));
+                deepClone.setAttribute('height', String(svgRect.height));
+                const svgData = new XMLSerializer().serializeToString(deepClone);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                const img = new Image();
+                img.style.cssText = `width:${svgRect.width}px;height:${svgRect.height}px;`;
+                await new Promise<void>((resolve2, reject2) => {
+                    img.onload = () => resolve2();
+                    img.onerror = () => reject2();
+                    img.src = url;
+                });
+                // Draw onto a canvas for best compatibility
+                const cvs = document.createElement('canvas');
+                cvs.width = svgRect.width * 2;
+                cvs.height = svgRect.height * 2;
+                cvs.style.cssText = `width:${svgRect.width}px;height:${svgRect.height}px;`;
+                const ctx = cvs.getContext('2d');
+                if (ctx) {
+                    ctx.scale(2, 2);
+                    ctx.drawImage(img, 0, 0, svgRect.width, svgRect.height);
+                }
+                svg.parentNode?.replaceChild(cvs, svg);
+                URL.revokeObjectURL(url);
+            } catch {
+                // If SVG conversion fails, leave the original SVG
+            }
+        }
+
         // Capture actual rendered height (may be taller than 720px for tables)
         const actualHeight = Math.max(container.scrollHeight, _height);
         const canvas = await html2canvas(container, { backgroundColor: '#0a0e1a', width, height: actualHeight, scale: 2, useCORS: true, logging: false });
