@@ -51,6 +51,16 @@ const calcOvertime = (totalMin: number): string => {
     return formatMinutes(totalMin - 540); // workhour - 9:00
 };
 
+const calcRemarks = (clockIn: string, clockOut: string): string => {
+    if (!clockOut) return '-'; // still active
+    const totalMin = calcWorkhourMin(clockIn, clockOut);
+    if (totalMin <= 0) return 'Anomaly';
+    if (totalMin < 521) return 'Anomaly';     // below 8:41
+    if (totalMin <= 570) return 'Normal';      // 8:41 – 9:30
+    if (totalMin <= 720) return 'Overtime';    // 9:31 – 12:00
+    return 'Anomaly';                          // above 12:00
+};
+
 interface AttRecord { id: number; date: string; nik: string; name: string; jobdesc: string; clock_in: string; clock_out: string; status: string; }
 interface EmpRecord { nik: string; name: string; status: string; }
 
@@ -119,12 +129,12 @@ export default function AttendancePage() {
 
     // Export
     const handleExport = () => {
-        const hdr = ['date', 'nik', 'name', 'status_employee', 'jobdesc', 'divisi', 'clock_in', 'clock_out', 'shift', 'workhour', 'overtime'];
+        const hdr = ['date', 'nik', 'name', 'status_employee', 'jobdesc', 'divisi', 'clock_in', 'clock_out', 'shift', 'workhour', 'overtime', 'remarks'];
         const rows = filteredData.map(r => {
             const totalMin = calcWorkhourMin(r.clock_in, r.clock_out);
             const emp = empMap[r.nik?.toLowerCase()];
             return [r.date, r.nik, r.name, emp?.status || '', r.jobdesc, divisiMap[r.jobdesc] || '', r.clock_in, r.clock_out,
-            r.clock_in && parseInt(r.clock_in) < 12 ? 'Shift 1' : 'Shift 2', formatMinutes(totalMin), calcOvertime(totalMin),
+            r.clock_in && parseInt(r.clock_in) < 12 ? 'Shift 1' : 'Shift 2', formatMinutes(totalMin), calcOvertime(totalMin), calcRemarks(r.clock_in, r.clock_out),
             ].map(v => `"${v || ''}"`).join(',');
         });
         const blob = new Blob([hdr.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
@@ -240,6 +250,21 @@ export default function AttendancePage() {
                 if (!r.clock_out) return '-';
                 const ot = calcOvertime(min);
                 return ot !== '0:00' ? <Tag color="gold">{ot}</Tag> : '0:00';
+            },
+        },
+        {
+            title: 'Remarks', key: 'remarks', width: 100,
+            filters: [
+                { text: 'Normal', value: 'Normal' },
+                { text: 'Overtime', value: 'Overtime' },
+                { text: 'Anomaly', value: 'Anomaly' },
+            ],
+            onFilter: (value: any, r: AttRecord) => calcRemarks(r.clock_in, r.clock_out) === value,
+            render: (_: any, r: AttRecord) => {
+                const remark = calcRemarks(r.clock_in, r.clock_out);
+                if (remark === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                const color = remark === 'Normal' ? 'green' : remark === 'Overtime' ? 'gold' : 'red';
+                return <Tag color={color}>{remark}</Tag>;
             },
         },
         {
