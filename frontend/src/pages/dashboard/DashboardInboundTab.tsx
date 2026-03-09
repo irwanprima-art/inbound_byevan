@@ -429,9 +429,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             {show('plan_vs_po') && <Row gutter={[16, sections ? 6 : 16]} style={{ marginTop: sections ? 4 : 24, ...(sections ? { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)' } : {}) }}>
                 {([
-                    { label: '🏷️ Trade Items — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
+                    { label: '🏷️ Items — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true, itemType: 'Gimmick' },
-                    { label: '📎 ATK — Receive Qty per SKU (from Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false, itemType: 'ATK' },
+                    { label: '📎 ATK — Receive Qty per SKU', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false, itemType: 'ATK' },
                 ] as { label: string; data: typeof barangJualData; color: string; barName: string; showPlan: boolean; itemType: string }[]).map(({ label, data, color, barName, showPlan, itemType }) => {
                     // Compute total for current and previous month
                     const currentTotal = data.reduce((s, d) => s + d.po_qty, 0);
