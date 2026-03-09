@@ -822,44 +822,46 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                 brand: ba.kepada || '',
                                 sku: item.sku || item.SKU || '',
                                 qty: parseInt(item.qty || item.Qty || '1') || 1,
-                                catatan: item.catatan || item.note || ba.notes || '',
+                                notes: item.catatan || item.note || ba.notes || '',
                             });
                         });
                     });
-                const allRej = [...baRejections, ...rejections];
+                const allRej = [...baRejections, ...rejections.map((r: any) => ({ ...r, notes: r.notes || r.catatan || '' }))];
                 const fRej = allRej.filter(r => matchesDateRange(r.date));
 
                 if (fRej.length === 0) return null;
 
-                const brandMap: Record<string, { brand: string; skuCount: number; totalQty: number; skus: Set<string> }> = {};
-                fRej.forEach(r => {
-                    const brand = (r.brand || '').trim() || '-';
-                    const sku = (r.sku || '').trim();
-                    const qty = parseInt(r.qty) || 0;
-                    if (!brandMap[brand]) brandMap[brand] = { brand, skuCount: 0, totalQty: 0, skus: new Set() };
-                    if (sku && !brandMap[brand].skus.has(sku)) { brandMap[brand].skus.add(sku); brandMap[brand].skuCount++; }
-                    brandMap[brand].totalQty += qty;
-                });
-                const rows = Object.values(brandMap).map(({ brand, skuCount, totalQty }) => ({ brand, sku: skuCount, qty: totalQty, key: brand })).sort((a, b) => b.qty - a.qty);
-                const totalRow = { brand: 'TOTAL', sku: rows.reduce((s, r) => s + r.sku, 0), qty: rows.reduce((s, r) => s + r.qty, 0), key: '_TOTAL', _isTotal: true };
+                // Detail rows with index key
+                const detailRows = fRej.map((r, i) => ({
+                    key: `rej_${i}`,
+                    date: r.date || '-',
+                    brand: (r.brand || '').trim() || '-',
+                    sku: (r.sku || '').trim() || '-',
+                    qty: parseInt(r.qty) || 0,
+                    notes: (r.notes || '').trim() || '-',
+                })).sort((a, b) => b.qty - a.qty);
+
+                const totalQty = detailRows.reduce((s, r) => s + r.qty, 0);
 
                 return (
                     <Card
-                        title={<span>🚫 Inbound Rejection — Summary ({fRej.length} item)</span>}
+                        title={<span>🚫 Inbound Rejection — Detail ({fRej.length} items, Total Qty: {totalQty.toLocaleString()})</span>}
                         style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24 }}
                         styles={{ header: { color: '#f87171' } }}
                     >
                         <Table
-                            dataSource={[totalRow, ...rows]}
+                            dataSource={detailRows}
                             columns={[
-                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 160, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
-                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 80, align: 'center' as const, render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</span> },
-                                { title: 'Rejected Qty', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#f87171', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
+                                { title: 'Date', dataIndex: 'date', key: 'date', width: 110 },
+                                { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 130 },
+                                { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 160 },
+                                { title: 'Rejected Qty', dataIndex: 'qty', key: 'qty', width: 100, align: 'center' as const, render: (v: number) => <span style={{ color: '#f87171', fontWeight: 600 }}>{v}</span> },
+                                { title: 'Notes', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v: string) => <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{v}</span> },
                             ]}
                             rowKey="key"
                             size="small"
                             pagination={false}
-                            onRow={(record: any) => ({ style: record._isTotal ? { background: 'rgba(248,113,113,0.1)', fontWeight: 700 } : undefined })}
+                            scroll={{ x: 'max-content', y: sections ? undefined : 300 }}
                         />
                     </Card>
                 );
