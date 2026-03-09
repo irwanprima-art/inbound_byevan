@@ -406,7 +406,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         dataSource={pendingArrivals}
                         columns={[
                             { title: 'Arrival Date', dataIndex: 'date', key: 'date', width: 110 },
-                            { title: 'Waktu', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
+                            { title: 'Time', dataIndex: 'arrival_time', key: 'arrival_time', width: 90 },
                             { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
                             { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 130 },
                             { title: 'PO No', dataIndex: 'po_no', key: 'po_no', width: 130 },
@@ -429,9 +429,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
 
             {show('plan_vs_po') && <Row gutter={[16, sections ? 6 : 16]} style={{ marginTop: sections ? 4 : 24, ...(sections ? { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)' } : {}) }}>
                 {([
-                    { label: '🏷️ Barang Jual — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
+                    { label: '🏷️ Trade Items — Plan Qty vs PO Qty per Brand', data: barangJualData, color: '#3b82f6', barName: 'PO Qty', showPlan: true, itemType: 'Barang Jual' },
                     { label: '🎁 Gimmick — Plan Qty vs PO Qty per Brand', data: gimmickData, color: '#a78bfa', barName: 'PO Qty', showPlan: true, itemType: 'Gimmick' },
-                    { label: '📎 ATK — Receive Qty per SKU (dari Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false, itemType: 'ATK' },
+                    { label: '📎 ATK — Receive Qty per SKU (from Inbound Transaction)', data: atkData, color: '#f59e0b', barName: 'Receive Qty', showPlan: false, itemType: 'ATK' },
                 ] as { label: string; data: typeof barangJualData; color: string; barName: string; showPlan: boolean; itemType: string }[]).map(({ label, data, color, barName, showPlan, itemType }) => {
                     // Compute total for current and previous month
                     const currentTotal = data.reduce((s, d) => s + d.po_qty, 0);
@@ -463,7 +463,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                                     </div>
                                 ) : (
                                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available {label.split('—')[0].trim()}</Text>
+                                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available for {label.split('—')[0].trim()}</Text>
                                     </div>
                                 )}
                                 <div style={{ marginTop: sections ? 4 : 12, padding: sections ? '4px 12px' : '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -620,7 +620,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </ResponsiveContainer>
                 ) : (
                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available VAS</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No VAS data available</Text>
                     </div>
                 )}
                 <Row gutter={8} style={{ marginTop: 16 }}>
@@ -670,7 +670,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                     </ResponsiveContainer>
                 ) : (
                     <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No data available VAS</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)' }}>No VAS data available</Text>
                     </div>
                 )}
                 <Row gutter={8} style={{ marginTop: 16 }}>
@@ -793,11 +793,11 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                         { title: 'Total Arrivals', dataIndex: 'total', key: 'total', width: 130, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#6366f1', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
                         { title: 'Scheduled', dataIndex: 'terjadwal', key: 'terjadwal', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 600 }}>{v || '-'}</span> },
-                        { title: 'Tidak Scheduled', dataIndex: 'tidakScheduled', key: 'tidakScheduled', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Unscheduled', dataIndex: 'tidakTerjadwal', key: 'tidakScheduled', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'On Time', dataIndex: 'tepatWaktu', key: 'tepatWaktu', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'Late', dataIndex: 'terlambat', key: 'terlambat', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'Case', dataIndex: 'cases', key: 'cases', width: 80, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#ec4899', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
-                        { title: 'Urgensi', dataIndex: 'urgensi', key: 'urgensi', width: 90, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#f97316', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
+                        { title: 'Urgency', dataIndex: 'urgensi', key: 'urgensi', width: 90, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#f97316', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
                     ]}
                     rowKey="key"
                     size="small"
