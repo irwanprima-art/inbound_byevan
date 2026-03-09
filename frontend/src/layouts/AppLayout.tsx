@@ -356,7 +356,7 @@ export default function AppLayout() {
                     justifyContent: 'space-between',
                     position: 'sticky',
                     top: 0,
-                    zIndex: 10,
+                    zIndex: 50,
                 }}>
                     <Space>
                         <Button
@@ -396,7 +396,7 @@ export default function AppLayout() {
                     alignItems: 'flex-end',
                     position: 'sticky',
                     top: 64,
-                    zIndex: 10,
+                    zIndex: 49,
                 }}>
                     {openTabs.map(tab => (
                         <div
