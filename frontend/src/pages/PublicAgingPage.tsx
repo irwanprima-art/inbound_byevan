@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Typography, Spin, Card, Tag, ConfigProvider, theme, Button, message } from 'antd';
 import { CameraOutlined } from '@ant-design/icons';
 import ResizableTable from '../components/ResizableTable';
 import { publicApi } from '../api/client';
 import dayjs from 'dayjs';
 import html2canvas from 'html2canvas';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
 const { Title, Text } = Typography;
 
@@ -39,6 +40,106 @@ const edNoteColor = (note: string): string => {
     if (note === '1yr++') return '#06b6d4';
     if (note === 'No Expiry Date') return '#a855f7';
     return '#6b7280';
+};
+
+// Format large numbers: 1500 -> "1.5K", 2300000 -> "2.3M", 1200000000 -> "1.2B"
+const formatQty = (v: number): string => {
+    if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+    return v.toString();
+};
+
+// Stacked bar chart component for aging/ED data
+const AgingBarChart = ({ rows, categories, colorFn }: { rows: any[]; categories: string[]; colorFn: (cat: string) => string }) => {
+    const chartData = useMemo(() => {
+        // Filter out TOTAL row, compute total per brand, sort descending
+        const dataRows = rows.filter((r: any) => !r._isTotal);
+        return dataRows
+            .map((r: any) => {
+                const entry: any = { brand: r.brand };
+                let total = 0;
+                categories.forEach(cat => {
+                    const val = Number(r[cat]) || 0;
+                    entry[cat] = val;
+                    total += val;
+                });
+                entry._total = total;
+                return entry;
+            })
+            .filter((e: any) => e._total > 0)
+            .sort((a: any, b: any) => b._total - a._total);
+    }, [rows, categories]);
+
+    if (chartData.length === 0) return null;
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (!active || !payload?.length) return null;
+        const total = payload.reduce((s: number, p: any) => s + (p.value || 0), 0);
+        return (
+            <div style={{ background: '#1e2340', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+                <div style={{ color: '#fff', fontWeight: 700, marginBottom: 6, fontSize: 13 }}>{label}</div>
+                {payload.filter((p: any) => p.value > 0).map((p: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 12, marginBottom: 2 }}>
+                        <span style={{ color: p.color }}>{p.name}</span>
+                        <span style={{ color: '#fff', fontWeight: 600 }}>{Number(p.value).toLocaleString()}</span>
+                    </div>
+                ))}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>Total</span>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{total.toLocaleString()}</span>
+                </div>
+            </div>
+        );
+    };
+
+    // Custom label renderer that shows total on top of each bar
+    const renderTopLabel = (props: any) => {
+        const { x, y, width, index } = props;
+        const total = chartData[index]?._total;
+        if (!total) return null;
+        return (
+            <text x={x + width / 2} y={y - 6} textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={11} fontWeight={600}>
+                {formatQty(total)}
+            </text>
+        );
+    };
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <ResponsiveContainer width="100%" height={Math.min(350, Math.max(220, chartData.length * 30 + 80))}>
+                <BarChart data={chartData} margin={{ top: 24, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis
+                        dataKey="brand"
+                        tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                        tickLine={false}
+                        interval={0}
+                        angle={chartData.length > 12 ? -35 : 0}
+                        textAnchor={chartData.length > 12 ? 'end' : 'middle'}
+                        height={chartData.length > 12 ? 60 : 30}
+                    />
+                    <YAxis
+                        tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                        tickLine={false}
+                        tickFormatter={formatQty}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Legend
+                        wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', paddingTop: 8 }}
+                        formatter={(value: string) => <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{value}</span>}
+                    />
+                    {categories.map((cat, idx) => (
+                        <Bar key={cat} dataKey={cat} stackId="a" fill={colorFn(cat)} name={cat} radius={idx === categories.length - 1 ? [3, 3, 0, 0] : undefined}>
+                            {idx === categories.length - 1 && <LabelList content={renderTopLabel} />}
+                        </Bar>
+                    ))}
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 };
 
 export default function PublicAgingPage() {
@@ -439,6 +540,7 @@ export default function PublicAgingPage() {
                                     <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
                                         <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
                                     </div>
+                                    <AgingBarChart rows={rows} categories={edCats} colorFn={edNoteColor} />
                                     <ResizableTable dataSource={rows} columns={[
                                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                                         ...edCats.map((cat: string) => ({
@@ -500,6 +602,7 @@ export default function PublicAgingPage() {
                                     <div style={{ background: 'rgba(99,102,241,0.15)', borderLeft: '3px solid #6366f1', padding: '4px 10px', marginBottom: 8, borderRadius: 2 }}>
                                         <Text style={{ color: '#a5b4fc', fontWeight: 700, fontSize: 12 }}>{label}</Text>
                                     </div>
+                                    <AgingBarChart rows={rows} categories={agingCats} colorFn={getAgingColor} />
                                     <ResizableTable dataSource={rows} columns={[
                                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                                         ...agingCats.map((cat: string) => ({
