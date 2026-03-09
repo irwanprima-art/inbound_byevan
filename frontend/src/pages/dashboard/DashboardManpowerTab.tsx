@@ -722,7 +722,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
                         extra={
                             <Space style={{ fontSize: 11 }}>
                                 <span style={{ color: '#4ade80' }}>● Present</span>
-                                <span style={{ color: '#f87171' }}>● Tidak Present</span>
+                                <span style={{ color: '#f87171' }}>● Absent</span>
                                 <span style={{ color: '#f87171', fontStyle: 'italic' }}>● Present* (unscheduled)</span>
                                 <span style={{ color: 'rgba(255,255,255,0.4)' }}>● Day Off</span>
                             </Space>
