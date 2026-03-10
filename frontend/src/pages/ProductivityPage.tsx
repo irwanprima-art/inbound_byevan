@@ -432,8 +432,8 @@ export default function ProductivityPage() {
 <head>
   <meta charset="UTF-8">
   <title>Productivity Leaderboard — ${period}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #0d1117; color: #fff; padding: 24px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     h1 { text-align: center; font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-bottom: 4px; }
@@ -470,25 +470,23 @@ export default function ProductivityPage() {
     ${categories.map(renderCategory).join('')}
   </div>
   <div class="footer">Warehouse Report & Monitoring System — Inbound Byevan</div>
-  <script>window.onload = () => window.print();</script>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 800);
+    };
+    window.onafterprint = function() { window.close(); };
+  </script>
 </body>
 </html>`;
 
-        // Use hidden iframe to avoid popup blocker
-        const iframe = document.createElement('iframe');
-        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-        document.body.appendChild(iframe);
-        const doc = iframe.contentWindow?.document;
-        if (doc) {
-            doc.open();
-            doc.write(html);
-            doc.close();
-            // Wait for content to render then print
-            setTimeout(() => {
-                iframe.contentWindow?.print();
-                // Remove iframe after print dialog closes
-                setTimeout(() => document.body.removeChild(iframe), 1000);
-            }, 500);
+        // Open new window for reliable printing
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+        } else {
+            message.error('Popup diblokir oleh browser. Silakan izinkan popup untuk mencetak.');
         }
     };
 
