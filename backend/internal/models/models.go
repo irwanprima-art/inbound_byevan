@@ -134,6 +134,7 @@ type Vas struct {
 	Qty       int            `gorm:"column:qty" json:"qty" binding:"min=0"`
 	Operator  string         `gorm:"column:operator" json:"operator"`
 	ItemType  string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
+	Status    string         `gorm:"column:status;default:completed" json:"status"`
 	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

@@ -6,7 +6,7 @@ import {
 import {
     PlayCircleOutlined, CheckCircleOutlined, ReloadOutlined, SearchOutlined,
     EditOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, PlusOutlined,
-    CloseOutlined, ClearOutlined,
+    CloseOutlined, ClearOutlined, LoadingOutlined,
 } from '@ant-design/icons';
 import { vasApi, employeesApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
@@ -30,6 +30,7 @@ interface ActiveTask {
     startTs: number;
     expanded: boolean;
     items: TaskItem[];
+    dbIds: number[];  // backend VAS record IDs for each item
 }
 
 export default function VasPage() {
@@ -66,13 +67,58 @@ export default function VasPage() {
     // ─── Employees for operator dropdown ────
     const [employees, setEmployees] = useState<any[]>([]);
 
+    // Track which db IDs are already mapped to active tasks
+    const activeDbIdsRef = useRef<Set<number>>(new Set());
+
     // ─── Data fetching ─────────────────────────
     const fetchData = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
             const [vasRes, empRes] = await Promise.all([vasApi.list(), employeesApi.list()]);
-            setData(vasRes.data || []);
+            const allData: any[] = vasRes.data || [];
+            setData(allData);
             setEmployees((empRes.data || []).filter((e: any) => e.is_active !== 'Inactive'));
+
+            // Reconstruct active tasks from running records not already tracked
+            const runningRecords = allData.filter((r: any) => r.status === 'running' && !activeDbIdsRef.current.has(r.id));
+            if (runningRecords.length > 0) {
+                // Group by operator + start_time to reconstruct multi-SKU tasks
+                const groups: Record<string, any[]> = {};
+                runningRecords.forEach((r: any) => {
+                    const key = `${r.operator}__${r.start_time}`;
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(r);
+                });
+                const newTasks: ActiveTask[] = [];
+                Object.values(groups).forEach((records: any[]) => {
+                    const first = records[0];
+                    const startTs = dayjs(first.start_time, 'YYYY-MM-DD HH:mm:ss').valueOf();
+                    const dbIds = records.map((r: any) => r.id);
+                    dbIds.forEach((id: number) => activeDbIdsRef.current.add(id));
+                    newTasks.push({
+                        id: `task_db_${first.id}`,
+                        operator: first.operator,
+                        startTime: first.start_time,
+                        startTs: startTs,
+                        expanded: false,
+                        items: records.map((r: any) => ({
+                            brand: r.brand,
+                            sku: r.sku,
+                            vas_type: r.vas_type,
+                            item_type: r.item_type || 'Barang Jual',
+                        })),
+                        dbIds,
+                    });
+                });
+                if (newTasks.length > 0) {
+                    setActiveTasks(prev => {
+                        // Only add tasks whose IDs are not already in state
+                        const existingIds = new Set(prev.map(t => t.id));
+                        const toAdd = newTasks.filter(t => !existingIds.has(t.id));
+                        return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+                    });
+                }
+            }
         } catch {
             if (!silent) message.error('Gagal memuat data');
         } finally {
@@ -112,16 +158,38 @@ export default function VasPage() {
         try {
             const vals = await swForm.validateFields();
             const now = dayjs();
+            const startTime = now.format('YYYY-MM-DD HH:mm:ss');
+            const dateStr = now.format('YYYY-MM-DD');
+
+            // Save running record to backend immediately
+            const record = {
+                date: dateStr,
+                start_time: startTime,
+                end_time: '',
+                brand: vals.brand,
+                sku: vals.sku,
+                vas_type: vals.vas_type,
+                item_type: vals.item_type || 'Barang Jual',
+                qty: 0,
+                operator: vals.operator,
+                status: 'running',
+            };
+            const res = await vasApi.create(record);
+            const dbId = res.data?.id;
+            if (dbId) activeDbIdsRef.current.add(dbId);
+
             const task: ActiveTask = {
                 id: `task_${Date.now()}`,
                 operator: vals.operator,
-                startTime: now.format('YYYY-MM-DD HH:mm:ss'),
+                startTime: startTime,
                 startTs: Date.now(),
                 expanded: false,
                 items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }],
+                dbIds: dbId ? [dbId] : [],
             };
             setActiveTasks(prev => [...prev, task]);
             swForm.resetFields();
+            fetchData(true);
             message.success(`⏱ Task started — ${vals.operator} melakukan ${vals.vas_type}`);
         } catch {
             message.error('Isi Brand, SKU, VAS Type, dan Operator dulu!');
@@ -132,13 +200,39 @@ export default function VasPage() {
     const handleAddSku = async (taskId: string) => {
         try {
             const vals = await addSkuForm.validateFields();
+            // Find the parent task to get operator + startTime
+            const parentTask = activeTasks.find(t => t.id === taskId);
+            if (!parentTask) return;
+
+            // Save running record to backend
+            const record = {
+                date: dayjs(parentTask.startTime, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD'),
+                start_time: parentTask.startTime,
+                end_time: '',
+                brand: vals.brand,
+                sku: vals.sku,
+                vas_type: vals.vas_type,
+                item_type: vals.item_type || 'Barang Jual',
+                qty: 0,
+                operator: parentTask.operator,
+                status: 'running',
+            };
+            const res = await vasApi.create(record);
+            const dbId = res.data?.id;
+            if (dbId) activeDbIdsRef.current.add(dbId);
+
             setActiveTasks(prev => prev.map(t =>
                 t.id === taskId
-                    ? { ...t, items: [...t.items, { brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }] }
+                    ? {
+                        ...t,
+                        items: [...t.items, { brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }],
+                        dbIds: [...t.dbIds, ...(dbId ? [dbId] : [])],
+                    }
                     : t
             ));
             addSkuForm.resetFields();
             setAddSkuTaskId(null);
+            fetchData(true);
             message.success('SKU ditambahkan ke task');
         } catch {
             message.error('Isi Brand, SKU, dan VAS Type!');
@@ -146,12 +240,26 @@ export default function VasPage() {
     };
 
     // ─── Remove SKU item from task ─────────────
-    const handleRemoveItem = (taskId: string, itemIdx: number) => {
+    const handleRemoveItem = async (taskId: string, itemIdx: number) => {
+        const task = activeTasks.find(t => t.id === taskId);
+        if (!task || task.items.length <= 1) return;
+        // Delete the backend record for this item
+        const dbId = task.dbIds[itemIdx];
+        if (dbId) {
+            try {
+                await vasApi.remove(dbId);
+                activeDbIdsRef.current.delete(dbId);
+            } catch { /* ignore */ }
+        }
         setActiveTasks(prev => prev.map(t => {
             if (t.id !== taskId) return t;
-            if (t.items.length <= 1) return t; // can't remove last item
-            return { ...t, items: t.items.filter((_, i) => i !== itemIdx) };
+            return {
+                ...t,
+                items: t.items.filter((_, i) => i !== itemIdx),
+                dbIds: t.dbIds.filter((_, i) => i !== itemIdx),
+            };
         }));
+        fetchData(true);
     };
 
     // ─── Toggle expand/collapse card ───────────
@@ -172,24 +280,36 @@ export default function VasPage() {
         if (!qtyModalTask) return;
         try {
             const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-            const dateStr = dayjs().format('YYYY-MM-DD');
 
-            // Save one record per item
+            // Update existing running records to completed
             for (let i = 0; i < qtyModalTask.items.length; i++) {
                 const item = qtyModalTask.items[i];
                 const qty = finishQtys[i] || 1;
-                const record = {
-                    date: dateStr,
-                    start_time: qtyModalTask.startTime,
-                    end_time: endTime,
-                    brand: item.brand,
-                    sku: item.sku,
-                    vas_type: item.vas_type,
-                    item_type: item.item_type,
-                    qty,
-                    operator: qtyModalTask.operator,
-                };
-                await vasApi.create(record);
+                const dbId = qtyModalTask.dbIds[i];
+
+                if (dbId) {
+                    // Update existing running record
+                    await vasApi.update(dbId, {
+                        end_time: endTime,
+                        qty,
+                        status: 'completed',
+                    });
+                    activeDbIdsRef.current.delete(dbId);
+                } else {
+                    // Fallback: create new record if no dbId
+                    await vasApi.create({
+                        date: dayjs(qtyModalTask.startTime, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD'),
+                        start_time: qtyModalTask.startTime,
+                        end_time: endTime,
+                        brand: item.brand,
+                        sku: item.sku,
+                        vas_type: item.vas_type,
+                        item_type: item.item_type,
+                        qty,
+                        operator: qtyModalTask.operator,
+                        status: 'completed',
+                    });
+                }
             }
 
             message.success(`✅ ${qtyModalTask.operator} — ${qtyModalTask.items.length} SKU selesai!`);
@@ -204,8 +324,19 @@ export default function VasPage() {
     };
 
     // ─── Cancel / remove active task ──────────
-    const handleCancelTask = (taskId: string) => {
+    const handleCancelTask = async (taskId: string) => {
+        const task = activeTasks.find(t => t.id === taskId);
+        if (task) {
+            // Delete running records from backend
+            for (const dbId of task.dbIds) {
+                try {
+                    await vasApi.remove(dbId);
+                    activeDbIdsRef.current.delete(dbId);
+                } catch { /* ignore */ }
+            }
+        }
         setActiveTasks(prev => prev.filter(t => t.id !== taskId));
+        fetchData(true);
         message.info('Task dibatalkan');
     };
 
@@ -239,8 +370,13 @@ export default function VasPage() {
         { title: 'Start Time', dataIndex: 'start_time', key: 'start_time', width: 170 },
         { title: 'End Time', dataIndex: 'end_time', key: 'end_time', width: 170 },
         {
-            title: 'Duration', key: 'duration', width: 100,
-            render: (_: any, r: any) => <Tag color="blue">{computeDuration(r.start_time, r.end_time)}</Tag>,
+            title: 'Duration', key: 'duration', width: 120,
+            render: (_: any, r: any) => {
+                if (r.status === 'running') {
+                    return <Tag icon={<LoadingOutlined spin />} color="orange">Sedang Berjalan</Tag>;
+                }
+                return <Tag color="blue">{computeDuration(r.start_time, r.end_time)}</Tag>;
+            },
         },
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
         { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120 },
@@ -248,6 +384,14 @@ export default function VasPage() {
         { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80, sorter: (a: any, b: any) => a.qty - b.qty },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
         { title: 'Item Type', dataIndex: 'item_type', key: 'item_type', width: 120, render: (v: string) => <Tag color={v === 'Gimmick' ? 'orange' : 'green'}>{v || 'Barang Jual'}</Tag> },
+        {
+            title: 'Status', dataIndex: 'status', key: 'status', width: 120,
+            render: (v: string) => v === 'running'
+                ? <Tag icon={<LoadingOutlined spin />} color="orange">Running</Tag>
+                : <Tag color="green">Completed</Tag>,
+            filters: [{ text: 'Running', value: 'running' }, { text: 'Completed', value: 'completed' }],
+            onFilter: (value: any, record: any) => record.status === value,
+        },
         {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
@@ -343,11 +487,11 @@ export default function VasPage() {
 
     // ─── Export / Import CSV ──────────────────
     const handleExport = () => {
-        const headers = ['date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type'];
+        const headers = ['date', 'start_time', 'end_time', 'duration', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type', 'status'];
         const csv = '\uFEFF' + headers.join(',') + '\n' +
             data.map((r: any) => {
                 const dur = computeDuration(r.start_time, r.end_time);
-                return [r.date, r.start_time, r.end_time, dur, r.brand, r.sku, r.vas_type, r.qty, r.operator, r.item_type || 'Barang Jual']
+                return [r.date, r.start_time, r.end_time, dur, r.brand, r.sku, r.vas_type, r.qty, r.operator, r.item_type || 'Barang Jual', r.status || 'completed']
                     .map(v => `"${v ?? ''}"`).join(',');
             }).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
