@@ -470,23 +470,34 @@ export default function ProductivityPage() {
     ${categories.map(renderCategory).join('')}
   </div>
   <div class="footer">Warehouse Report & Monitoring System — Inbound Byevan</div>
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 800);
-    };
-    window.onafterprint = function() { window.close(); };
-  </script>
 </body>
 </html>`;
 
-        // Open new window for reliable printing
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(html);
-            printWindow.document.close();
+        // Use visible iframe overlay — not blocked by popup blockers
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;border:none;background:#0d1117;';
+        document.body.appendChild(iframe);
+        const iframeDoc = iframe.contentWindow?.document;
+        if (iframeDoc) {
+            iframeDoc.open();
+            iframeDoc.write(html);
+            iframeDoc.close();
+            // Wait for fonts and content to load, then print
+            const tryPrint = () => {
+                try {
+                    iframe.contentWindow?.focus();
+                    iframe.contentWindow?.print();
+                } catch { /* ignore */ }
+                // Remove iframe after print dialog closes
+                setTimeout(() => {
+                    try { document.body.removeChild(iframe); } catch { /* already removed */ }
+                }, 500);
+            };
+            // Give time for fonts/content to render
+            setTimeout(tryPrint, 1200);
         } else {
-            message.error('Popup diblokir oleh browser. Silakan izinkan popup untuk mencetak.');
+            document.body.removeChild(iframe);
+            message.error('Gagal membuat preview cetak');
         }
     };
 
