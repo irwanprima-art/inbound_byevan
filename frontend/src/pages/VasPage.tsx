@@ -31,6 +31,7 @@ interface ActiveTask {
     expanded: boolean;
     items: TaskItem[];
     dbIds: number[];  // backend VAS record IDs for each item
+    startedBy: string; // username of the account that started this task
 }
 
 export default function VasPage() {
@@ -108,6 +109,7 @@ export default function VasPage() {
                             item_type: r.item_type || 'Barang Jual',
                         })),
                         dbIds,
+                        startedBy: first.updated_by || '',
                     });
                 });
                 if (newTasks.length > 0) {
@@ -173,6 +175,7 @@ export default function VasPage() {
                 qty: 0,
                 operator: vals.operator,
                 status: 'running',
+                updated_by: user?.username || '',
             };
             const res = await vasApi.create(record);
             const dbId = res.data?.id;
@@ -186,6 +189,7 @@ export default function VasPage() {
                 expanded: false,
                 items: [{ brand: vals.brand, sku: vals.sku, vas_type: vals.vas_type, item_type: vals.item_type || 'Barang Jual' }],
                 dbIds: dbId ? [dbId] : [],
+                startedBy: user?.username || '',
             };
             setActiveTasks(prev => [...prev, task]);
             swForm.resetFields();
@@ -216,6 +220,7 @@ export default function VasPage() {
                 qty: 0,
                 operator: parentTask.operator,
                 status: 'running',
+                updated_by: user?.username || '',
             };
             const res = await vasApi.create(record);
             const dbId = res.data?.id;
@@ -633,6 +638,7 @@ export default function VasPage() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                         {activeTasks.map(task => {
                             const sec = elapsed[task.id] || 0;
+                            const isOwner = isSupervisor || user?.username === task.startedBy;
                             if (task.expanded) {
                                 // ── Expanded card ──
                                 return (
@@ -645,6 +651,9 @@ export default function VasPage() {
                                                 <Text style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>
                                                     — {task.items.length} SKU
                                                 </Text>
+                                                {!isOwner && (
+                                                    <Tag color="default" style={{ marginLeft: 8, fontSize: 10 }}>oleh {task.startedBy}</Tag>
+                                                )}
                                             </div>
                                             <Button type="text" icon={<CloseOutlined />}
                                                 onClick={() => toggleExpand(task.id)}
@@ -678,7 +687,7 @@ export default function VasPage() {
                                                             <Tag color={item.item_type === 'Gimmick' ? 'orange' : 'green'} style={{ margin: 0, fontSize: 10 }}>{item.item_type}</Tag>
                                                             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.brand}</Text>
                                                             <Text style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{item.sku}</Text>
-                                                            {task.items.length > 1 && (
+                                                            {isOwner && task.items.length > 1 && (
                                                                 <Button type="text" size="small"
                                                                     icon={<CloseOutlined style={{ fontSize: 10 }} />}
                                                                     onClick={() => handleRemoveItem(task.id, idx)}
@@ -689,8 +698,8 @@ export default function VasPage() {
                                                     ))}
                                                 </div>
 
-                                                {/* Add SKU inline form */}
-                                                {addSkuTaskId === task.id ? (
+                                                {/* Add SKU inline form (only for owner) */}
+                                                {isOwner && (addSkuTaskId === task.id ? (
                                                     <Form form={addSkuForm} layout="inline" style={{ marginTop: 8 }}>
                                                         <Form.Item name="brand" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
                                                             <Input placeholder="Brand" size="small" style={{ width: 80 }} />
@@ -724,24 +733,30 @@ export default function VasPage() {
                                                         style={{ marginTop: 8, borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', borderRadius: 6 }}>
                                                         Tambah SKU lain
                                                     </Button>
-                                                )}
+                                                ))}
                                             </Col>
                                             <Col span={6} style={{ textAlign: 'right' }}>
-                                                <Space>
-                                                    <Button
-                                                        type="primary" icon={<CheckCircleOutlined />}
-                                                        onClick={() => handleFinish(task)}
-                                                        style={{
-                                                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                                            border: 'none', borderRadius: 10, height: 40, fontWeight: 700,
-                                                        }}
-                                                    >
-                                                        FINISH
-                                                    </Button>
-                                                    <Popconfirm title="Batalkan task ini?" onConfirm={() => handleCancelTask(task.id)}>
-                                                        <Button danger style={{ borderRadius: 10, height: 40 }}>Cancel</Button>
-                                                    </Popconfirm>
-                                                </Space>
+                                                {isOwner ? (
+                                                    <Space>
+                                                        <Button
+                                                            type="primary" icon={<CheckCircleOutlined />}
+                                                            onClick={() => handleFinish(task)}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                                                border: 'none', borderRadius: 10, height: 40, fontWeight: 700,
+                                                            }}
+                                                        >
+                                                            FINISH
+                                                        </Button>
+                                                        <Popconfirm title="Batalkan task ini?" onConfirm={() => handleCancelTask(task.id)}>
+                                                            <Button danger style={{ borderRadius: 10, height: 40 }}>Cancel</Button>
+                                                        </Popconfirm>
+                                                    </Space>
+                                                ) : (
+                                                    <Tag color="default" style={{ fontSize: 12 }}>
+                                                        Hanya {task.startedBy} yang bisa mengelola task ini
+                                                    </Tag>
+                                                )}
                                             </Col>
                                         </Row>
                                     </div>
