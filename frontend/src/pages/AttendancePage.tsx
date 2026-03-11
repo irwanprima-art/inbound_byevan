@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
-    DownloadOutlined, SearchOutlined, ClearOutlined, CheckCircleOutlined,
+    DownloadOutlined, SearchOutlined, ClearOutlined, CheckCircleOutlined, CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
@@ -143,6 +143,27 @@ export default function AttendancePage() {
             message.success('Approval dicabut');
             fetchData();
         } catch { message.error('Gagal mencabut approval'); }
+    };
+    const handleReject = async (r: AttRecord) => {
+        Modal.confirm({
+            title: 'Reject Anomaly',
+            content: `Reject anomaly untuk ${r.name} (${r.date})?`,
+            okText: 'Reject',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    await attendancesApi.update(r.id, {
+                        ...r,
+                        approval_status: 'Rejected',
+                        approval_note: '',
+                        updated_by: user?.username || '',
+                    });
+                    message.success('Anomaly di-reject');
+                    fetchData();
+                } catch { message.error('Gagal reject'); }
+            },
+        });
     };
 
     const handleClearAll = () => {
@@ -304,14 +325,17 @@ export default function AttendancePage() {
             },
         },
         {
-            title: 'Approval', key: 'approval', width: 120,
+            title: 'Approval', key: 'approval', width: 170,
             filters: [
                 { text: 'Approved', value: 'Approved' },
-                { text: 'Belum', value: '' },
+                { text: 'Rejected', value: 'Rejected' },
+                { text: 'Pending', value: 'Pending' },
             ],
             onFilter: (value: any, r: AttRecord) => {
+                const isAnomaly = calcRemarks(r.clock_in, r.clock_out) === 'Anomaly';
                 if (value === 'Approved') return r.approval_status === 'Approved';
-                return calcRemarks(r.clock_in, r.clock_out) === 'Anomaly' && r.approval_status !== 'Approved';
+                if (value === 'Rejected') return r.approval_status === 'Rejected';
+                return isAnomaly && !r.approval_status;
             },
             render: (_: any, r: AttRecord) => {
                 const remark = calcRemarks(r.clock_in, r.clock_out);
@@ -319,17 +343,30 @@ export default function AttendancePage() {
                 if (r.approval_status === 'Approved') {
                     return (
                         <Tooltip title={r.approval_note ? `Note: ${r.approval_note}` : 'Approved'}>
-                            <Tag color="green" style={{ cursor: 'pointer' }}>
+                            <Tag color="green" style={{ cursor: isSupervisor ? 'pointer' : 'default' }} onClick={isSupervisor ? () => handleApproveClick(r) : undefined}>
                                 <CheckCircleOutlined /> Approved
                             </Tag>
                         </Tooltip>
                     );
                 }
-                return (
-                    isSupervisor
-                        ? <Button size="small" type="primary" ghost icon={<CheckCircleOutlined />} onClick={() => handleApproveClick(r)} style={{ fontSize: 11 }}>Approve</Button>
-                        : <Tag color="orange">Pending</Tag>
-                );
+                if (r.approval_status === 'Rejected') {
+                    return (
+                        <Tooltip title="Rejected">
+                            <Tag color="red" style={{ cursor: isSupervisor ? 'pointer' : 'default' }} onClick={isSupervisor ? () => handleApproveClick(r) : undefined}>
+                                <CloseCircleOutlined /> Rejected
+                            </Tag>
+                        </Tooltip>
+                    );
+                }
+                if (isSupervisor) {
+                    return (
+                        <Space size={4}>
+                            <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleApproveClick(r)} style={{ fontSize: 11 }}>Approve</Button>
+                            <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => handleReject(r)} style={{ fontSize: 11 }}>Reject</Button>
+                        </Space>
+                    );
+                }
+                return <Tag color="orange">Pending</Tag>;
             },
         },
         {
