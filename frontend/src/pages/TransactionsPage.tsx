@@ -3,6 +3,7 @@ import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import DataPage from '../components/DataPage';
 import { transactionsApi, arrivalsApi, masterItemsApi } from '../api/client';
 import { normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
+import { useAuth } from '../contexts/AuthContext';
 
 const columns = [
     {
@@ -82,6 +83,8 @@ const parseCSVRow = (row: string[], headers?: string[]) => {
 };
 
 export default function TransactionsPage() {
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     // Enrich each transaction with item_type from arrivals by receipt_no
     const enrichData = useCallback(async (items: any[]) => {
         try {
@@ -108,5 +111,5 @@ export default function TransactionsPage() {
         }
     }, []);
 
-    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_type', '_item_class']} />;
+    return <DataPage title="Inbound Transaction" api={transactionsApi} columns={columns} formFields={formFields} csvHeaders={csvHeaders} numberFields={numberFields} parseCSVRow={parseCSVRow} dateField="date" enrichData={enrichData} exportHeaders={['date', 'time_transaction', 'receipt_no', 'sku', 'operate_type', 'qty', 'operator', '_item_type', '_item_class']} hideEdit={!isSupervisor} />;
 }

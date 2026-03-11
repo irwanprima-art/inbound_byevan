@@ -401,10 +401,14 @@ export default function VasPage() {
             title: 'Actions', key: 'actions', width: 100, fixed: 'right' as const,
             render: (_: any, record: any) => (
                 <Space>
-                    <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-                    <Popconfirm title="Hapus data ini?" onConfirm={() => handleDelete(record.id)}>
-                        <Button type="link" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
+                    {isSupervisor && (
+                        <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    )}
+                    {isSupervisor && (
+                        <Popconfirm title="Hapus data ini?" onConfirm={() => handleDelete(record.id)}>
+                            <Button type="link" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
@@ -888,7 +892,7 @@ export default function VasPage() {
                 </Space>
             </div>
 
-            {selectedKeys.length > 0 && (
+            {isSupervisor && selectedKeys.length > 0 && (
                 <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                     <Button danger style={{ marginBottom: 12 }}><DeleteOutlined /> Hapus {selectedKeys.length} data</Button>
                 </Popconfirm>
@@ -902,7 +906,7 @@ export default function VasPage() {
                 size="small"
                 scroll={{ x: 1200, y: 'calc(100vh - 280px)' }}
                 pagination={{ pageSize: 20, showSizeChanger: true, showTotal: t => `Total ${t} data` }}
-                rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
+                rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: setSelectedKeys } : undefined}
             />
 
             {/* ───── EDIT MODAL ───── */}

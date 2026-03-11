@@ -121,9 +121,11 @@ export default function ReturnReceivePage() {
             render: (_: any, r: any) => (
                 <Space size="small">
                     <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
-                    <Popconfirm title="Hapus?" onConfirm={() => handleDelete(r.id)}>
-                        <Button type="link" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
+                    {isSupervisor && (
+                        <Popconfirm title="Hapus?" onConfirm={() => handleDelete(r.id)}>
+                            <Button type="link" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
@@ -315,7 +317,7 @@ export default function ReturnReceivePage() {
                 </Space>
             </div>
 
-            {selectedKeys.length > 0 && (
+            {isSupervisor && selectedKeys.length > 0 && (
                 <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                     <Button danger style={{ marginBottom: 12 }}><DeleteOutlined /> Hapus {selectedKeys.length} data</Button>
                 </Popconfirm>
@@ -323,7 +325,7 @@ export default function ReturnReceivePage() {
 
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 'max-content' }}
                 pagination={{ pageSize: 100, showSizeChanger: true, pageSizeOptions: ['50', '100', '200', '500'], showTotal: (t) => `Total ${t} data` }}
-                rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys) }}
+                rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys) } : undefined}
             />
 
             <Modal title={editId ? 'Edit Return Receive' : 'Tambah Return Receive'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleSave} width={600}>

@@ -76,10 +76,12 @@ interface DataPageProps<T> {
     exportHeaders?: string[];
     /** Transform each row before export (to add computed fields). Return a new object with extra keys. */
     exportRowMapper?: (item: T) => Record<string, any>;
+    /** When true, hide the Edit button in actions column (for non-supervisor restriction) */
+    hideEdit?: boolean;
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper, hideEdit,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -392,9 +394,11 @@ export default function DataPage<T extends { id: number }>({
             fixed: 'right',
             render: (_, record: T) => (
                 <Space size="small">
-                    <Tooltip title="Edit">
-                        <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-                    </Tooltip>
+                    {!hideEdit && (
+                        <Tooltip title="Edit">
+                            <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                        </Tooltip>
+                    )}
                     {canDelete && (
                         <Popconfirm title="Hapus data ini?" onConfirm={() => handleDelete(record.id)}>
                             <Tooltip title="Hapus">

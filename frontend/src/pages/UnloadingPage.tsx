@@ -242,10 +242,14 @@ export default function UnloadingPage() {
             title: 'Actions', key: 'actions', width: 90, fixed: 'right' as const,
             render: (_: any, r: UnloadingRecord) => (
                 <Space size="small">
-                    <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
-                    <Popconfirm title="Hapus?" onConfirm={() => handleDelete(r.id)}>
-                        <Button size="small" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
+                    {isSupervisor && (
+                        <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
+                    )}
+                    {isSupervisor && (
+                        <Popconfirm title="Hapus?" onConfirm={() => handleDelete(r.id)}>
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
@@ -290,7 +294,7 @@ export default function UnloadingPage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'brand', 'vehicle_type', 'total_vehicles'], 'Unloading_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
-                    {selectedKeys.length > 0 && (
+                    {isSupervisor && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
                         </Popconfirm>
@@ -309,7 +313,7 @@ export default function UnloadingPage() {
                 size="small"
                 scroll={{ x: 700, y: 'calc(100vh - 280px)' }}
                 pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
-                rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) }}
+                rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
             />
 
             {/* Add Modal */}

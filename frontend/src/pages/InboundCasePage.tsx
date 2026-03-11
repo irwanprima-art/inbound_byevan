@@ -3,11 +3,10 @@ import { inboundCasesApi } from '../api/client';
 import { Form, Input, InputNumber, Select } from 'antd';
 
 const CASE_OPTIONS = [
-    { label: 'Karton Rusak', value: 'Karton Rusak' },
-    { label: 'Basah', value: 'Basah' },
-    { label: 'Terbuka', value: 'Terbuka' },
-    { label: 'Hilang', value: 'Hilang' },
-    { label: 'Salah Kirim', value: 'Salah Kirim' },
+    { label: 'Salah SKU Receive', value: 'Salah SKU Receive' },
+    { label: 'Salah Qty Receive', value: 'Salah Qty Receive' },
+    { label: 'Salah PO Receive', value: 'Salah PO Receive' },
+    { label: 'Rusak Saat Proses Unloading/Receive/Putaway', value: 'Rusak Saat Proses Unloading/Receive/Putaway' },
     { label: 'Lainnya', value: 'Lainnya' },
 ];
 
@@ -15,13 +14,14 @@ const columns = [
     { title: 'Tanggal', dataIndex: 'date', key: 'date', width: 110, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
     { title: 'Receipt No', dataIndex: 'receipt_no', key: 'receipt_no', width: 140 },
     { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100 },
+    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 140 },
     { title: 'Case', dataIndex: 'case', key: 'case', width: 130 },
     { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
     { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70 },
     { title: 'Keterangan', dataIndex: 'keterangan', key: 'keterangan', width: 200, ellipsis: true },
 ];
 
-const csvHeaders = ['date', 'receipt_no', 'brand', 'case', 'operator', 'qty', 'keterangan'];
+const csvHeaders = ['date', 'receipt_no', 'brand', 'sku', 'case', 'operator', 'qty', 'keterangan'];
 
 const formFields = (
     <>
@@ -32,6 +32,9 @@ const formFields = (
             <Input />
         </Form.Item>
         <Form.Item name="brand" label="Brand">
+            <Input />
+        </Form.Item>
+        <Form.Item name="sku" label="SKU">
             <Input />
         </Form.Item>
         <Form.Item name="case" label="Case">
@@ -62,6 +65,7 @@ export default function InboundCasePage() {
                 date: 'date',
                 receipt_no: 'receipt_no',
                 brand: 'brand',
+                sku: 'sku',
                 case: 'case',
                 operator: 'operator',
                 qty: 'qty',
