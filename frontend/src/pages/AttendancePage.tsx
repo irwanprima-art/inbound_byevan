@@ -332,14 +332,11 @@ export default function AttendancePage() {
                 { text: 'Pending', value: 'Pending' },
             ],
             onFilter: (value: any, r: AttRecord) => {
-                const isAnomaly = calcRemarks(r.clock_in, r.clock_out) === 'Anomaly';
                 if (value === 'Approved') return r.approval_status === 'Approved';
                 if (value === 'Rejected') return r.approval_status === 'Rejected';
-                return isAnomaly && !r.approval_status;
+                return !r.approval_status;
             },
             render: (_: any, r: AttRecord) => {
-                const remark = calcRemarks(r.clock_in, r.clock_out);
-                if (remark !== 'Anomaly') return <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span>;
                 if (r.approval_status === 'Approved') {
                     return (
                         <Tooltip title={r.approval_note ? `Note: ${r.approval_note}` : 'Approved'}>
