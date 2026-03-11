@@ -332,9 +332,11 @@ export default function AttendancePage() {
                 { text: 'Pending', value: 'Pending' },
             ],
             onFilter: (value: any, r: AttRecord) => {
-                if (value === 'Approved') return r.approval_status === 'Approved';
+                const remark = calcRemarks(r.clock_in, r.clock_out);
+                const isAutoApproved = remark === 'Normal' && r.approval_status !== 'Rejected';
+                if (value === 'Approved') return r.approval_status === 'Approved' || isAutoApproved;
                 if (value === 'Rejected') return r.approval_status === 'Rejected';
-                return !r.approval_status;
+                return !r.approval_status && !isAutoApproved;
             },
             render: (_: any, r: AttRecord) => {
                 const remark = calcRemarks(r.clock_in, r.clock_out);
