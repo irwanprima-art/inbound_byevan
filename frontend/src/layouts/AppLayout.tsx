@@ -335,7 +335,13 @@ export default function AppLayout() {
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
                     gap: 8, padding: '0 12px',
                 }}>
-                    <img src="/rm-logo.png" alt="Logo" style={{ height: 34, objectFit: 'contain', flexShrink: 0 }} />
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
+                        <rect x="2" y="2" width="28" height="28" rx="6" fill="url(#logoGrad)" />
+                        <rect x="7" y="17" width="4" height="8" rx="1" fill="#c7d2fe" />
+                        <rect x="14" y="12" width="4" height="13" rx="1" fill="#e0e7ff" />
+                        <rect x="21" y="8" width="4" height="17" rx="1" fill="#fff" />
+                        <defs><linearGradient id="logoGrad" x1="2" y1="2" x2="30" y2="30"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#4f46e5" /></linearGradient></defs>
+                    </svg>
                     {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
                             <Text strong style={{ color: '#c7d2fe', fontSize: 13, letterSpacing: 0.3 }}>Report & Monitoring</Text>
