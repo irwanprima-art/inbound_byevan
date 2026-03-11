@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Form, Input, Select, Table, Button, Space, Tag, Modal,
-    Popconfirm, Upload, message, DatePicker,
+    Popconfirm, Upload, message, DatePicker, Tooltip,
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
-    DownloadOutlined, SearchOutlined, ClearOutlined,
+    DownloadOutlined, SearchOutlined, ClearOutlined, CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
@@ -61,7 +61,7 @@ const calcRemarks = (clockIn: string, clockOut: string): string => {
     return 'Anomaly';                          // above 12:00
 };
 
-interface AttRecord { id: number; date: string; nik: string; name: string; jobdesc: string; clock_in: string; clock_out: string; status: string; }
+interface AttRecord { id: number; date: string; nik: string; name: string; jobdesc: string; clock_in: string; clock_out: string; status: string; approval_status: string; approval_note: string; }
 interface EmpRecord { nik: string; name: string; status: string; }
 
 export default function AttendancePage() {
@@ -74,6 +74,9 @@ export default function AttendancePage() {
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [editRecord, setEditRecord] = useState<AttRecord | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+    const [approvalRecord, setApprovalRecord] = useState<AttRecord | null>(null);
+    const [approvalNote, setApprovalNote] = useState('');
     const [editForm] = Form.useForm();
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
@@ -107,6 +110,39 @@ export default function AttendancePage() {
     };
     const handleBulkDelete = async () => {
         try { await attendancesApi.bulkDelete(selectedKeys); message.success(`${selectedKeys.length} data dihapus`); setSelectedKeys([]); fetchData(); } catch { message.error('Gagal menghapus'); }
+    };
+
+    // Approval
+    const handleApproveClick = (r: AttRecord) => {
+        setApprovalRecord(r);
+        setApprovalNote(r.approval_note || '');
+        setApprovalModalOpen(true);
+    };
+    const handleApprove = async () => {
+        if (!approvalRecord) return;
+        try {
+            await attendancesApi.update(approvalRecord.id, {
+                ...approvalRecord,
+                approval_status: 'Approved',
+                approval_note: approvalNote.trim(),
+                updated_by: user?.username || '',
+            });
+            message.success('Anomaly di-approve');
+            setApprovalModalOpen(false);
+            fetchData();
+        } catch { message.error('Gagal approve'); }
+    };
+    const handleUnapprove = async (r: AttRecord) => {
+        try {
+            await attendancesApi.update(r.id, {
+                ...r,
+                approval_status: '',
+                approval_note: '',
+                updated_by: user?.username || '',
+            });
+            message.success('Approval dicabut');
+            fetchData();
+        } catch { message.error('Gagal mencabut approval'); }
     };
 
     const handleClearAll = () => {
@@ -268,6 +304,35 @@ export default function AttendancePage() {
             },
         },
         {
+            title: 'Approval', key: 'approval', width: 120,
+            filters: [
+                { text: 'Approved', value: 'Approved' },
+                { text: 'Belum', value: '' },
+            ],
+            onFilter: (value: any, r: AttRecord) => {
+                if (value === 'Approved') return r.approval_status === 'Approved';
+                return calcRemarks(r.clock_in, r.clock_out) === 'Anomaly' && r.approval_status !== 'Approved';
+            },
+            render: (_: any, r: AttRecord) => {
+                const remark = calcRemarks(r.clock_in, r.clock_out);
+                if (remark !== 'Anomaly') return <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span>;
+                if (r.approval_status === 'Approved') {
+                    return (
+                        <Tooltip title={r.approval_note ? `Note: ${r.approval_note}` : 'Approved'}>
+                            <Tag color="green" style={{ cursor: 'pointer' }}>
+                                <CheckCircleOutlined /> Approved
+                            </Tag>
+                        </Tooltip>
+                    );
+                }
+                return (
+                    isSupervisor
+                        ? <Button size="small" type="primary" ghost icon={<CheckCircleOutlined />} onClick={() => handleApproveClick(r)} style={{ fontSize: 11 }}>Approve</Button>
+                        : <Tag color="orange">Pending</Tag>
+                );
+            },
+        },
+        {
             title: 'Actions', key: 'actions', width: 90, fixed: 'right' as const,
             render: (_: any, r: AttRecord) => (
                 <Space size="small">
@@ -332,6 +397,40 @@ export default function AttendancePage() {
                     <Form.Item name="clock_out" label="Clock Out"><Input /></Form.Item>
                     <Form.Item name="status" label="Status"><Input /></Form.Item>
                 </Form>
+            </Modal>
+
+            {/* Approval Modal */}
+            <Modal
+                title="Approve Anomaly"
+                open={approvalModalOpen}
+                onCancel={() => setApprovalModalOpen(false)}
+                onOk={handleApprove}
+                okText="Approve"
+                cancelText="Batal"
+            >
+                <div style={{ marginBottom: 12 }}>
+                    <strong>{approvalRecord?.name}</strong> — {approvalRecord?.date}
+                    <br />
+                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                        Clock In: {approvalRecord?.clock_in} | Clock Out: {approvalRecord?.clock_out}
+                    </span>
+                </div>
+                <Input.TextArea
+                    placeholder="Approval note (opsional)..."
+                    value={approvalNote}
+                    onChange={e => setApprovalNote(e.target.value)}
+                    rows={3}
+                />
+                {isSupervisor && approvalRecord?.approval_status === 'Approved' && (
+                    <Button
+                        danger
+                        size="small"
+                        style={{ marginTop: 12 }}
+                        onClick={() => { handleUnapprove(approvalRecord); setApprovalModalOpen(false); }}
+                    >
+                        Cabut Approval
+                    </Button>
+                )}
             </Modal>
         </div>
     );

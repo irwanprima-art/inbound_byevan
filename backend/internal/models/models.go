@@ -261,18 +261,20 @@ type MasterItem struct {
 
 // Attendance represents manpower attendance data
 type Attendance struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	Nik       string         `gorm:"column:nik" json:"nik" binding:"required"`
-	Name      string         `gorm:"column:name" json:"name" binding:"required"`
-	Jobdesc   string         `gorm:"column:jobdesc" json:"jobdesc"`
-	ClockIn   string         `gorm:"column:clock_in" json:"clock_in"`
-	ClockOut  string         `gorm:"column:clock_out" json:"clock_out"`
-	Status    string         `gorm:"column:status" json:"status"`
-	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID             uint           `gorm:"primaryKey" json:"id"`
+	Date           FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Nik            string         `gorm:"column:nik" json:"nik" binding:"required"`
+	Name           string         `gorm:"column:name" json:"name" binding:"required"`
+	Jobdesc        string         `gorm:"column:jobdesc" json:"jobdesc"`
+	ClockIn        string         `gorm:"column:clock_in" json:"clock_in"`
+	ClockOut       string         `gorm:"column:clock_out" json:"clock_out"`
+	Status         string         `gorm:"column:status" json:"status"`
+	ApprovalStatus string         `gorm:"column:approval_status;default:''" json:"approval_status"`
+	ApprovalNote   string         `gorm:"column:approval_note" json:"approval_note"`
+	UpdatedBy      string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Employee represents employee data
