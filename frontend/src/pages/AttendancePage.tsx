@@ -337,6 +337,15 @@ export default function AttendancePage() {
                 return !r.approval_status;
             },
             render: (_: any, r: AttRecord) => {
+                const remark = calcRemarks(r.clock_in, r.clock_out);
+                // Auto-approve Normal records
+                if (remark === 'Normal' && r.approval_status !== 'Rejected') {
+                    return (
+                        <Tag color="green">
+                            <CheckCircleOutlined /> Approved
+                        </Tag>
+                    );
+                }
                 if (r.approval_status === 'Approved') {
                     return (
                         <Tooltip title={r.approval_note ? `Note: ${r.approval_note}` : 'Approved'}>
