@@ -420,3 +420,14 @@ type InboundCase struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// Workflow represents a warehouse process workflow/flowchart
+type Workflow struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Name      string         `gorm:"column:name" json:"name" binding:"required"`
+	Steps     string         `gorm:"column:steps;type:text" json:"steps"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}

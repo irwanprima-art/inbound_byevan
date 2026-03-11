@@ -167,6 +167,9 @@ func main() {
 	orderPerBrands := handlers.NewResource[models.OrderPerBrand]("order-per-brands")
 	orderPerBrands.RegisterRoutes(protected.Group("/order-per-brands"))
 
+	workflows := handlers.NewResource[models.Workflow]("workflows")
+	workflows.RegisterRoutes(protected.Group("/workflows"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

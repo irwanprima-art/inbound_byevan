@@ -6,7 +6,7 @@ import {
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
-    ShoppingOutlined, BarChartOutlined,
+    ShoppingOutlined, BarChartOutlined, NodeIndexOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -39,6 +39,7 @@ import ReturnReceivePage from '../pages/ReturnReceivePage';
 import ReturnTransactionPage from '../pages/ReturnTransactionPage';
 import RejectReturnPage from '../pages/RejectReturnPage';
 import OrderPerBrandPage from '../pages/OrderPerBrandPage';
+import WorkflowPage from '../pages/WorkflowPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -84,6 +85,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
     { key: '/schedule', icon: <CalendarOutlined />, label: 'Schedule', group: 'manpower' },
     { key: '/additional-mp', icon: <TeamOutlined />, label: 'Additional MP', group: 'manpower' },
+    { key: '/workflow', icon: <NodeIndexOutlined />, label: 'Workflow', group: 'workflow' },
 ];
 
 const PAGE_ID_MAP: Record<string, string> = {
@@ -113,6 +115,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/berita-acara-inventory': 'berita-acara-inventory',
     '/inbound-rejection': 'inbound-rejection',
     '/inbound-case': 'inbound-case',
+    '/workflow': 'workflow',
 };
 
 // Map route key → component
@@ -143,6 +146,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/berita-acara-inventory': <BeritaAcaraInventoryPage />,
     '/inbound-rejection': <InboundRejectionPage />,
     '/inbound-case': <InboundCasePage />,
+    '/workflow': <WorkflowPage />,
     '/settings': <SettingsPage />,
 };
 
@@ -172,6 +176,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/additional-mp': <TeamOutlined />,
     '/berita-acara': <FileTextOutlined />,
     '/berita-acara-inventory': <FileTextOutlined />,
+    '/workflow': <NodeIndexOutlined />,
 };
 
 const LABEL_MAP: Record<string, string> = {};
@@ -244,6 +249,7 @@ export default function AppLayout() {
         inbound: 'INBOUND',
         inventory: 'INVENTORY',
         manpower: 'MANPOWER',
+        workflow: 'WORKFLOW',
     };
 
     const groupIcons: Record<string, React.ReactNode> = {
@@ -251,6 +257,7 @@ export default function AppLayout() {
         inbound: <InboxOutlined />,
         inventory: <DatabaseOutlined />,
         manpower: <TeamOutlined />,
+        workflow: <NodeIndexOutlined />,
     };
 
     const menuItems = Object.entries(groups).map(([group, items]) => {
