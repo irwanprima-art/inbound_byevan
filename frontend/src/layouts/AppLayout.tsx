@@ -333,11 +333,14 @@ export default function AppLayout() {
                 <div style={{
                     height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    gap: 10,
+                    gap: 8, padding: '0 12px',
                 }}>
-                    <span style={{ fontSize: 24 }}>📦</span>
+                    <img src="/logo-jc.png" alt="JC System" style={{ height: 36, objectFit: 'contain' }} />
                     {!collapsed && (
-                        <Text strong style={{ color: '#fff', fontSize: 15 }}>WRM System</Text>
+                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                            <Text strong style={{ color: '#fff', fontSize: 14 }}>JC System</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9 }}>Warehouse Report & Monitoring</Text>
+                        </div>
                     )}
                 </div>
                 <Menu
