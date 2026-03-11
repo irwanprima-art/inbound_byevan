@@ -11,8 +11,8 @@ import { workflowsApi } from '../api/client';
 
 const { Text } = Typography;
 
-/* ── Step type definitions ── */
-interface StepType {
+/* ── Workflow name options (predefined categories) ── */
+interface WorkflowCategory {
     value: string;
     label: string;
     color: string;
@@ -20,23 +20,22 @@ interface StepType {
     icon: React.ReactNode;
 }
 
-const STEP_TYPES: StepType[] = [
-    { value: 'inspection', label: 'Inspection', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', icon: <SearchOutlined /> },
-    { value: 'receive', label: 'Receive', color: '#22c55e', bg: 'rgba(34,197,94,0.15)', icon: <InboxOutlined /> },
-    { value: 'putaway', label: 'Putaway', color: '#a855f7', bg: 'rgba(168,85,247,0.15)', icon: <DatabaseOutlined /> },
-    { value: 'transfer_stock', label: 'Transfer Stock', color: '#f97316', bg: 'rgba(249,115,22,0.15)', icon: <SwapOutlined /> },
-    { value: 'qc_damage', label: 'QC Damage', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', icon: <WarningOutlined /> },
-    { value: 'cycle_count', label: 'Cycle Count', color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', icon: <CheckCircleOutlined /> },
-    { value: 'vas', label: 'VAS', color: '#eab308', bg: 'rgba(234,179,8,0.15)', icon: <ToolOutlined /> },
-    { value: 'lainnya', label: 'Lainnya', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', icon: <EllipsisOutlined /> },
+const WORKFLOW_CATEGORIES: WorkflowCategory[] = [
+    { value: 'Inspection', label: 'Inspection', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)', icon: <SearchOutlined /> },
+    { value: 'Receive', label: 'Receive', color: '#22c55e', bg: 'rgba(34,197,94,0.15)', icon: <InboxOutlined /> },
+    { value: 'Putaway', label: 'Putaway', color: '#a855f7', bg: 'rgba(168,85,247,0.15)', icon: <DatabaseOutlined /> },
+    { value: 'Transfer Stock', label: 'Transfer Stock', color: '#f97316', bg: 'rgba(249,115,22,0.15)', icon: <SwapOutlined /> },
+    { value: 'QC Damage', label: 'QC Damage', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', icon: <WarningOutlined /> },
+    { value: 'Cycle Count', label: 'Cycle Count', color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', icon: <CheckCircleOutlined /> },
+    { value: 'VAS', label: 'VAS', color: '#eab308', bg: 'rgba(234,179,8,0.15)', icon: <ToolOutlined /> },
+    { value: 'Lainnya', label: 'Lainnya', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', icon: <EllipsisOutlined /> },
 ];
 
-const STEP_MAP = Object.fromEntries(STEP_TYPES.map(s => [s.value, s]));
+const CATEGORY_MAP = Object.fromEntries(WORKFLOW_CATEGORIES.map(c => [c.value, c]));
 
-/* ── Step data interface ── */
+/* ── Step: just a manual text label + optional decision ── */
 interface WorkflowStep {
     id: string;
-    type: string;
     label: string;
     isDecision: boolean;
     branchYes: string;
@@ -54,7 +53,6 @@ interface WorkflowRecord {
 
 const newStep = (): WorkflowStep => ({
     id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-    type: 'inspection',
     label: '',
     isDecision: false,
     branchYes: '',
@@ -66,15 +64,16 @@ const newStep = (): WorkflowStep => ({
 /* ═══════════════════════════════════════════════ */
 function FlowchartPreview({ steps, name }: { steps: WorkflowStep[]; name: string }) {
     if (steps.length === 0) return <Empty description="Belum ada langkah" />;
+    const cat = CATEGORY_MAP[name] || { color: '#818cf8', bg: 'rgba(129,140,248,0.15)' };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0', gap: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 12px', gap: 0 }}>
             {/* Title */}
             <div style={{
-                fontSize: 16, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: 1,
-                marginBottom: 20, textAlign: 'center',
+                fontSize: 14, fontWeight: 700, color: cat.color, textTransform: 'uppercase', letterSpacing: 1,
+                marginBottom: 20, textAlign: 'center', padding: '0 8px',
             }}>
-                📋 {name || 'Untitled Workflow'}
+                {name || 'Untitled Workflow'}
             </div>
 
             {/* START node */}
@@ -82,37 +81,33 @@ function FlowchartPreview({ steps, name }: { steps: WorkflowStep[]; name: string
             <FlowArrow />
 
             {steps.map((step, i) => {
-                const st = STEP_MAP[step.type] || STEP_TYPES[7];
-                const label = step.label || st.label;
+                const label = step.label || `Langkah ${i + 1}`;
 
                 if (step.isDecision) {
                     return (
                         <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                            {/* Decision diamond */}
                             <div style={{
                                 width: 160, height: 100, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
                                 <div style={{
-                                    width: 140, height: 80, background: st.bg, border: `2px solid ${st.color}`,
+                                    width: 130, height: 75, background: cat.bg, border: `2px solid ${cat.color}`,
                                     transform: 'rotate(45deg)', borderRadius: 8, position: 'absolute',
                                 }} />
                                 <span style={{
-                                    position: 'relative', zIndex: 1, color: st.color, fontWeight: 700, fontSize: 12,
+                                    position: 'relative', zIndex: 1, color: cat.color, fontWeight: 700, fontSize: 11,
                                     textAlign: 'center', lineHeight: 1.2, maxWidth: 90,
                                 }}>{label}?</span>
                             </div>
-
-                            {/* Branch labels */}
-                            <div style={{ display: 'flex', gap: 40, marginTop: 8, marginBottom: 4 }}>
+                            <div style={{ display: 'flex', gap: 30, marginTop: 6, marginBottom: 4 }}>
                                 <div style={{
                                     background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: 6,
-                                    padding: '4px 12px', fontSize: 11, color: '#22c55e', fontWeight: 600,
+                                    padding: '3px 10px', fontSize: 10, color: '#22c55e', fontWeight: 600,
                                 }}>
                                     ✓ Ya{step.branchYes ? `: ${step.branchYes}` : ''}
                                 </div>
                                 <div style={{
                                     background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6,
-                                    padding: '4px 12px', fontSize: 11, color: '#ef4444', fontWeight: 600,
+                                    padding: '3px 10px', fontSize: 10, color: '#ef4444', fontWeight: 600,
                                 }}>
                                     ✗ Tidak{step.branchNo ? `: ${step.branchNo}` : ''}
                                 </div>
@@ -124,7 +119,7 @@ function FlowchartPreview({ steps, name }: { steps: WorkflowStep[]; name: string
 
                 return (
                     <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                        <FlowNode label={label} color={st.color} bg={st.bg} icon={st.icon} />
+                        <FlowNode label={label} color={cat.color} bg={cat.bg} />
                         {i < steps.length - 1 && <FlowArrow />}
                     </div>
                 );
@@ -136,18 +131,17 @@ function FlowchartPreview({ steps, name }: { steps: WorkflowStep[]; name: string
     );
 }
 
-function FlowNode({ label, color, bg, icon, shape }: { label: string; color: string; bg: string; icon?: React.ReactNode; shape?: 'rounded' }) {
+function FlowNode({ label, color, bg, shape }: { label: string; color: string; bg: string; shape?: 'rounded' }) {
     return (
         <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 24px', minWidth: 160, justifyContent: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '8px 20px', minWidth: 140, maxWidth: 200,
             background: bg, border: `2px solid ${color}`,
             borderRadius: shape === 'rounded' ? 40 : 10,
-            color: color, fontWeight: 700, fontSize: 13,
-            boxShadow: `0 0 15px ${color}33`,
-            transition: 'all 0.2s',
+            color: color, fontWeight: 700, fontSize: 12,
+            boxShadow: `0 0 12px ${color}33`,
+            textAlign: 'center', lineHeight: 1.2,
         }}>
-            {icon && <span style={{ fontSize: 15 }}>{icon}</span>}
             {label}
         </div>
     );
@@ -156,11 +150,11 @@ function FlowNode({ label, color, bg, icon, shape }: { label: string; color: str
 function FlowArrow() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: 2, height: 20, background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{ width: 2, height: 18, background: 'rgba(255,255,255,0.2)' }} />
             <div style={{
                 width: 0, height: 0,
-                borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
-                borderTop: '8px solid rgba(255,255,255,0.3)',
+                borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+                borderTop: '7px solid rgba(255,255,255,0.3)',
             }} />
         </div>
     );
@@ -178,7 +172,7 @@ export default function WorkflowPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
-    const [name, setName] = useState('');
+    const [name, setName] = useState('Inspection');
     const [steps, setSteps] = useState<WorkflowStep[]>([]);
     const [viewWorkflow, setViewWorkflow] = useState<WorkflowRecord | null>(null);
 
@@ -198,7 +192,7 @@ export default function WorkflowPage() {
     /* ── CRUD ── */
     const handleAdd = () => {
         setEditId(null);
-        setName('');
+        setName('Inspection');
         setSteps([newStep()]);
         setModalOpen(true);
     };
@@ -217,9 +211,10 @@ export default function WorkflowPage() {
     };
 
     const handleSave = async () => {
-        if (!name.trim()) { message.warning('Nama workflow harus diisi'); return; }
-        if (steps.length === 0) { message.warning('Tambahkan minimal 1 langkah'); return; }
-        const payload = { name: name.trim(), steps: JSON.stringify(steps), updated_by: user?.username || '' };
+        if (!name.trim()) { message.warning('Pilih nama workflow'); return; }
+        if (steps.length === 0 || steps.every(s => !s.label.trim())) { message.warning('Isi minimal 1 langkah'); return; }
+        const cleanSteps = steps.filter(s => s.label.trim());
+        const payload = { name: name.trim(), steps: JSON.stringify(cleanSteps), updated_by: user?.username || '' };
         try {
             if (editId) { await workflowsApi.update(editId, payload); message.success('Workflow diupdate'); }
             else { await workflowsApi.create(payload); message.success('Workflow dibuat'); }
@@ -270,34 +265,37 @@ export default function WorkflowPage() {
     /* ── Table columns ── */
     const columns = [
         {
-            title: 'Nama Workflow', dataIndex: 'name', key: 'name', width: 250,
-            render: (v: string) => <Text strong style={{ color: '#818cf8' }}>{v}</Text>,
+            title: 'Nama Workflow', dataIndex: 'name', key: 'name', width: 180,
+            render: (v: string) => {
+                const cat = CATEGORY_MAP[v];
+                if (cat) return <Tag color={cat.color} style={{ fontWeight: 600, fontSize: 12 }}>{cat.icon} {cat.label}</Tag>;
+                return <Text strong style={{ color: '#818cf8' }}>{v}</Text>;
+            },
         },
         {
-            title: 'Jumlah Step', key: 'steps', width: 120,
+            title: 'Jumlah Langkah', key: 'stepCount', width: 120,
             render: (_: any, r: WorkflowRecord) => {
                 try { return JSON.parse(r.steps || '[]').length; } catch { return 0; }
             },
         },
         {
-            title: 'Step Types', key: 'types', width: 300,
+            title: 'Langkah-langkah', key: 'stepLabels', width: 350,
             render: (_: any, r: WorkflowRecord) => {
                 try {
                     const parsed = JSON.parse(r.steps || '[]') as WorkflowStep[];
                     return (
                         <Space wrap size={4}>
-                            {parsed.slice(0, 6).map((s, i) => {
-                                const st = STEP_MAP[s.type] || STEP_TYPES[7];
-                                return <Tag key={i} color={st.color} style={{ margin: 0, fontSize: 11 }}>{s.label || st.label}</Tag>;
-                            })}
-                            {parsed.length > 6 && <Tag style={{ margin: 0, fontSize: 11 }}>+{parsed.length - 6}</Tag>}
+                            {parsed.slice(0, 5).map((s, i) => (
+                                <Tag key={i} style={{ margin: 0, fontSize: 11 }}>{i + 1}. {s.label}</Tag>
+                            ))}
+                            {parsed.length > 5 && <Tag style={{ margin: 0, fontSize: 11 }}>+{parsed.length - 5} lagi</Tag>}
                         </Space>
                     );
                 } catch { return '-'; }
             },
         },
         {
-            title: 'Dibuat', dataIndex: 'created_at', key: 'created_at', width: 150,
+            title: 'Dibuat', dataIndex: 'created_at', key: 'created_at', width: 120,
             render: (v: string) => v ? new Date(v).toLocaleDateString('id-ID') : '-',
         },
         {
@@ -359,38 +357,40 @@ export default function WorkflowPage() {
                 <div style={{ display: 'flex', gap: 20 }}>
                     {/* Left: Step Builder */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <Input
-                            placeholder="Nama Workflow"
+                        {/* Workflow name = select from predefined list */}
+                        <Select
                             value={name}
-                            onChange={e => setName(e.target.value)}
-                            style={{ marginBottom: 16, fontWeight: 600 }}
+                            onChange={setName}
+                            style={{ width: '100%', marginBottom: 16 }}
                             size="large"
+                            placeholder="Pilih Nama Workflow"
+                            options={WORKFLOW_CATEGORIES.map(c => ({
+                                value: c.value,
+                                label: <span style={{ color: c.color, fontWeight: 600 }}>{c.icon} {c.label}</span>,
+                            }))}
                         />
 
-                        <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 8, display: 'block' }}>
+                            Tulis langkah-langkah workflow secara manual:
+                        </Text>
+
+                        <div style={{ maxHeight: 380, overflowY: 'auto', paddingRight: 4 }}>
                             {steps.map((step, idx) => {
-                                const st = STEP_MAP[step.type] || STEP_TYPES[7];
+                                const cat = CATEGORY_MAP[name] || WORKFLOW_CATEGORIES[7];
                                 return (
                                     <Card
                                         key={step.id}
                                         size="small"
                                         style={{
                                             marginBottom: 8,
-                                            border: `1px solid ${st.color}33`,
-                                            background: st.bg,
+                                            border: `1px solid ${cat.color}33`,
+                                            background: cat.bg,
                                         }}
                                     >
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                            <Tag color={st.color} style={{ margin: 0, fontWeight: 700 }}>{idx + 1}</Tag>
-                                            <Select
-                                                value={step.type}
-                                                onChange={v => updateStep(step.id, 'type', v)}
-                                                style={{ width: 160 }}
-                                                size="small"
-                                                options={STEP_TYPES.map(s => ({ value: s.value, label: <span>{s.icon} {s.label}</span> }))}
-                                            />
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: step.isDecision ? 8 : 0 }}>
+                                            <Tag color={cat.color} style={{ margin: 0, fontWeight: 700 }}>{idx + 1}</Tag>
                                             <Input
-                                                placeholder="Label custom (opsional)"
+                                                placeholder={`Langkah ${idx + 1}...`}
                                                 value={step.label}
                                                 onChange={e => updateStep(step.id, 'label', e.target.value)}
                                                 size="small"
@@ -399,12 +399,12 @@ export default function WorkflowPage() {
                                             <Space size={2}>
                                                 <Button size="small" type="text" icon={<ArrowUpOutlined />} disabled={idx === 0} onClick={() => moveStep(idx, -1)} />
                                                 <Button size="small" type="text" icon={<ArrowDownOutlined />} disabled={idx === steps.length - 1} onClick={() => moveStep(idx, 1)} />
-                                                <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeStep(step.id)} />
+                                                <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeStep(step.id)} disabled={steps.length <= 1} />
                                             </Space>
                                         </div>
 
                                         {/* Decision toggle */}
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
                                             <Button
                                                 size="small"
                                                 type={step.isDecision ? 'primary' : 'default'}
@@ -438,14 +438,22 @@ export default function WorkflowPage() {
                         <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
                             📊 PREVIEW FLOWCHART
                         </div>
-                        <FlowchartPreview steps={steps} name={name} />
+                        <FlowchartPreview steps={steps.filter(s => s.label.trim())} name={name} />
                     </div>
                 </div>
             </Modal>
 
             {/* ═══ VIEW FLOWCHART MODAL ═══ */}
             <Modal
-                title={<span><NodeIndexOutlined style={{ marginRight: 8 }} />{viewWorkflow?.name || 'Flowchart'}</span>}
+                title={
+                    <span>
+                        <NodeIndexOutlined style={{ marginRight: 8 }} />
+                        {(() => {
+                            const cat = CATEGORY_MAP[viewWorkflow?.name || ''];
+                            return cat ? <Tag color={cat.color}>{cat.icon} {cat.label}</Tag> : (viewWorkflow?.name || 'Flowchart');
+                        })()}
+                    </span>
+                }
                 open={viewModalOpen}
                 onCancel={() => setViewModalOpen(false)}
                 footer={null}
