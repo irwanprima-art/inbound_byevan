@@ -333,11 +333,14 @@ export default function AppLayout() {
                 <div style={{
                     height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    gap: 10,
+                    gap: 8, padding: '0 12px',
                 }}>
-                    <span style={{ fontSize: 24 }}>📦</span>
+                    <img src="/rm-logo.png" alt="Logo" style={{ height: 34, objectFit: 'contain', flexShrink: 0 }} />
                     {!collapsed && (
-                        <Text strong style={{ color: '#fff', fontSize: 15 }}>WRM System</Text>
+                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                            <Text strong style={{ color: '#c7d2fe', fontSize: 13, letterSpacing: 0.3 }}>Report & Monitoring</Text>
+                            <Text style={{ color: '#818cf8', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>System</Text>
+                        </div>
                     )}
                 </div>
                 <Menu
