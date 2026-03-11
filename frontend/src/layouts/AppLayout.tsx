@@ -335,7 +335,7 @@ export default function AppLayout() {
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
                     gap: 8, padding: '0 12px',
                 }}>
-                    <img src="/logo-jc.png" alt="JC System" style={{ height: 36, objectFit: 'contain' }} />
+                    <img src="/jc-system-logo.png" alt="JC System" style={{ height: 36, objectFit: 'contain' }} />
                     {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                             <Text strong style={{ color: '#fff', fontSize: 14 }}>JC System</Text>
