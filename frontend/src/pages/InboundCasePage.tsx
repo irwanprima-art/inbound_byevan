@@ -1,6 +1,7 @@
 import DataPage from '../components/DataPage';
 import { inboundCasesApi } from '../api/client';
 import { Form, Input, InputNumber, Select } from 'antd';
+import { useAuth } from '../contexts/AuthContext';
 
 const CASE_OPTIONS = [
     { label: 'Salah SKU Receive', value: 'Salah SKU Receive' },
@@ -53,6 +54,8 @@ const formFields = (
 );
 
 export default function InboundCasePage() {
+    const { user } = useAuth();
+    const isSupervisor = user?.role === 'supervisor';
     return (
         <DataPage
             title="Case Inbound"
@@ -61,6 +64,7 @@ export default function InboundCasePage() {
             formFields={formFields}
             csvHeaders={csvHeaders}
             dateField="date"
+            hideEdit={!isSupervisor}
             columnMap={{
                 date: 'date',
                 receipt_no: 'receipt_no',
