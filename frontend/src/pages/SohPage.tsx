@@ -342,7 +342,7 @@ export default function SohPage() {
         if (locType !== 'Storage') return '-';
         if (!r.wh_arrival_date || !r.sku) return '-';
         const maxPick = pickMaxArrival[r.sku];
-        if (!maxPick) return '-';
+        if (!maxPick) return '⚠️ Alert';
         return r.wh_arrival_date < maxPick ? '⚠️ Alert' : 'OK';
     };
 
@@ -355,7 +355,7 @@ export default function SohPage() {
         if (locType !== 'Storage') return '-';
         if (!r.exp_date || !r.sku) return '-';
         const maxPick = pickMaxExp[r.sku];
-        if (!maxPick) return '-';
+        if (!maxPick) return '⚠️ Alert';
         return r.exp_date < maxPick ? '⚠️ Alert' : 'OK';
     };
 
