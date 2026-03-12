@@ -316,10 +316,14 @@ export default function SohPage() {
     const agingNoteOptions = [...new Set(data.map(r => calcAgingNote(r.wh_arrival_date)).filter(v => v !== '-'))].sort().map(v => ({ label: v, value: v }));
 
     // === FIFO & FEFO Alert computation ===
+    // Use only records from latest update_date (consistent with dashboard)
+    const latestDateStr = data.reduce((latest, s) => (s.update_date && s.update_date > latest ? s.update_date : latest), '');
+    const latestDatePrefix = latestDateStr ? latestDateStr.substring(0, 10) : '';
+    const latestData = latestDatePrefix ? data.filter(r => (r.update_date || '').startsWith(latestDatePrefix)) : data;
     // Per SKU: track the max (newest) wh_arrival_date and max (furthest) exp_date among Pick+Sellable records
     const pickMaxArrival: Record<string, string> = {};
     const pickMaxExp: Record<string, string> = {};
-    data.forEach(r => {
+    latestData.forEach(r => {
         const cat = locCategoryMap[r.location] || r.location_category || '';
         const locType = (r.location_type || '').trim();
         if (cat !== 'Sellable' || locType !== 'Pick') return;

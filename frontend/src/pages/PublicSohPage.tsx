@@ -105,9 +105,13 @@ export default function PublicSohPage() {
     };
 
     // === FIFO & FEFO Alert computation ===
+    // Use only records from latest update_date (consistent with dashboard)
+    const latestDateStr = data.reduce((latest, s) => (s.update_date && s.update_date > latest ? s.update_date : latest), '');
+    const latestDatePrefix = latestDateStr ? latestDateStr.substring(0, 10) : '';
+    const latestData = latestDatePrefix ? data.filter(r => (r.update_date || '').startsWith(latestDatePrefix)) : data;
     const pickMaxArrival: Record<string, string> = {};
     const pickMaxExp: Record<string, string> = {};
-    data.forEach(r => {
+    latestData.forEach(r => {
         const cat = locCategoryMap[r.location] || r.location_category || '';
         const locType = (r.location_type || '').trim();
         if (cat !== 'Sellable' || locType !== 'Pick') return;
