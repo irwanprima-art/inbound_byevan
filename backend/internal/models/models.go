@@ -441,6 +441,7 @@ type InventoryProject struct {
 	ProjectName string         `gorm:"column:project_name" json:"project_name" binding:"required"`
 	Task        string         `gorm:"column:task" json:"task"`
 	TargetDate  FlexDate       `gorm:"column:target_date;type:text" json:"target_date"`
+	Status      string         `gorm:"column:status;default:Open" json:"status"`
 	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
