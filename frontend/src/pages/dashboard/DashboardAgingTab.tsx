@@ -173,6 +173,7 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
             wh_arrival_date: s.wh_arrival_date || '-',
             location: s.location || '-',
             qty: Number(s.qty) || 0,
+            aging_note: calcAgingNote(s.wh_arrival_date),
         }))
         .sort((a, b) => a.wh_arrival_date.localeCompare(b.wh_arrival_date) || a.brand.localeCompare(b.brand));
 
@@ -192,6 +193,7 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
             exp_date: s.exp_date || '-',
             location: s.location || '-',
             qty: Number(s.qty) || 0,
+            ed_note: calcEdNote(s.exp_date, s.update_date),
         }))
         .sort((a, b) => a.exp_date.localeCompare(b.exp_date) || a.brand.localeCompare(b.brand));
 
@@ -319,6 +321,16 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
                     dateLabel="WH Arrival Date"
                     tagColor="red"
                     tagLabel="FIFO"
+                    extraField="aging_note"
+                    extraLabel="Aging Note"
+                    extraColorFn={(v: string) => {
+                        if (v === 'Under 2025') return '#6b7280';
+                        if (v?.startsWith('Q1')) return '#3b82f6';
+                        if (v?.startsWith('Q2')) return '#8b5cf6';
+                        if (v?.startsWith('Q3')) return '#ec4899';
+                        if (v?.startsWith('Q4')) return '#f97316';
+                        return '#6366f1';
+                    }}
                 />
             )}
 
@@ -332,6 +344,9 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
                     dateLabel="Exp. Date"
                     tagColor="orange"
                     tagLabel="FEFO"
+                    extraField="ed_note"
+                    extraLabel="ED Note"
+                    extraColorFn={edNoteColor}
                 />
             )}
         </>
@@ -339,12 +354,38 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
 }
 
 // Reusable sub-component for FIFO/FEFO alert cards with brand filter
-function FifoFefoCard({ title, headerColor, items, brands, dateField, dateLabel, tagColor, tagLabel }: {
+function FifoFefoCard({ title, headerColor, items, brands, dateField, dateLabel, tagColor, tagLabel, extraField, extraLabel, extraColorFn }: {
     title: string; headerColor: string; items: any[]; brands: string[];
     dateField: string; dateLabel: string; tagColor: string; tagLabel: string;
+    extraField?: string; extraLabel?: string; extraColorFn?: (v: string) => string;
 }) {
     const [filterBrand, setFilterBrand] = useState<string[]>([]);
     const filtered = filterBrand.length > 0 ? items.filter(r => filterBrand.includes(r.brand)) : items;
+
+    const columns: any[] = [
+        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
+        { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
+        { title: dateLabel, dataIndex: dateField, key: dateField, width: 130 },
+        { title: 'Location', dataIndex: 'location', key: 'location', width: 120 },
+        {
+            title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100,
+            render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span>,
+        },
+    ];
+    if (extraField && extraLabel) {
+        columns.push({
+            title: extraLabel, dataIndex: extraField, key: extraField, width: 130,
+            render: (v: string) => {
+                if (!v || v === '-') return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                const color = extraColorFn ? extraColorFn(v) : '#6366f1';
+                return <Tag style={{ background: color, color: '#fff', border: 'none', fontWeight: 600 }}>{v}</Tag>;
+            },
+        });
+    }
+    columns.push({
+        title: 'Alert', key: 'alert', width: 100,
+        render: () => <Tag color={tagColor} style={{ fontWeight: 600 }}>⚠️ {tagLabel}</Tag>,
+    });
 
     return (
         <Card
@@ -365,20 +406,7 @@ function FifoFefoCard({ title, headerColor, items, brands, dateField, dateLabel,
         >
             <ResizableTable
                 dataSource={filtered}
-                columns={[
-                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
-                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
-                    { title: dateLabel, dataIndex: dateField, key: dateField, width: 130 },
-                    { title: 'Location', dataIndex: 'location', key: 'location', width: 120 },
-                    {
-                        title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100,
-                        render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span>,
-                    },
-                    {
-                        title: 'Alert', key: 'alert', width: 100,
-                        render: () => <Tag color={tagColor} style={{ fontWeight: 600 }}>⚠️ {tagLabel}</Tag>,
-                    },
-                ]}
+                columns={columns}
                 rowKey="key"
                 size="small"
                 scroll={{ x: 'max-content', y: 400 }}
