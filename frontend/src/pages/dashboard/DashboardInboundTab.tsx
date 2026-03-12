@@ -195,10 +195,9 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
-    // Monthly avg Receive → Putaway for line chart — always uses ALL arrivals (not date-filtered)
-    // so the chart shows all historical months for comparison even when a date range is active.
+    // Monthly avg Receive → Putaway for line chart — uses ALL arrivals but
+    // filters to show only months up to and including the date filter end month.
     const monthlyAvgRecPut = useMemo(() => {
-        // Build enriched data from ALL arrivals (not fArrivals)
         const monthlyMap: Record<string, number[]> = {};
         const seen = new Set<string>();
         arrivals.forEach((row: any) => {
@@ -216,13 +215,16 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             if (!monthlyMap[month]) monthlyMap[month] = [];
             monthlyMap[month].push(diffMin);
         });
+        // If date filter is active, only keep months <= end month
+        const maxMonth = dateRange ? dateRange[1].format('YYYY-MM') : null;
+        const filteredKeys = Object.keys(monthlyMap).sort().filter(m => !maxMonth || m <= maxMonth);
         const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const fmtMin = (min: number) => {
             const hh = Math.floor(min / 60); const mm = Math.floor(min % 60); const ss = Math.round((min % 1) * 60);
             return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
         };
         return {
-            data: Object.keys(monthlyMap).sort().map(m => {
+            data: filteredKeys.map(m => {
                 const diffs = monthlyMap[m];
                 const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
                 const d = dayjs(m, 'YYYY-MM');
@@ -230,7 +232,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             }),
             fmtMin,
         };
-    }, [arrivals, txLookup]);
+    }, [arrivals, txLookup, dateRange]);
 
     const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
     const vasOperators = new Set(fVasList.map(v => v.operator).filter(Boolean)).size;
