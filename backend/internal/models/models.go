@@ -433,3 +433,16 @@ type Workflow struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// InventoryProject represents inventory project tracking
+type InventoryProject struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	StartDate   FlexDate       `gorm:"column:start_date;type:text" json:"start_date" binding:"required"`
+	ProjectName string         `gorm:"column:project_name" json:"project_name" binding:"required"`
+	Task        string         `gorm:"column:task" json:"task"`
+	TargetDate  FlexDate       `gorm:"column:target_date;type:text" json:"target_date"`
+	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}

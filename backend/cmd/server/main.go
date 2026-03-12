@@ -170,6 +170,9 @@ func main() {
 	workflows := handlers.NewResource[models.Workflow]("workflows")
 	workflows.RegisterRoutes(protected.Group("/workflows"))
 
+	inventoryProjects := handlers.NewResource[models.InventoryProject]("inventory-projects")
+	inventoryProjects.RegisterRoutes(protected.Group("/inventory-projects"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")

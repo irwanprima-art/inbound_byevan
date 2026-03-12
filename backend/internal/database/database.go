@@ -77,6 +77,7 @@ func AutoMigrate() {
 		&models.RejectReturn{},
 		&models.OrderPerBrand{},
 		&models.Workflow{},
+		&models.InventoryProject{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)

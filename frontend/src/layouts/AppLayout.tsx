@@ -6,7 +6,7 @@ import {
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
-    ShoppingOutlined, BarChartOutlined, NodeIndexOutlined,
+    ShoppingOutlined, BarChartOutlined, NodeIndexOutlined, ProjectOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -40,6 +40,7 @@ import ReturnTransactionPage from '../pages/ReturnTransactionPage';
 import RejectReturnPage from '../pages/RejectReturnPage';
 import OrderPerBrandPage from '../pages/OrderPerBrandPage';
 import WorkflowPage from '../pages/WorkflowPage';
+import InventoryProjectPage from '../pages/InventoryProjectPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -80,6 +81,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/damages', icon: <WarningOutlined />, label: 'Project Damage', group: 'inventory' },
     { key: '/qc-returns', icon: <RollbackOutlined />, label: 'QC Return', group: 'inventory' },
     { key: '/berita-acara-inventory', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inventory' },
+    { key: '/inventory-project', icon: <ProjectOutlined />, label: 'Inventory Project', group: 'inventory' },
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', group: 'manpower' },
     { key: '/employees', icon: <IdcardOutlined />, label: 'Employees', group: 'manpower' },
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
@@ -116,6 +118,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/inbound-rejection': 'inbound-rejection',
     '/inbound-case': 'inbound-case',
     '/workflow': 'workflow',
+    '/inventory-project': 'inventory-project',
 };
 
 // Map route key → component
@@ -147,6 +150,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/inbound-rejection': <InboundRejectionPage />,
     '/inbound-case': <InboundCasePage />,
     '/workflow': <WorkflowPage />,
+    '/inventory-project': <InventoryProjectPage />,
     '/settings': <SettingsPage />,
 };
 
@@ -176,6 +180,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/additional-mp': <TeamOutlined />,
     '/berita-acara': <FileTextOutlined />,
     '/berita-acara-inventory': <FileTextOutlined />,
+    '/inventory-project': <ProjectOutlined />,
     '/workflow': <NodeIndexOutlined />,
 };
 
