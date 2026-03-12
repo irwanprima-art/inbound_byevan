@@ -1,4 +1,5 @@
-import { Card } from 'antd';
+import { useState } from 'react';
+import { Card, Tag, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import ResizableTable from '../../components/ResizableTable';
 import dayjs from 'dayjs';
@@ -143,6 +144,61 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
         return latest;
     }, '');
 
+    // === FIFO & FEFO Alert computation ===
+    // Use sellable records from latest update date (already filtered above)
+    const pickMaxArrival: Record<string, string> = {};
+    const pickMaxExp: Record<string, string> = {};
+    sellable.forEach((s: any) => {
+        const locType = (s.location_type || '').trim();
+        if (locType !== 'Pick') return;
+        const sku = s.sku;
+        if (!sku) return;
+        if (s.wh_arrival_date && (!pickMaxArrival[sku] || s.wh_arrival_date > pickMaxArrival[sku])) pickMaxArrival[sku] = s.wh_arrival_date;
+        if (s.exp_date && (!pickMaxExp[sku] || s.exp_date > pickMaxExp[sku])) pickMaxExp[sku] = s.exp_date;
+    });
+
+    // FIFO alert items: Storage records with older arrival than newest Pick arrival (or no Pick at all)
+    const fifoAlertItems = sellable
+        .filter((s: any) => {
+            const locType = (s.location_type || '').trim();
+            if (locType !== 'Storage') return false;
+            if (!s.wh_arrival_date || !s.sku) return false;
+            const maxPick = pickMaxArrival[s.sku];
+            return !maxPick || s.wh_arrival_date < maxPick;
+        })
+        .map((s: any, i: number) => ({
+            key: `fifo_${i}`,
+            brand: ((s.brand || '').trim() || 'Unknown').toUpperCase(),
+            sku: s.sku || '-',
+            wh_arrival_date: s.wh_arrival_date || '-',
+            location: s.location || '-',
+            qty: Number(s.qty) || 0,
+        }))
+        .sort((a, b) => a.wh_arrival_date.localeCompare(b.wh_arrival_date) || a.brand.localeCompare(b.brand));
+
+    // FEFO alert items: Storage records with closer expiry than furthest Pick expiry (or no Pick at all)
+    const fefoAlertItems = sellable
+        .filter((s: any) => {
+            const locType = (s.location_type || '').trim();
+            if (locType !== 'Storage') return false;
+            if (!s.exp_date || !s.sku) return false;
+            const maxPick = pickMaxExp[s.sku];
+            return !maxPick || s.exp_date < maxPick;
+        })
+        .map((s: any, i: number) => ({
+            key: `fefo_${i}`,
+            brand: ((s.brand || '').trim() || 'Unknown').toUpperCase(),
+            sku: s.sku || '-',
+            exp_date: s.exp_date || '-',
+            location: s.location || '-',
+            qty: Number(s.qty) || 0,
+        }))
+        .sort((a, b) => a.exp_date.localeCompare(b.exp_date) || a.brand.localeCompare(b.brand));
+
+    // Brand options for FIFO/FEFO filters
+    const fifoBrands = [...new Set(fifoAlertItems.map(r => r.brand))].sort();
+    const fefoBrands = [...new Set(fefoAlertItems.map(r => r.brand))].sort();
+
     return (
         <>
             {show('ed_note') && <Card
@@ -252,6 +308,82 @@ export default function DashboardAgingTab({ sohList, locations, sections }: Prop
                     })}
                 />
             </Card>}
+
+            {show('fifo_alert') && fifoAlertItems.length > 0 && (
+                <FifoFefoCard
+                    title={`🔴 FIFO Alert — ${fifoAlertItems.length} items`}
+                    headerColor="#ef4444"
+                    items={fifoAlertItems}
+                    brands={fifoBrands}
+                    dateField="wh_arrival_date"
+                    dateLabel="WH Arrival Date"
+                    tagColor="red"
+                    tagLabel="FIFO"
+                />
+            )}
+
+            {show('fefo_alert') && fefoAlertItems.length > 0 && (
+                <FifoFefoCard
+                    title={`🟠 FEFO Alert — ${fefoAlertItems.length} items`}
+                    headerColor="#f97316"
+                    items={fefoAlertItems}
+                    brands={fefoBrands}
+                    dateField="exp_date"
+                    dateLabel="Exp. Date"
+                    tagColor="orange"
+                    tagLabel="FEFO"
+                />
+            )}
         </>
+    );
+}
+
+// Reusable sub-component for FIFO/FEFO alert cards with brand filter
+function FifoFefoCard({ title, headerColor, items, brands, dateField, dateLabel, tagColor, tagLabel }: {
+    title: string; headerColor: string; items: any[]; brands: string[];
+    dateField: string; dateLabel: string; tagColor: string; tagLabel: string;
+}) {
+    const [filterBrand, setFilterBrand] = useState<string[]>([]);
+    const filtered = filterBrand.length > 0 ? items.filter(r => filterBrand.includes(r.brand)) : items;
+
+    return (
+        <Card
+            title={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <span>{title}</span>
+                    <Select
+                        mode="multiple" allowClear placeholder="Filter Brand" maxTagCount="responsive"
+                        options={brands.map(b => ({ label: b, value: b }))}
+                        value={filterBrand} onChange={setFilterBrand}
+                        style={{ minWidth: 200, maxWidth: 400 }}
+                        size="small"
+                    />
+                </div>
+            }
+            style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginTop: 24, overflow: 'hidden', position: 'relative' }}
+            styles={{ header: { color: headerColor }, body: { overflow: 'hidden' } }}
+        >
+            <ResizableTable
+                dataSource={filtered}
+                columns={[
+                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 150 },
+                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 200 },
+                    { title: dateLabel, dataIndex: dateField, key: dateField, width: 130 },
+                    { title: 'Location', dataIndex: 'location', key: 'location', width: 120 },
+                    {
+                        title: 'Qty', dataIndex: 'qty', key: 'qty', width: 100,
+                        render: (v: number) => <span style={{ color: '#60a5fa', fontWeight: 600 }}>{v.toLocaleString()}</span>,
+                    },
+                    {
+                        title: 'Alert', key: 'alert', width: 100,
+                        render: () => <Tag color={tagColor} style={{ fontWeight: 600 }}>⚠️ {tagLabel}</Tag>,
+                    },
+                ]}
+                rowKey="key"
+                size="small"
+                scroll={{ x: 'max-content', y: 400 }}
+                pagination={false}
+            />
+        </Card>
     );
 }
