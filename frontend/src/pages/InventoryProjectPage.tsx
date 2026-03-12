@@ -50,7 +50,7 @@ const columns = [
         dataIndex: 'task',
         key: 'task',
         width: 300,
-        ellipsis: true,
+        render: (v: string) => <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>,
     },
     {
         title: 'Target Selesai',
