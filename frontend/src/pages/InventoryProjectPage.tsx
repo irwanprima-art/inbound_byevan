@@ -3,6 +3,7 @@ import { Form, Input, DatePicker, Tag, Button, Popconfirm, message } from 'antd'
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import DataPage from '../components/DataPage';
 import { inventoryProjectsApi } from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 
 interface InventoryProject {
@@ -17,6 +18,8 @@ interface InventoryProject {
     updated_at?: string;
 }
 
+const CAN_EDIT_ROLES = ['supervisor', 'leader'];
+
 // Compute SLA: days remaining from today to target_date
 function calcSla(targetDate: string, status: string): { text: string; color: string } {
     if (status === 'Closed') return { text: 'Closed', color: '#6b7280' };
@@ -30,7 +33,7 @@ function calcSla(targetDate: string, status: string): { text: string; color: str
     return { text: `Overdue ${Math.abs(diff)} hari`, color: '#dc2626' };
 }
 
-const columns = [
+const baseColumns = [
     {
         title: 'Tanggal Mulai',
         dataIndex: 'start_date',
@@ -129,8 +132,9 @@ const columnMap: Record<string, string> = {
     'Status': 'status',
 };
 
-// Wrapper to add Close/Reopen button
 export default function InventoryProjectPage() {
+    const { user } = useAuth();
+    const canEdit = CAN_EDIT_ROLES.includes(user?.role || '');
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleToggleStatus = async (record: InventoryProject) => {
@@ -144,42 +148,46 @@ export default function InventoryProjectPage() {
         }
     };
 
-    const extraColumns = [
-        ...columns,
-        {
-            title: 'Action',
-            key: 'close_action',
-            width: 120,
-            render: (_: any, record: InventoryProject) => {
-                if (record.status === 'Closed') {
+    // Only add Close/Reopen action column if user can edit
+    const allColumns = canEdit
+        ? [
+            ...baseColumns,
+            {
+                title: '',
+                key: 'close_action',
+                width: 110,
+                render: (_: any, record: InventoryProject) => {
+                    if (record.status === 'Closed') {
+                        return (
+                            <Popconfirm title="Buka kembali project ini?" onConfirm={() => handleToggleStatus(record)}>
+                                <Button size="small" icon={<ReloadOutlined />} style={{ fontSize: 12 }}>Reopen</Button>
+                            </Popconfirm>
+                        );
+                    }
                     return (
-                        <Popconfirm title="Buka kembali project ini?" onConfirm={() => handleToggleStatus(record)}>
-                            <Button size="small" icon={<ReloadOutlined />} style={{ fontSize: 12 }}>Reopen</Button>
+                        <Popconfirm title="Tandai project ini sebagai selesai?" onConfirm={() => handleToggleStatus(record)}>
+                            <Button size="small" type="primary" icon={<CheckCircleOutlined />} style={{ background: '#22c55e', borderColor: '#22c55e', fontSize: 12 }}>
+                                Close
+                            </Button>
                         </Popconfirm>
                     );
-                }
-                return (
-                    <Popconfirm title="Tandai project ini sebagai selesai?" onConfirm={() => handleToggleStatus(record)}>
-                        <Button size="small" type="primary" icon={<CheckCircleOutlined />} style={{ background: '#22c55e', borderColor: '#22c55e', fontSize: 12 }}>
-                            Close
-                        </Button>
-                    </Popconfirm>
-                );
+                },
             },
-        },
-    ];
+        ]
+        : baseColumns;
 
     return (
         <DataPage<InventoryProject>
             key={refreshKey}
             title="Inventory Project"
             api={inventoryProjectsApi}
-            columns={extraColumns}
+            columns={allColumns}
             formFields={formFields}
             csvHeaders={csvHeaders}
             columnMap={columnMap}
             dateField="start_date"
             computeSearchText={(r) => `${r.project_name} ${r.task}`}
+            hideEdit={!canEdit}
         />
     );
 }

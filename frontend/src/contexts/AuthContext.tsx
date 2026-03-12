@@ -63,7 +63,7 @@ export const ROLE_ACCESS: Record<string, { pages: string[] | 'all' }> = {
         pages: ['dashboard', 'inbound-arrival', 'inbound-transaction', 'inbound-unloading', 'vas', 'berita-acara', 'inbound-rejection', 'inbound-case', 'clock-inout', 'productivity', 'workflow'],
     },
     admin_inventory: {
-        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'master-item', 'stock-opname', 'clock-inout', 'productivity'],
+        pages: ['dashboard', 'daily-cycle-count', 'project-damage', 'stock-on-hand', 'qc-return', 'master-location', 'master-item', 'stock-opname', 'clock-inout', 'productivity', 'inventory-project'],
     },
     key_account: {
         pages: ['dashboard', 'stock-on-hand'],

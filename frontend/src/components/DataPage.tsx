@@ -447,8 +447,8 @@ export default function DataPage<T extends { id: number }>({
                         allowClear
                     />
                     <Button icon={<ReloadOutlined />} onClick={() => fetchData()}>Refresh</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
-                    {csvHeaders && (parseCSVRow || columnMap) && (
+                    {!hideEdit && <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>}
+                    {!hideEdit && csvHeaders && (parseCSVRow || columnMap) && (
                         <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}>
                             <Button icon={<UploadOutlined />}>Import</Button>
                         </Upload>
