@@ -195,17 +195,20 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
 
-    // Monthly avg Receive → Putaway for line chart (follows date filter)
+    // Monthly avg Receive → Putaway for line chart — always uses ALL arrivals (not date-filtered)
+    // so the chart shows all historical months for comparison even when a date range is active.
     const monthlyAvgRecPut = useMemo(() => {
+        // Build enriched data from ALL arrivals (not fArrivals)
         const monthlyMap: Record<string, number[]> = {};
         const seen = new Set<string>();
-        enrichedArrivals.forEach((a: any) => {
-            const rkey = (a.receipt_no || '').trim().toLowerCase();
-            if (!rkey || seen.has(rkey)) return;
-            seen.add(rkey);
-            if (!a.first_receive || !a.last_putaway) return;
-            const s = dayjs(a.first_receive);
-            const e = dayjs(a.last_putaway);
+        arrivals.forEach((row: any) => {
+            const key = (row.receipt_no || '').trim().toLowerCase();
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            const tx = txLookup[key] || { receiveQty: 0, putawayQty: 0, firstReceiveTime: null, lastPutawayTime: null };
+            if (!tx.firstReceiveTime || !tx.lastPutawayTime) return;
+            const s = dayjs(tx.firstReceiveTime);
+            const e = dayjs(tx.lastPutawayTime);
             if (!s.isValid() || !e.isValid()) return;
             const diffMin = e.diff(s, 'minute');
             if (diffMin <= 0) return;
@@ -227,7 +230,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             }),
             fmtMin,
         };
-    }, [enrichedArrivals]);
+    }, [arrivals, txLookup]);
 
     const totalVAS = fVasList.reduce((s, v) => s + (parseInt(v.qty) || 0), 0);
     const vasOperators = new Set(fVasList.map(v => v.operator).filter(Boolean)).size;
