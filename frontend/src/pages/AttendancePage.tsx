@@ -166,6 +166,68 @@ export default function AttendancePage() {
         });
     };
 
+    // Bulk Approve / Reject selected rows
+    const handleBulkApprove = async () => {
+        const targets = filteredData.filter(r => selectedKeys.includes(r.id));
+        // Skip auto-approved (Normal) and already approved
+        const toApprove = targets.filter(r => {
+            const remark = calcRemarks(r.clock_in, r.clock_out);
+            if (remark === 'Normal') return false; // auto-approved
+            if (r.approval_status === 'Approved') return false;
+            return true;
+        });
+        if (toApprove.length === 0) { message.info('Tidak ada data yang perlu di-approve'); return; }
+        Modal.confirm({
+            title: `Approve ${toApprove.length} data?`,
+            content: `${toApprove.length} record yang di-checklist akan di-approve.`,
+            okText: 'Approve All',
+            cancelText: 'Batal',
+            onOk: async () => {
+                const hide = message.loading(`Approving... 0/${toApprove.length}`, 0);
+                let done = 0;
+                try {
+                    for (const r of toApprove) {
+                        await attendancesApi.update(r.id, { ...r, approval_status: 'Approved', approval_note: '', updated_by: user?.username || '' });
+                        done++;
+                    }
+                    hide();
+                    message.success(`✅ ${done} data berhasil di-approve`);
+                    setSelectedKeys([]); fetchData();
+                } catch { hide(); message.error(`Gagal approve (${done}/${toApprove.length} berhasil)`); fetchData(); }
+            },
+        });
+    };
+    const handleBulkReject = async () => {
+        const targets = filteredData.filter(r => selectedKeys.includes(r.id));
+        const toReject = targets.filter(r => {
+            const remark = calcRemarks(r.clock_in, r.clock_out);
+            if (remark === 'Normal') return false;
+            if (r.approval_status === 'Rejected') return false;
+            return true;
+        });
+        if (toReject.length === 0) { message.info('Tidak ada data yang perlu di-reject'); return; }
+        Modal.confirm({
+            title: `Reject ${toReject.length} data?`,
+            content: `${toReject.length} record yang di-checklist akan di-reject.`,
+            okText: 'Reject All',
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                const hide = message.loading(`Rejecting... 0/${toReject.length}`, 0);
+                let done = 0;
+                try {
+                    for (const r of toReject) {
+                        await attendancesApi.update(r.id, { ...r, approval_status: 'Rejected', approval_note: '', updated_by: user?.username || '' });
+                        done++;
+                    }
+                    hide();
+                    message.success(`✅ ${done} data berhasil di-reject`);
+                    setSelectedKeys([]); fetchData();
+                } catch { hide(); message.error(`Gagal reject (${done}/${toReject.length} berhasil)`); fetchData(); }
+            },
+        });
+    };
+
     const handleClearAll = () => {
         Modal.confirm({
             title: '⚠️ Clear All Data',
@@ -417,6 +479,12 @@ export default function AttendancePage() {
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
                         </Popconfirm>
+                    )}
+                    {isSupervisor && selectedKeys.length > 0 && (
+                        <>
+                            <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleBulkApprove} style={{ background: '#10b981', borderColor: '#10b981' }}>Approve All ({selectedKeys.length})</Button>
+                            <Button danger icon={<CloseCircleOutlined />} onClick={handleBulkReject}>Reject All ({selectedKeys.length})</Button>
+                        </>
                     )}
                     {isSupervisor && data.length > 0 && (
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
