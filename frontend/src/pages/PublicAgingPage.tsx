@@ -337,6 +337,19 @@ export default function PublicAgingPage() {
     // Group allSellable by week
     const weekSet = new Set<string>();
     allSellable.forEach((s: any) => { const w = calcWeek(s.update_date); if (w) weekSet.add(w); });
+    // For each week, find the latest update_date and only use that date's data
+    const weekLatestDate: Record<string, string> = {};
+    allSellable.forEach((s: any) => {
+        const w = calcWeek(s.update_date);
+        if (!w) return;
+        const dateStr = (s.update_date || '').substring(0, 10);
+        if (!weekLatestDate[w] || dateStr > weekLatestDate[w]) weekLatestDate[w] = dateStr;
+    });
+    const w2wSellable = allSellable.filter((s: any) => {
+        const w = calcWeek(s.update_date);
+        if (!w) return false;
+        return (s.update_date || '').substring(0, 10) === weekLatestDate[w];
+    });
     // Sort weeks chronologically
     const monthOrder: Record<string, number> = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
     const sortedWeeks = [...weekSet].sort((a, b) => {
@@ -357,7 +370,7 @@ export default function PublicAgingPage() {
         // Build per-brand per-edNote totals per week
         const weekData: Record<string, Record<string, Record<string, number>>> = {};
         [lastWeek, currWeek].forEach(w => { weekData[w] = {}; });
-        allSellable.forEach((s: any) => {
+        w2wSellable.forEach((s: any) => {
             const w = calcWeek(s.update_date);
             if (w !== lastWeek && w !== currWeek) return;
             const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
@@ -427,7 +440,7 @@ export default function PublicAgingPage() {
     if (lastWeek && currWeek && lastWeek !== currWeek) {
         const agingWeekData: Record<string, Record<string, Record<string, number>>> = {};
         [lastWeek, currWeek].forEach(w => { agingWeekData[w] = {}; });
-        allSellable.forEach((s: any) => {
+        w2wSellable.forEach((s: any) => {
             const w = calcWeek(s.update_date);
             if (w !== lastWeek && w !== currWeek) return;
             const brand = ((s.brand || '').trim() || 'Unknown').toUpperCase();
