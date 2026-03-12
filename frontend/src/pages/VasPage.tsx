@@ -898,6 +898,40 @@ export default function VasPage() {
                 </Popconfirm>
             )}
 
+            {/* ───── SUMMARY CARDS ───── */}
+            {(() => {
+                const completed = filteredData.filter((d: any) => d.status === 'completed');
+                const totalQty = completed.reduce((sum: number, d: any) => sum + (d.qty || 0), 0);
+                const uniqueOps = new Set(completed.map((d: any) => d.operator).filter(Boolean));
+                const totalMp = uniqueOps.size;
+                const avg = totalMp > 0 ? (totalQty / totalMp).toFixed(1) : '0';
+                return (
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            borderRadius: 12, padding: '14px 24px', minWidth: 160, flex: 1,
+                        }}>
+                            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Total Qty</div>
+                            <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>{totalQty.toLocaleString()}</div>
+                        </div>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            borderRadius: 12, padding: '14px 24px', minWidth: 160, flex: 1,
+                        }}>
+                            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Total MP (Operator)</div>
+                            <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>{totalMp}</div>
+                        </div>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            borderRadius: 12, padding: '14px 24px', minWidth: 160, flex: 1,
+                        }}>
+                            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 4 }}>Rata-rata Qty/MP</div>
+                            <div style={{ color: '#fff', fontSize: 28, fontWeight: 700 }}>{avg}</div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             <Table
                 dataSource={filteredData}
                 columns={columns}
