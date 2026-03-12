@@ -177,19 +177,30 @@ export default function SohPage() {
     };
 
     const handleClearAll = () => {
+        const hasFilter = dateRange || filterEdNote.length > 0 || filterLocCategory.length > 0 || filterBrand.length > 0 || filterAgingNote.length > 0 || search;
+        const targetIds = hasFilter ? filteredData.map(r => r.id) : data.map(r => r.id);
+        const targetCount = targetIds.length;
+        const filterLabel = hasFilter ? `${targetCount} data yang terfilter` : `SEMUA ${targetCount} data`;
         Modal.confirm({
-            title: '⚠️ Clear All Data',
-            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Stock on Hand? Tindakan ini tidak bisa dibatalkan!`,
-            okText: 'Ya, Hapus Semua',
+            title: hasFilter ? '⚠️ Clear Filtered Data' : '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus ${filterLabel} Stock on Hand? Tindakan ini tidak bisa dibatalkan!`,
+            okText: hasFilter ? `Ya, Hapus ${targetCount} Data` : 'Ya, Hapus Semua',
             okType: 'danger',
             cancelText: 'Batal',
             onOk: async () => {
                 try {
-                    await sohApi.sync([]);
-                    message.success('Semua data Stock on Hand berhasil dihapus');
+                    if (!hasFilter) {
+                        await sohApi.sync([]);
+                    } else {
+                        const CHUNK = 1000;
+                        for (let i = 0; i < targetIds.length; i += CHUNK) {
+                            await sohApi.bulkDelete(targetIds.slice(i, i + CHUNK));
+                        }
+                    }
+                    message.success(`${targetCount} data Stock on Hand berhasil dihapus`);
                     setSelectedKeys([]);
                     fetchData();
-                } catch { message.error('Gagal menghapus semua data'); }
+                } catch { message.error('Gagal menghapus data'); }
             },
         });
     };
