@@ -93,15 +93,49 @@ export default function PublicSohPage() {
     const agingNoteOptions = [...new Set(data.map(r => calcAgingNote(r.wh_arrival_date)).filter(v => v !== '-'))].sort().map(v => ({ label: v, value: v }));
 
     const handleExport = () => {
-        const hdr = ['location', 'location_category', 'sku', 'sku_category', 'brand', 'zone', 'location_type', 'owner', 'status', 'qty', 'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date', 'batch_no', 'update_date', 'week', 'ed_note', 'aging_note'];
+        const hdr = ['location', 'location_category', 'sku', 'sku_category', 'brand', 'zone', 'location_type', 'owner', 'status', 'qty', 'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date', 'batch_no', 'update_date', 'week', 'ed_note', 'aging_note', 'fifo_alert', 'fefo_alert'];
         const rows = filteredData.map(r => [
             r.location, locCategoryMap[r.location] || r.location_category || '', r.sku, r.sku_category, r.brand, r.zone,
             r.location_type, r.owner, r.status, r.qty, r.wh_arrival_date, r.receipt_no, r.mfg_date, r.exp_date, r.batch_no, r.update_date,
-            calcWeek(r.update_date || r.wh_arrival_date), calcEdNote(r.exp_date, r.update_date), calcAgingNote(r.wh_arrival_date),
+            calcWeek(r.update_date || r.wh_arrival_date), calcEdNote(r.exp_date, r.update_date), calcAgingNote(r.wh_arrival_date), getFifoAlert(r), getFefoAlert(r),
         ].map(v => `"${v}"`).join(','));
         const blob = new Blob([hdr.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
         const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'stock_on_hand.csv'; a.click();
         message.success('Export berhasil');
+    };
+
+    // === FIFO & FEFO Alert computation ===
+    const pickMaxArrival: Record<string, string> = {};
+    const pickMaxExp: Record<string, string> = {};
+    data.forEach(r => {
+        const cat = locCategoryMap[r.location] || r.location_category || '';
+        const locType = (r.location_type || '').trim();
+        if (cat !== 'Sellable' || locType !== 'Pick') return;
+        if (!r.sku) return;
+        if (r.wh_arrival_date && (!pickMaxArrival[r.sku] || r.wh_arrival_date > pickMaxArrival[r.sku])) pickMaxArrival[r.sku] = r.wh_arrival_date;
+        if (r.exp_date && (!pickMaxExp[r.sku] || r.exp_date > pickMaxExp[r.sku])) pickMaxExp[r.sku] = r.exp_date;
+    });
+    const getFifoAlert = (r: SohRecord): string => {
+        const cat = locCategoryMap[r.location] || r.location_category || '';
+        if (cat !== 'Sellable') return '-';
+        const locType = (r.location_type || '').trim();
+        if (locType === 'Pick') return 'OK';
+        if (locType !== 'Storage') return '-';
+        if (!r.wh_arrival_date || !r.sku) return '-';
+        const maxPick = pickMaxArrival[r.sku];
+        if (!maxPick) return '-';
+        return r.wh_arrival_date < maxPick ? '⚠️ Alert' : 'OK';
+    };
+    const getFefoAlert = (r: SohRecord): string => {
+        const cat = locCategoryMap[r.location] || r.location_category || '';
+        if (cat !== 'Sellable') return '-';
+        const locType = (r.location_type || '').trim();
+        if (locType === 'Pick') return 'OK';
+        if (locType !== 'Storage') return '-';
+        if (!r.exp_date || !r.sku) return '-';
+        const maxPick = pickMaxExp[r.sku];
+        if (!maxPick) return '-';
+        return r.exp_date < maxPick ? '⚠️ Alert' : 'OK';
     };
 
     const columns: any[] = [
@@ -130,6 +164,28 @@ export default function PublicSohPage() {
             title: 'Aging Note', key: 'aging_note', width: 100,
             render: (_: any, r: any) => { const note = calcAgingNote(r.wh_arrival_date); return note !== '-' ? <Tag color="blue">{note}</Tag> : '-'; },
         },
+        {
+            title: 'FIFO Alert', key: 'fifo_alert', width: 110,
+            render: (_: any, r: SohRecord) => {
+                const alert = getFifoAlert(r);
+                if (alert === '⚠️ Alert') return <Tag color="red" style={{ fontWeight: 600 }}>⚠️ FIFO</Tag>;
+                if (alert === 'OK') return <Tag color="green">OK</Tag>;
+                return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+            },
+            filters: [{ text: '⚠️ Alert', value: '⚠️ Alert' }, { text: 'OK', value: 'OK' }, { text: '-', value: '-' }],
+            onFilter: (value: string, r: SohRecord) => getFifoAlert(r) === value,
+        },
+        {
+            title: 'FEFO Alert', key: 'fefo_alert', width: 110,
+            render: (_: any, r: SohRecord) => {
+                const alert = getFefoAlert(r);
+                if (alert === '⚠️ Alert') return <Tag color="orange" style={{ fontWeight: 600 }}>⚠️ FEFO</Tag>;
+                if (alert === 'OK') return <Tag color="green">OK</Tag>;
+                return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+            },
+            filters: [{ text: '⚠️ Alert', value: '⚠️ Alert' }, { text: 'OK', value: 'OK' }, { text: '-', value: '-' }],
+            onFilter: (value: string, r: SohRecord) => getFefoAlert(r) === value,
+        },
     ];
 
     return (
@@ -157,7 +213,7 @@ export default function PublicSohPage() {
                     </div>
                     <Table
                         rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
-                        scroll={{ x: 2200, y: 'calc(100vh - 280px)' }}
+                        scroll={{ x: 2500, y: 'calc(100vh - 280px)' }}
                         pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                     />
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
