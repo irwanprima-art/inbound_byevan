@@ -7,6 +7,7 @@ interface Props {
     occupiedMap: Record<string, { qty: number; brand: string }>;
     manualOverrides: Record<string, string>; // locName -> note
     onToggleManual: (locName: string, note?: string) => void;
+    editMode?: boolean;
 }
 
 /**
@@ -26,7 +27,7 @@ function parseLocation(locName: string) {
     };
 }
 
-export default function StorageHeatmap({ zone, locations, occupiedMap, manualOverrides, onToggleManual }: Props) {
+export default function StorageHeatmap({ zone, locations, occupiedMap, manualOverrides, onToggleManual, editMode = false }: Props) {
     const [hoveredLoc, setHoveredLoc] = useState<string | null>(null);
     const [editingLoc, setEditingLoc] = useState<string | null>(null);
     const [editNote, setEditNote] = useState('');
@@ -103,7 +104,7 @@ export default function StorageHeatmap({ zone, locations, occupiedMap, manualOve
     };
 
     const handleCellClick = (locName: string | null) => {
-        if (!locName) return;
+        if (!editMode || !locName) return;
         const occ = occupiedMap[locName];
         if (occ) return; // system-occupied, can't toggle
 
@@ -218,12 +219,12 @@ export default function StorageHeatmap({ zone, locations, occupiedMap, manualOve
                                                     ) : manual ? (
                                                         <>
                                                             <div style={{ color: '#fbbf24' }}>📦 {manual}</div>
-                                                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>Klik untuk hapus</div>
+                                                            {editMode && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>Klik untuk hapus</div>}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <div style={{ color: '#f87171' }}>Empty</div>
-                                                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>Klik untuk tandai terisi</div>
+                                                            {editMode && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>Klik untuk tandai terisi</div>}
                                                         </>
                                                     )}
                                                 </div>
@@ -243,7 +244,7 @@ export default function StorageHeatmap({ zone, locations, occupiedMap, manualOve
                                                             border: isHovered
                                                                 ? '2px solid #22d3ee'
                                                                 : '1px solid rgba(255,255,255,0.08)',
-                                                            cursor: occ ? 'default' : 'pointer',
+                                                            cursor: editMode && !occ ? 'pointer' : 'default',
                                                             transition: 'all 0.15s ease',
                                                             transform: isHovered ? 'scale(1.15)' : 'scale(1)',
                                                             zIndex: isHovered ? 10 : 1,

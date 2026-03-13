@@ -1,7 +1,11 @@
 import { useMemo, useState, useCallback } from 'react';
-import { Card, Tag } from 'antd';
+import { Card, Tag, Switch } from 'antd';
+import { EditOutlined, EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import StorageHeatmap from '../../components/StorageHeatmap';
+import { useAuth } from '../../contexts/AuthContext';
+
+const CAN_EDIT_ROLES = ['supervisor', 'leader'];
 
 interface Props {
     sohList: any[];
@@ -23,6 +27,9 @@ function saveOverrides(data: Record<string, string>) {
 }
 
 export default function DashboardHeatmapTab({ sohList, locations }: Props) {
+    const { user } = useAuth();
+    const canEdit = CAN_EDIT_ROLES.includes(user?.role || '');
+    const [editMode, setEditMode] = useState(false);
     const [activeZone, setActiveZone] = useState('RA');
     const [manualOverrides, setManualOverrides] = useState<Record<string, string>>(loadOverrides);
 
@@ -92,6 +99,26 @@ export default function DashboardHeatmapTab({ sohList, locations }: Props) {
                         )}
                     </div>
                 }
+                extra={
+                    canEdit ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <EyeOutlined style={{ color: !editMode ? '#60a5fa' : 'rgba(255,255,255,0.3)' }} />
+                            <Switch
+                                checked={editMode}
+                                onChange={setEditMode}
+                                size="small"
+                                style={{ background: editMode ? '#f59e0b' : undefined }}
+                            />
+                            <EditOutlined style={{ color: editMode ? '#f59e0b' : 'rgba(255,255,255,0.3)' }} />
+                            <span style={{
+                                fontSize: 12, fontWeight: 600,
+                                color: editMode ? '#f59e0b' : '#60a5fa',
+                            }}>
+                                {editMode ? 'Edit Mode' : 'View Mode'}
+                            </span>
+                        </div>
+                    ) : null
+                }
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
                 styles={{ header: { color: '#fff' } }}
             >
@@ -144,6 +171,7 @@ export default function DashboardHeatmapTab({ sohList, locations }: Props) {
                         occupiedMap={occupiedMap}
                         manualOverrides={manualOverrides}
                         onToggleManual={handleToggleManual}
+                        editMode={editMode}
                     />
                 </div>
             </Card>
