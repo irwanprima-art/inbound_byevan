@@ -278,22 +278,21 @@ export default function DataPage<T extends { id: number }>({
             const CHUNK_SIZE = 1000;
             const totalChunks = Math.ceil(parsed.length / CHUNK_SIZE);
             let imported = 0;
-            const hideMsg = message.loading(`Importing... 0/${parsed.length}`, 0);
+            const msgKey = 'datapage-import';
+            message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${parsed.length}`, duration: 0 });
 
             try {
                 for (let i = 0; i < totalChunks; i++) {
                     const chunk = parsed.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     await api.batchImport(chunk);
                     imported += chunk.length;
-                    hideMsg();
-                    if (i < totalChunks - 1) {
-                        message.loading(`Importing... ${imported}/${parsed.length}`, 0);
-                    }
+                    message.open({ key: msgKey, type: 'loading', content: `Importing... ${imported}/${parsed.length}`, duration: 0 });
                 }
+                message.destroy(msgKey);
                 message.success(`✅ ${imported} data berhasil diimport`);
                 fetchData();
             } catch {
-                hideMsg();
+                message.destroy(msgKey);
                 message.error(`Gagal import (${imported}/${parsed.length} berhasil)`);
                 if (imported > 0) fetchData();
             }

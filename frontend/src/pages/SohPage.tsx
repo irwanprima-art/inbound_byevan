@@ -259,16 +259,18 @@ export default function SohPage() {
             }).filter(obj => Object.values(obj).some(v => v !== '' && v !== 0));
             if (!parsed.length) { message.warning('Tidak ada data'); return; }
             const CHUNK = 1000; let imported = 0;
-            const hide = message.loading(`Importing... 0/${parsed.length}`, 0);
+            const msgKey = 'soh-import';
+            message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${parsed.length}`, duration: 0 });
             try {
                 for (let i = 0; i < parsed.length; i += CHUNK) {
                     const chunk = parsed.slice(i, i + CHUNK);
                     await sohApi.batchImport(chunk);
-                    imported += chunk.length; hide();
-                    if (i + CHUNK < parsed.length) message.loading(`Importing... ${imported}/${parsed.length}`, 0);
+                    imported += chunk.length;
+                    message.open({ key: msgKey, type: 'loading', content: `Importing... ${imported}/${parsed.length}`, duration: 0 });
                 }
+                message.destroy(msgKey);
                 message.success(`✅ ${imported} data diimport`); fetchData();
-            } catch { hide(); message.error(`Gagal import (${imported}/${parsed.length})`); if (imported > 0) fetchData(); }
+            } catch { message.destroy(msgKey); message.error(`Gagal import (${imported}/${parsed.length})`); if (imported > 0) fetchData(); }
         };
         reader.readAsText(file); return false;
     };

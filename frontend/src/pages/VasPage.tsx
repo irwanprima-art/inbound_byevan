@@ -540,13 +540,14 @@ export default function VasPage() {
             try {
                 const CHUNK = 1000;
                 let imported = 0;
-                const hide = message.loading(`Importing... 0/${rows.length}`, 0);
+                const msgKey = 'vas-import';
+                message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${rows.length}`, duration: 0 });
                 for (let i = 0; i < rows.length; i += CHUNK) {
                     await vasApi.batchImport(rows.slice(i, i + CHUNK));
                     imported += Math.min(CHUNK, rows.length - i);
-                    hide();
-                    if (i + CHUNK < rows.length) message.loading(`Importing... ${imported}/${rows.length}`, 0);
+                    message.open({ key: msgKey, type: 'loading', content: `Importing... ${imported}/${rows.length}`, duration: 0 });
                 }
+                message.destroy(msgKey);
                 message.success(`✅ ${imported} data imported`);
                 fetchData();
             } catch { message.error('Import gagal'); }

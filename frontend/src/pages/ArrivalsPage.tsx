@@ -432,15 +432,15 @@ export default function ArrivalsPage() {
 
                 let processed = 0;
                 const total = toUpdate.length + toCreate.length;
-                const hide = message.loading(`Importing... 0/${total}`, 0);
+                const msgKey = 'arrivals-import';
+                message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${total}`, duration: 0 });
 
                 // Update existing records one by one
                 for (const item of toUpdate) {
                     await arrivalsApi.update(item.id, item.payload);
                     processed++;
                     if (processed % 50 === 0) {
-                        hide();
-                        message.loading(`Importing... ${processed}/${total} (updating)`, 0);
+                        message.open({ key: msgKey, type: 'loading', content: `Importing... ${processed}/${total} (updating)`, duration: 0 });
                     }
                 }
 
@@ -450,12 +450,11 @@ export default function ArrivalsPage() {
                     for (let i = 0; i < toCreate.length; i += CHUNK) {
                         await arrivalsApi.batchImport(toCreate.slice(i, i + CHUNK));
                         processed += Math.min(CHUNK, toCreate.length - i);
-                        hide();
-                        if (processed < total) message.loading(`Importing... ${processed}/${total} (creating)`, 0);
+                        message.open({ key: msgKey, type: 'loading', content: `Importing... ${processed}/${total} (creating)`, duration: 0 });
                     }
                 }
 
-                hide();
+                message.destroy(msgKey);
                 message.success(`✅ ${toUpdate.length} updated, ${toCreate.length} created`);
                 fetchAll();
             } catch {

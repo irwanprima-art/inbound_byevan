@@ -291,15 +291,17 @@ export default function AttendancePage() {
             }).filter(o => Object.values(o).some(v => v !== ''));
             if (!parsed.length) return;
             const CHUNK = 1000; let imported = 0;
-            const hide = message.loading(`Importing... 0/${parsed.length}`, 0);
+            const msgKey = 'attendance-import';
+            message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${parsed.length}`, duration: 0 });
             try {
                 for (let i = 0; i < parsed.length; i += CHUNK) {
                     await attendancesApi.batchImport(parsed.slice(i, i + CHUNK));
-                    imported += Math.min(CHUNK, parsed.length - i); hide();
-                    if (i + CHUNK < parsed.length) message.loading(`Importing... ${imported}/${parsed.length}`, 0);
+                    imported += Math.min(CHUNK, parsed.length - i);
+                    message.open({ key: msgKey, type: 'loading', content: `Importing... ${imported}/${parsed.length}`, duration: 0 });
                 }
+                message.destroy(msgKey);
                 message.success(`✅ ${imported} data diimport`); fetchData();
-            } catch { hide(); message.error(`Gagal import`); if (imported > 0) fetchData(); }
+            } catch { message.destroy(msgKey); message.error(`Gagal import`); if (imported > 0) fetchData(); }
         };
         reader.readAsText(file); return false;
     };

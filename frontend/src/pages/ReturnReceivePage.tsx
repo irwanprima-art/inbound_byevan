@@ -276,15 +276,15 @@ export default function ReturnReceivePage() {
             if (rows.length === 0) { message.warning('Tidak ada data valid'); return; }
             try {
                 const CHUNK = 1000;
-                const hide = message.loading(`Importing... 0/${rows.length}`, 0);
+                const msgKey = 'return-receive-import';
+                message.open({ key: msgKey, type: 'loading', content: `Importing... 0/${rows.length}`, duration: 0 });
                 let processed = 0;
                 for (let i = 0; i < rows.length; i += CHUNK) {
                     await returnReceivesApi.batchImport(rows.slice(i, i + CHUNK));
                     processed += Math.min(CHUNK, rows.length - i);
-                    hide();
-                    if (processed < rows.length) message.loading(`Importing... ${processed}/${rows.length}`, 0);
+                    message.open({ key: msgKey, type: 'loading', content: `Importing... ${processed}/${rows.length}`, duration: 0 });
                 }
-                hide();
+                message.destroy(msgKey);
                 message.success(`✅ ${rows.length} data berhasil diimport`);
                 fetchAll();
             } catch { message.error('Import gagal'); }
