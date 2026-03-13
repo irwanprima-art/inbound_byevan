@@ -11,6 +11,7 @@ import DashboardUtilizationTab from './dashboard/DashboardUtilizationTab';
 import DashboardAgingTab from './dashboard/DashboardAgingTab';
 import DashboardReturnTab from './dashboard/DashboardReturnTab';
 import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
+import DashboardHeatmapTab from './dashboard/DashboardHeatmapTab';
 
 const { Title } = Typography;
 
@@ -21,6 +22,7 @@ const TAB_GROUPS: Record<string, string> = {
     inventory: 'inventory',
     utilization: 'inventory', // shares data with inventory group
     aging_stock: 'inventory', // shares data with inventory group
+    heatmap: 'inventory', // shares data with inventory group
     manpower: 'manpower',
 };
 
@@ -226,6 +228,16 @@ export default function DashboardPage() {
                         label: '📅 Aging Stock',
                         children: groupSpinner('inventory') || (
                             <DashboardAgingTab
+                                sohList={sohList}
+                                locations={locations}
+                            />
+                        ),
+                    },
+                    {
+                        key: 'heatmap',
+                        label: '🗺️ Heatmap',
+                        children: groupSpinner('inventory') || (
+                            <DashboardHeatmapTab
                                 sohList={sohList}
                                 locations={locations}
                             />
