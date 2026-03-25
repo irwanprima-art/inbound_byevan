@@ -76,6 +76,7 @@ export const rejectReturnsApi = createResourceApi('reject-returns');
 export const orderPerBrandsApi = createResourceApi('order-per-brands');
 export const workflowsApi = createResourceApi('workflows');
 export const inventoryProjectsApi = createResourceApi('inventory-projects');
+export const heatmapOverridesApi = createResourceApi('heatmap-overrides');
 
 // User management API (custom endpoints)
 export const usersApi = {

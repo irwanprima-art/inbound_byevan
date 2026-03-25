@@ -78,6 +78,7 @@ func AutoMigrate() {
 		&models.OrderPerBrand{},
 		&models.Workflow{},
 		&models.InventoryProject{},
+		&models.HeatmapOverride{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)

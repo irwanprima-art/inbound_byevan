@@ -1,9 +1,10 @@
-import { useMemo, useState, useCallback } from 'react';
-import { Card, Tag, Switch } from 'antd';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+import { Card, Tag, Switch, message } from 'antd';
 import { EditOutlined, EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import StorageHeatmap from '../../components/StorageHeatmap';
 import { useAuth } from '../../contexts/AuthContext';
+import { heatmapOverridesApi } from '../../api/client';
 
 const CAN_EDIT_ROLES = ['supervisor', 'leader'];
 
@@ -13,37 +14,77 @@ interface Props {
 }
 
 const ZONES = ['RA', 'RB', 'RC', 'RD', 'RE', 'RF', 'RG'];
-const LS_KEY = 'heatmap_manual_overrides';
-
-// Load/save manual overrides from localStorage
-function loadOverrides(): Record<string, string> {
-    try {
-        const raw = localStorage.getItem(LS_KEY);
-        return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
-}
-function saveOverrides(data: Record<string, string>) {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-}
+const LS_KEY = 'heatmap_manual_overrides'; // kept for migration only
 
 export default function DashboardHeatmapTab({ sohList, locations }: Props) {
     const { user } = useAuth();
     const canEdit = CAN_EDIT_ROLES.includes(user?.role || '');
     const [editMode, setEditMode] = useState(false);
     const [activeZone, setActiveZone] = useState('RA');
-    const [manualOverrides, setManualOverrides] = useState<Record<string, string>>(loadOverrides);
+    const [manualOverrides, setManualOverrides] = useState<Record<string, string>>({});
 
-    const handleToggleManual = useCallback((locName: string, note?: string) => {
-        setManualOverrides(prev => {
-            const next = { ...prev };
-            if (note !== undefined) {
-                next[locName] = note;
-            } else {
-                delete next[locName];
+    // Load overrides from API on mount + migrate localStorage if any
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await heatmapOverridesApi.list();
+                const serverData: Record<string, string> = {};
+                (res.data as any[]).forEach((r: any) => {
+                    serverData[r.location] = r.note || 'Barang diluar system';
+                });
+
+                // Migrate localStorage data to server (one-time)
+                const lsRaw = localStorage.getItem(LS_KEY);
+                if (lsRaw) {
+                    try {
+                        const lsData: Record<string, string> = JSON.parse(lsRaw);
+                        for (const [loc, note] of Object.entries(lsData)) {
+                            if (!serverData[loc]) {
+                                await heatmapOverridesApi.create({ location: loc, note: note || 'Barang diluar system' });
+                                serverData[loc] = note || 'Barang diluar system';
+                            }
+                        }
+                    } catch { /* ignore parse errors */ }
+                    localStorage.removeItem(LS_KEY);
+                }
+
+                if (!cancelled) setManualOverrides(serverData);
+            } catch {
+                // Fallback to localStorage if API fails
+                try {
+                    const raw = localStorage.getItem(LS_KEY);
+                    if (!cancelled && raw) setManualOverrides(JSON.parse(raw));
+                } catch { /* ignore */ }
             }
-            saveOverrides(next);
-            return next;
-        });
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    const handleToggleManual = useCallback(async (locName: string, note?: string) => {
+        if (note !== undefined) {
+            // Add override
+            try {
+                await heatmapOverridesApi.create({ location: locName, note: note || 'Barang diluar system' });
+                setManualOverrides(prev => ({ ...prev, [locName]: note || 'Barang diluar system' }));
+            } catch {
+                message.error('Gagal menyimpan override');
+            }
+        } else {
+            // Remove override — find the ID first from the server
+            try {
+                const res = await heatmapOverridesApi.list();
+                const record = (res.data as any[]).find((r: any) => r.location === locName);
+                if (record) await heatmapOverridesApi.remove(record.id);
+                setManualOverrides(prev => {
+                    const next = { ...prev };
+                    delete next[locName];
+                    return next;
+                });
+            } catch {
+                message.error('Gagal menghapus override');
+            }
+        }
     }, []);
 
     // Only use records from the latest update_date (most recent snapshot)

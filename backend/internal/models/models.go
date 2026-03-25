@@ -447,3 +447,14 @@ type InventoryProject struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// HeatmapOverride represents a manual location override in the storage heatmap
+type HeatmapOverride struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Location  string         `gorm:"column:location;uniqueIndex" json:"location" binding:"required"`
+	Note      string         `gorm:"column:note" json:"note"`
+	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}

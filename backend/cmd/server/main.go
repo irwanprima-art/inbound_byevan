@@ -173,6 +173,9 @@ func main() {
 	inventoryProjects := handlers.NewResource[models.InventoryProject]("inventory-projects")
 	inventoryProjects.RegisterRoutes(protected.Group("/inventory-projects"))
 
+	heatmapOverrides := handlers.NewResource[models.HeatmapOverride]("heatmap-overrides")
+	heatmapOverrides.RegisterRoutes(protected.Group("/heatmap-overrides"))
+
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
