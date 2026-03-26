@@ -285,6 +285,23 @@ export default function ArrivalsPage() {
         }
     }, [modalOpen, form]);
 
+    // Auto-deduplicate receipt_no: if it already exists, append -2, -3, etc.
+    const deduplicateReceiptNo = (receiptNo: string, excludeId?: number): string => {
+        if (!receiptNo) return receiptNo;
+        const existing = new Set(
+            data
+                .filter((d: any) => !excludeId || d.id !== excludeId)
+                .map((d: any) => (d.receipt_no || '').trim().toLowerCase())
+        );
+        const base = receiptNo.trim();
+        if (!existing.has(base.toLowerCase())) return base;
+        let suffix = 2;
+        while (existing.has(`${base}-${suffix}`.toLowerCase())) {
+            suffix++;
+        }
+        return `${base}-${suffix}`;
+    };
+
     const handleSave = async () => {
         try {
             const vals = await form.validateFields();
@@ -296,17 +313,44 @@ export default function ArrivalsPage() {
             vals.finish_unloading_time = toDateStr(vals.finish_unloading_time, 'YYYY-MM-DD HH:mm:ss');
             vals.date_publish_do = toDateStr(vals.date_publish_do, 'YYYY-MM-DD');
             if (editId) {
+                // Deduplicate receipt_no (exclude current record)
+                vals.receipt_no = deduplicateReceiptNo(vals.receipt_no, editId);
                 await arrivalsApi.update(editId, vals);
                 message.success('Data diupdate');
             } else {
-                // Add mode: create one record per entry
+                // Add mode: create one record per entry, deduplicate each receipt_no
                 const { entries, ...commonFields } = vals;
                 const entryList = entries || [{ receipt_no: vals.receipt_no, po_no: vals.po_no, po_qty: vals.po_qty }];
-                const promises = entryList.map((entry: any) =>
+
+                // Track newly added receipt_nos within this batch too
+                const usedInBatch = new Set(
+                    data.map((d: any) => (d.receipt_no || '').trim().toLowerCase())
+                );
+                const deduplicatedEntries = entryList.map((entry: any) => {
+                    const base = (entry.receipt_no || '').trim();
+                    let finalNo = base;
+                    if (usedInBatch.has(base.toLowerCase())) {
+                        let suffix = 2;
+                        while (usedInBatch.has(`${base}-${suffix}`.toLowerCase())) {
+                            suffix++;
+                        }
+                        finalNo = `${base}-${suffix}`;
+                    }
+                    usedInBatch.add(finalNo.toLowerCase());
+                    return { ...entry, receipt_no: finalNo };
+                });
+
+                const promises = deduplicatedEntries.map((entry: any) =>
                     arrivalsApi.create({ ...commonFields, receipt_no: entry.receipt_no, po_no: entry.po_no, po_qty: entry.po_qty })
                 );
                 await Promise.all(promises);
-                message.success(`${entryList.length} data berhasil ditambahkan`);
+
+                // Show renamed entries in message
+                const renamed = deduplicatedEntries.filter((e: any, i: number) => e.receipt_no !== entryList[i].receipt_no);
+                if (renamed.length > 0) {
+                    message.info(`Receipt No duplikat di-rename: ${renamed.map((e: any) => e.receipt_no).join(', ')}`);
+                }
+                message.success(`${deduplicatedEntries.length} data berhasil ditambahkan`);
             }
             setModalOpen(false);
             fetchAll();
