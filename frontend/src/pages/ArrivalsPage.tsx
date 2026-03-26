@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select, DatePicker } from 'antd';
 import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
-    DownloadOutlined, UploadOutlined, ClearOutlined,
+    DownloadOutlined, UploadOutlined, ClearOutlined, MinusCircleOutlined,
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
@@ -279,6 +279,7 @@ export default function ArrivalsPage() {
                 form.setFieldsValue({
                     date: dayjs(),
                     arrival_time: dayjs(),
+                    entries: [{ receipt_no: '', po_no: '', po_qty: 0 }],
                 });
             }
         }
@@ -298,8 +299,14 @@ export default function ArrivalsPage() {
                 await arrivalsApi.update(editId, vals);
                 message.success('Data diupdate');
             } else {
-                await arrivalsApi.create(vals);
-                message.success('Data ditambahkan');
+                // Add mode: create one record per entry
+                const { entries, ...commonFields } = vals;
+                const entryList = entries || [{ receipt_no: vals.receipt_no, po_no: vals.po_no, po_qty: vals.po_qty }];
+                const promises = entryList.map((entry: any) =>
+                    arrivalsApi.create({ ...commonFields, receipt_no: entry.receipt_no, po_no: entry.po_no, po_qty: entry.po_qty })
+                );
+                await Promise.all(promises);
+                message.success(`${entryList.length} data berhasil ditambahkan`);
             }
             setModalOpen(false);
             fetchAll();
@@ -564,21 +571,109 @@ export default function ArrivalsPage() {
                     <Form.Item name="brand" label="Brand" rules={[{ required: true }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="receipt_no" label="Receipt No" rules={[{ required: true }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="po_no" label="PO No" rules={[{ required: true }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="supplier" label="Supplier">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="plan_qty" label="Plan Qty">
-                        <InputNumber style={{ width: '100%' }} min={0} />
-                    </Form.Item>
-                    <Form.Item name="po_qty" label="PO Qty" rules={[{ required: true }]}>
-                        <InputNumber style={{ width: '100%' }} min={0} />
-                    </Form.Item>
+                    {editId ? (
+                        // Edit mode: single receipt/po/qty fields
+                        <>
+                            <Form.Item name="receipt_no" label="Receipt No" rules={[{ required: true }]}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="po_no" label="PO No" rules={[{ required: true }]}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="supplier" label="Supplier">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="plan_qty" label="Plan Qty">
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                            <Form.Item name="po_qty" label="PO Qty" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                        </>
+                    ) : (
+                        // Add mode: dynamic list of receipt/po/qty entries
+                        <>
+                            <Form.Item name="supplier" label="Supplier">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="plan_qty" label="Plan Qty">
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                            <div style={{
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 8,
+                                padding: '16px 12px 8px',
+                                marginBottom: 16,
+                                background: 'rgba(255,255,255,0.03)',
+                            }}>
+                                <div style={{ marginBottom: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                                    Receipt / PO Entries
+                                </div>
+                                <Form.List name="entries" initialValue={[{ receipt_no: '', po_no: '', po_qty: 0 }]}>
+                                    {(fields, { add, remove }) => (
+                                        <>
+                                            {fields.map(({ key, name, ...restField }, index) => (
+                                                <div key={key} style={{
+                                                    display: 'flex',
+                                                    gap: 8,
+                                                    alignItems: 'flex-start',
+                                                    marginBottom: 8,
+                                                    paddingBottom: index < fields.length - 1 ? 8 : 0,
+                                                    borderBottom: index < fields.length - 1 ? '1px dashed rgba(255,255,255,0.1)' : 'none',
+                                                }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>#{index + 1}</div>
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'receipt_no']}
+                                                            rules={[{ required: true, message: 'Receipt No wajib diisi' }]}
+                                                            style={{ marginBottom: 6 }}
+                                                        >
+                                                            <Input placeholder="Receipt No" size="small" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'po_no']}
+                                                            rules={[{ required: true, message: 'PO No wajib diisi' }]}
+                                                            style={{ marginBottom: 6 }}
+                                                        >
+                                                            <Input placeholder="PO No" size="small" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'po_qty']}
+                                                            rules={[{ required: true, message: 'PO Qty wajib diisi' }]}
+                                                            style={{ marginBottom: 0 }}
+                                                        >
+                                                            <InputNumber placeholder="PO Qty" size="small" min={0} style={{ width: '100%' }} />
+                                                        </Form.Item>
+                                                    </div>
+                                                    {fields.length > 1 && (
+                                                        <Button
+                                                            type="text"
+                                                            danger
+                                                            icon={<MinusCircleOutlined />}
+                                                            onClick={() => remove(name)}
+                                                            style={{ marginTop: 20 }}
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <Button
+                                                type="dashed"
+                                                onClick={() => add({ receipt_no: '', po_no: '', po_qty: 0 })}
+                                                block
+                                                icon={<PlusOutlined />}
+                                                style={{ marginTop: 4 }}
+                                            >
+                                                Tambah Receipt / PO
+                                            </Button>
+                                        </>
+                                    )}
+                                </Form.List>
+                            </div>
+                        </>
+                    )}
                     <Form.Item name="operator" label="Operator">
                         <Input />
                     </Form.Item>
