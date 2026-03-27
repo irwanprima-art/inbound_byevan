@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
+import { Form, Input, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, Popover, Badge } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     ReloadOutlined, UploadOutlined, DownloadOutlined, SearchOutlined, ClearOutlined,
@@ -216,9 +216,12 @@ export default function LocationPage() {
         const a = document.createElement('a'); a.href = url; a.download = 'master_location.csv'; a.click();
     };
 
-    const filteredData = data.filter(r =>
-        Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase()))
-    );
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
+    const filteredData = data.filter(r => {
+        if (searchTerms.length === 0) return true;
+        return searchTerms.some(q => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
+    });
 
     const columns: ColumnsType<LocationRecord> = [
         { title: 'Location', dataIndex: 'location', key: 'location', width: 130, sorter: (a, b) => a.location.localeCompare(b.location) },
@@ -275,14 +278,7 @@ export default function LocationPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>Master Location</h2>
                 <Space>
-                    <Input
-                        placeholder="Search..."
-                        prefix={<SearchOutlined />}
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        style={{ width: 240 }}
-                        allowClear
-                    />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     {canEdit && <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>}
                     {canEdit && (

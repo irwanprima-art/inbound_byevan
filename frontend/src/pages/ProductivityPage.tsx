@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Row, Col, Card, Typography, Input, Button, DatePicker, Space, Spin, Modal, Form, InputNumber, message } from 'antd';
+import { Row, Col, Card, Typography, Input, Button, DatePicker, Space, Spin, Modal, Form, InputNumber, message, Popover, Badge } from 'antd';
 import {
     SearchOutlined, ReloadOutlined, DownloadOutlined, PlusOutlined,
     TrophyOutlined, InboxOutlined, SwapOutlined, TagsOutlined,
@@ -343,9 +343,9 @@ export default function ProductivityPage() {
         [inspection, receive, putaway, vas, dcc, qc, retReceive, retPutaway, project].forEach(arr => arr.sort((a, b) => b.value - a.value));
 
         // Apply search filter
-        const q = search.toLowerCase();
+        const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
         const filterSearch = (arr: RankItem[]) =>
-            q ? arr.filter(d => d.name.toLowerCase().includes(q) || d.divisi.toLowerCase().includes(q) || d.jobdesc.toLowerCase().includes(q)) : arr;
+            searchTerms.length === 0 ? arr : arr.filter(d => searchTerms.some(q => d.name.toLowerCase().includes(q) || d.divisi.toLowerCase().includes(q) || d.jobdesc.toLowerCase().includes(q)));
 
         return [
             { key: 'inspection', title: 'Inspection', subtitle: 'Inbound Arrival', icon: <SearchOutlined />, gradient: 'linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%)', data: filterSearch(inspection) },
@@ -542,14 +542,7 @@ export default function ProductivityPage() {
                 <Space>
                     <DatePicker placeholder="Filter per hari" onChange={d => setFilterDate(d)} value={filterDate} allowClear />
                     <DatePicker.MonthPicker placeholder="Filter per bulan" onChange={d => setFilterMonth(d)} value={filterMonth} allowClear />
-                    <Input
-                        placeholder="Cari nama, divisi, job desc..."
-                        prefix={<SearchOutlined />}
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        style={{ width: 240 }}
-                        allowClear
-                    />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{search.split('\n').filter(t => t.trim()).length > 0 ? `${search.split('\n').filter(t => t.trim()).length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={search.split('\n').filter(t => t.trim()).length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{search.split('\n').filter(t => t.trim()).length > 0 ? `Search (${search.split('\n').filter(t => t.trim()).length})` : 'Search'}</Button></Badge></Popover>
                 </Space>
             </div>
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Select, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message } from 'antd';
+import { Form, Input, Select, Table, Button, Modal, Space, Popconfirm, Upload, Tag, message, Popover, Badge } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
-    UploadOutlined, DownloadOutlined, FileExcelOutlined, ClearOutlined,
+    UploadOutlined, DownloadOutlined, FileExcelOutlined, ClearOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
@@ -180,13 +180,15 @@ export default function MasterItemPage() {
     };
 
     const getFilteredData = () => {
-        if (!searchText) return data;
-        const s = searchText.toLowerCase();
+        const searchTerms = searchText.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+        if (searchTerms.length === 0) return data;
         return data.filter(r =>
-            (r.sku || '').toLowerCase().includes(s) ||
-            (r.description || '').toLowerCase().includes(s) ||
-            (r.brand || '').toLowerCase().includes(s) ||
-            (r.sku_category || '').toLowerCase().includes(s)
+            searchTerms.some(q =>
+                (r.sku || '').toLowerCase().includes(q) ||
+                (r.description || '').toLowerCase().includes(q) ||
+                (r.brand || '').toLowerCase().includes(q) ||
+                (r.sku_category || '').toLowerCase().includes(q)
+            )
         );
     };
 
@@ -257,13 +259,7 @@ export default function MasterItemPage() {
                     )}
                 </Space>
                 <Space wrap>
-                    <Input.Search
-                        placeholder="Search SKU, Description, Brand..."
-                        allowClear
-                        style={{ width: 280 }}
-                        onSearch={setSearchText}
-                        onChange={e => !e.target.value && setSearchText('')}
-                    />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={searchText} onChange={e => setSearchText(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchText.split('\n').filter(t => t.trim()).length > 0 ? `${searchText.split('\n').filter(t => t.trim()).length} keyword aktif` : 'Tidak ada filter'}</span>{searchText && <Button size="small" danger onClick={() => setSearchText('')}>Clear</Button>}</div></div>}><Badge count={searchText.split('\n').filter(t => t.trim()).length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchText.split('\n').filter(t => t.trim()).length > 0 ? `Search (${searchText.split('\n').filter(t => t.trim()).length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(
                         ['SKU', 'Description', 'Brand', 'SKU Category', 'Item Class', 'Owner'],
                         'master_items_template.csv'

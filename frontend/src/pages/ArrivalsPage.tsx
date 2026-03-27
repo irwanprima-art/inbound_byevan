@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select, DatePicker } from 'antd';
+import { Table, Button, Input, Space, Modal, Form, InputNumber, Tag, message, Popconfirm, Upload, Select, DatePicker, Popover, Badge } from 'antd';
 import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
     DownloadOutlined, UploadOutlined, ClearOutlined, MinusCircleOutlined,
@@ -103,7 +103,11 @@ export default function ArrivalsPage() {
         });
     }, [data, txLookup]);
 
-    // Filter by date range and search
+    // Filter by date range and search (multi-keyword, separated by newline)
+    const searchTerms = useMemo(() =>
+        search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean),
+    [search]);
+
     const filteredData = useMemo(() => {
         let result = enrichedData;
         if (dateRange) {
@@ -113,12 +117,11 @@ export default function ArrivalsPage() {
                 return !dd.isBefore(dateRange[0], 'day') && !dd.isAfter(dateRange[1], 'day');
             });
         }
-        const q = search.toLowerCase();
-        if (!q) return result;
+        if (searchTerms.length === 0) return result;
         return result.filter((d: any) =>
-            Object.values(d).some(v => String(v).toLowerCase().includes(q))
+            searchTerms.some(q => Object.values(d).some(v => String(v).toLowerCase().includes(q)))
         );
-    }, [enrichedData, search, dateRange]);
+    }, [enrichedData, searchTerms, dateRange]);
 
     // Status color
     const statusColor = (s: string) => {
@@ -533,7 +536,38 @@ export default function ArrivalsPage() {
                     <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
-                    <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
+                    <Popover
+                        trigger="click"
+                        placement="bottomRight"
+                        content={
+                            <div style={{ width: 280 }}>
+                                <div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                                    Masukkan keyword (satu per baris)
+                                </div>
+                                <Input.TextArea
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder={"Keyword 1\nKeyword 2\nKeyword 3"}
+                                    autoSize={{ minRows: 4, maxRows: 10 }}
+                                    style={{ marginBottom: 8 }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                                        {searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}
+                                    </span>
+                                    {search && (
+                                        <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>
+                                    )}
+                                </div>
+                            </div>
+                        }
+                    >
+                        <Badge count={searchTerms.length} size="small" offset={[-4, 4]}>
+                            <Button icon={<SearchOutlined />}>
+                                {searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}
+                            </Button>
+                        </Badge>
+                    </Popover>
                     <Button icon={<ReloadOutlined />} onClick={() => fetchAll()}>Refresh</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Table, Button, Space, Tag, Select, Input, DatePicker, ConfigProvider, theme, Typography, message } from 'antd';
+import { Table, Button, Space, Tag, Select, Input, DatePicker, ConfigProvider, theme, Typography, message, Popover, Badge } from 'antd';
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { publicApi } from '../api/client';
 import dayjs from 'dayjs';
@@ -74,6 +74,8 @@ export default function PublicSohPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
     const filteredData = data.filter(r => {
         if (dateRange) {
             const d = dayjs(r.update_date);
@@ -83,8 +85,8 @@ export default function PublicSohPage() {
         if (filterLocCategory.length > 0) { const cat = locCategoryMap[r.location] || r.location_category || ''; if (!filterLocCategory.includes(cat)) return false; }
         if (filterBrand.length > 0) { const bu = (r.brand || '').toUpperCase(); if (!filterBrand.some(fb => fb.toUpperCase() === bu)) return false; }
         if (filterAgingNote.length > 0) { if (!filterAgingNote.includes(calcAgingNote(r.wh_arrival_date))) return false; }
-        if (!search) return true;
-        return Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
+        if (searchTerms.length === 0) return true;
+        return searchTerms.some(q => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
     });
 
     const edNoteOptions = [...new Set(data.map(r => calcEdNote(r.exp_date, r.update_date)))].sort().map(v => ({ label: v, value: v }));
@@ -200,7 +202,7 @@ export default function PublicSohPage() {
                         <Title level={4} style={{ margin: 0, color: '#fff' }}>Stock on Hand</Title>
                         <Space wrap>
                             <DatePicker.RangePicker value={dateRange} onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)} format="DD/MM/YYYY" placeholder={['Dari Tanggal', 'Sampai Tanggal']} allowClear />
-                            <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
+                            <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                             <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                             <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                         </Space>

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
     Table, Button, Space, Input, Modal, Form, message, Popconfirm,
-    Tag, DatePicker, InputNumber, Upload,
+    Tag, DatePicker, InputNumber, Upload, Popover, Badge,
 } from 'antd';
 import {
     PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined,
@@ -74,13 +74,16 @@ export default function InboundRejectionPage() {
         return [...baRows, ...manualRows];
     }, [data, baData]);
 
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
     const filteredRows = useMemo(() => {
-        const q = search.toLowerCase();
         return allRows.filter(r =>
-            !q || [r.date, r.brand, r.sku, r.serial_number, r.catatan, r.source_doc_no]
-                .some(v => (v || '').toLowerCase().includes(q))
+            searchTerms.length === 0 || searchTerms.some(q =>
+                [r.date, r.brand, r.sku, r.serial_number, r.catatan, r.source_doc_no]
+                    .some(v => (v || '').toLowerCase().includes(q))
+            )
         );
-    }, [allRows, search]);
+    }, [allRows, searchTerms]);
 
     const handleAdd = () => {
         setEditId(null);
@@ -217,12 +220,7 @@ export default function InboundRejectionPage() {
                     </Upload>
                     <Button icon={<ReloadOutlined />} onClick={() => fetchAll()}>Refresh</Button>
                 </Space>
-                <Input
-                    placeholder="Cari tanggal, brand, SKU..."
-                    prefix={<SearchOutlined />} value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    style={{ width: 260 }} allowClear
-                />
+                <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
             </div>
 
             {selectedKeys.length > 0 && (

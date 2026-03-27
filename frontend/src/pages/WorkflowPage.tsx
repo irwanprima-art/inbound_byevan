@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Button, Space, Input, Modal, Select, Table, Popconfirm, message, Typography, Tag, Tooltip, Empty } from 'antd';
+import { Card, Button, Space, Input, Modal, Select, Table, Popconfirm, message, Typography, Tag, Tooltip, Empty, Popover, Badge } from 'antd';
 import {
     PlusOutlined, DeleteOutlined, EditOutlined, ArrowUpOutlined, ArrowDownOutlined,
     SearchOutlined, InboxOutlined, DatabaseOutlined, SwapOutlined, WarningOutlined,
@@ -249,11 +249,14 @@ export default function WorkflowPage() {
     };
 
     /* ── Filter ── */
+    const searchTerms = useMemo(() =>
+        search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean),
+    [search]);
+
     const filtered = useMemo(() => {
-        if (!search) return data;
-        const q = search.toLowerCase();
-        return data.filter(d => d.name.toLowerCase().includes(q));
-    }, [data, search]);
+        if (searchTerms.length === 0) return data;
+        return data.filter(d => searchTerms.some(q => d.name.toLowerCase().includes(q)));
+    }, [data, searchTerms]);
 
     /* ── View modal steps ── */
     const viewSteps = useMemo(() => {
@@ -328,7 +331,7 @@ export default function WorkflowPage() {
                     Workflow Builder
                 </h2>
                 <Space>
-                    <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Buat Workflow</Button>
                 </Space>

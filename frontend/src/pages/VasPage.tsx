@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Table, Button, Input, InputNumber, Space, Card, Typography, Tag, message,
-    Popconfirm, Upload, Form, Modal, Row, Col, Badge, Select, DatePicker,
+    Popconfirm, Upload, Form, Modal, Row, Col, Badge, Select, DatePicker, Popover,
 } from 'antd';
 import {
     PlayCircleOutlined, CheckCircleOutlined, ReloadOutlined, SearchOutlined,
@@ -414,13 +414,15 @@ export default function VasPage() {
         },
     ];
 
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
     const filteredData = data.filter((d: any) => {
         if (dateRange) {
             const dd = dayjs(d.date);
             if (dd.isBefore(dateRange[0], 'day') || dd.isAfter(dateRange[1], 'day')) return false;
         }
-        if (!search) return true;
-        return Object.values(d).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
+        if (searchTerms.length === 0) return true;
+        return searchTerms.some(q => Object.values(d).some(v => String(v).toLowerCase().includes(q)));
     });
 
     // ─── Edit modal ───────────────────────────
@@ -879,7 +881,7 @@ export default function VasPage() {
                     <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
-                    <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} allowClear style={{ width: 200 }} />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<ReloadOutlined />} onClick={() => fetchData()}>Refresh</Button>
                     <Button icon={<PlusOutlined />} onClick={handleAddManual}>Manual Add</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>

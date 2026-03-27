@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Form, Input, Select, Table, Button, Space, Tag, Modal,
-    Popconfirm, Upload, message, DatePicker, Tooltip,
+    Popconfirm, Upload, message, DatePicker, Tooltip, Popover, Badge,
 } from 'antd';
 import {
     EditOutlined, DeleteOutlined, ReloadOutlined, UploadOutlined,
@@ -306,15 +306,18 @@ export default function AttendancePage() {
         reader.readAsText(file); return false;
     };
 
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
     const filteredData = data.filter(r => {
         if (dateRange) {
             const d = dayjs(r.date);
             if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
         }
-        const s = search.toLowerCase();
-        if (!s) return true;
-        return Object.values(r).some(v => String(v).toLowerCase().includes(s))
-            || (divisiMap[r.jobdesc] || '').toLowerCase().includes(s);
+        if (searchTerms.length === 0) return true;
+        return searchTerms.some(s =>
+            Object.values(r).some(v => String(v).toLowerCase().includes(s))
+            || (divisiMap[r.jobdesc] || '').toLowerCase().includes(s)
+        );
     }).sort((a, b) => b.id - a.id);
 
     const columns: any[] = [
@@ -472,7 +475,7 @@ export default function AttendancePage() {
                     <Button size="small" onClick={() => { const now = dayjs(); setDateRange([now.startOf('month'), now.endOf('month')]); }}>Bulan Ini</Button>
                     <Button size="small" onClick={() => { const prev = dayjs().subtract(1, 'month'); setDateRange([prev.startOf('month'), prev.endOf('month')]); }}>Bulan Lalu</Button>
                     {dateRange && <Button size="small" danger onClick={() => setDateRange(null)}>Reset</Button>}
-                    <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 240 }} allowClear />
+                    <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'nik', 'name', 'jobdesc', 'clock_in', 'clock_out', 'status'], 'Attendance_template')}>Template</Button>

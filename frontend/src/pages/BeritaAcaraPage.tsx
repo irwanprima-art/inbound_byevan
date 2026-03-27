@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { LOGO_BASE64 } from '../assets/logoBase64';
 import {
     Button, Input, Select, DatePicker, Form, Table, Typography, Space, message,
-    Card, Tabs, Popconfirm, Modal, Divider,
+    Card, Tabs, Popconfirm, Modal, Divider, Popover, Badge,
 } from 'antd';
 import {
     PrinterOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined,
@@ -241,13 +241,16 @@ export default function BeritaAcaraPage() {
         },
     ];
 
+    const searchTerms = search.split('\n').map(t => t.trim().toLowerCase()).filter(Boolean);
+
     const filteredDocs = docs.filter(d => {
-        if (!search) return true;
-        const s = search.toLowerCase();
-        return (d.doc_number || '').toLowerCase().includes(s)
-            || (d.doc_type || '').toLowerCase().includes(s)
-            || (d.checker || '').toLowerCase().includes(s)
-            || (d.kepada || '').toLowerCase().includes(s);
+        if (searchTerms.length === 0) return true;
+        return searchTerms.some(q =>
+            (d.doc_number || '').toLowerCase().includes(q)
+            || (d.doc_type || '').toLowerCase().includes(q)
+            || (d.checker || '').toLowerCase().includes(q)
+            || (d.kepada || '').toLowerCase().includes(q)
+        );
     });
 
     const docForPreview = previewDoc;
@@ -395,12 +398,7 @@ export default function BeritaAcaraPage() {
                     children: (
                         <div>
                             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                                <Input
-                                    placeholder="Cari no. dokumen, jenis, checker..."
-                                    prefix={<SearchOutlined />}
-                                    value={search} onChange={e => setSearch(e.target.value)}
-                                    style={{ maxWidth: 400 }}
-                                />
+                                <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                                 <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
                             </div>
                             <Table
