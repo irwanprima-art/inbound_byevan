@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Table, Button, Space, Modal, Input, Typography, Tag, message, Popconfirm,
-    Steps, Card, Descriptions, Spin,
+    Steps, Card, Descriptions, Spin, Select,
 } from 'antd';
 import {
     VideoCameraOutlined, DeleteOutlined, PlayCircleOutlined,
@@ -41,7 +41,7 @@ export default function UnboxingPage() {
 
     // Workflow state
     const [step, setStep] = useState<WorkflowStep>('idle');
-    const [orderNo, setOrderNo] = useState('');
+    const [orderNos, setOrderNos] = useState<string[]>([]);
     const [trackingNo, setTrackingNo] = useState('');
     const [brand, setBrand] = useState('');
     const [notes, setNotes] = useState('');
@@ -152,7 +152,7 @@ export default function UnboxingPage() {
         setRecordDuration(0);
 
         timerRef.current = setInterval(() => {
-            setRecordDuration(prev => prev + 1);
+            setRecordDuration((prev: number) => prev + 1);
         }, 1000);
     };
 
@@ -169,7 +169,7 @@ export default function UnboxingPage() {
 
     const handleStartUnboxing = () => {
         setStep('scan');
-        setOrderNo('');
+        setOrderNos([]);
         setTrackingNo('');
         setBrand('');
         setNotes('');
@@ -180,8 +180,8 @@ export default function UnboxingPage() {
     };
 
     const handleScanNext = async () => {
-        if (!orderNo.trim()) {
-            message.warning('Masukkan nomor resi / order');
+        if (orderNos.length === 0) {
+            message.warning('Masukkan minimal 1 nomor resi / order');
             return;
         }
         setStep('recording');
@@ -194,8 +194,9 @@ export default function UnboxingPage() {
         setStep('uploading');
 
         const formData = new FormData();
-        formData.append('video', recordedBlob, `unboxing_${orderNo}.webm`);
-        formData.append('order_no', orderNo.trim());
+        const combinedOrders = orderNos.join('_').replace(/[^a-zA-Z0-9_]/g, '');
+        formData.append('video', recordedBlob, `unboxing_${combinedOrders.substring(0, 50)}.webm`);
+        formData.append('order_no', orderNos.join(', '));
         formData.append('tracking_no', trackingNo.trim());
         formData.append('brand', brand.trim());
         formData.append('operator', user?.username || '');
@@ -258,7 +259,7 @@ export default function UnboxingPage() {
         return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
-    const filteredData = data.filter(item => {
+    const filteredData = data.filter((item: UnboxingRecord) => {
         if (!searchText) return true;
         const s = searchText.toLowerCase();
         return (
@@ -275,8 +276,14 @@ export default function UnboxingPage() {
             sorter: (a, b) => (a.date || '').localeCompare(b.date || ''),
         },
         {
-            title: 'Order / Resi No', dataIndex: 'order_no', key: 'order_no', width: 180,
-            render: (v: string) => <Text strong style={{ color: '#818cf8' }}>{v}</Text>,
+            title: 'Order / Resi No', dataIndex: 'order_no', key: 'order_no', width: 220,
+            render: (v: string) => (
+                <Space size={[0, 4]} wrap>
+                    {v ? v.split(',').map(tag => (
+                        <Tag color="cyan" key={tag.trim()} style={{ margin: 0 }}>{tag.trim()}</Tag>
+                    )) : null}
+                </Space>
+            ),
         },
         { title: 'Tracking No', dataIndex: 'tracking_no', key: 'tracking_no', width: 160 },
         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
@@ -352,7 +359,7 @@ export default function UnboxingPage() {
                 loading={loading}
                 size="small"
                 scroll={{ x: 1100 }}
-                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `Total: ${t}` }}
+                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t: number) => `Total: ${t}` }}
             />
 
             {/* Unboxing Workflow Modal */}
@@ -388,14 +395,15 @@ export default function UnboxingPage() {
                             <Space direction="vertical" style={{ width: '100%' }} size={12}>
                                 <div>
                                     <Text strong style={{ display: 'block', marginBottom: 4 }}>Nomor Resi / Order No *</Text>
-                                    <Input
-                                        placeholder="Scan barcode atau ketik manual..."
-                                        value={orderNo}
-                                        onChange={e => setOrderNo(e.target.value)}
+                                    <Select
+                                        mode="tags"
+                                        style={{ width: '100%' }}
+                                        placeholder="Scan barcode (otomatis enter) atau ketik manual lalu Enter..."
+                                        value={orderNos}
+                                        onChange={setOrderNos}
                                         size="large"
+                                        open={false}
                                         autoFocus
-                                        prefix={<ScanOutlined style={{ color: '#818cf8' }} />}
-                                        onPressEnter={handleScanNext}
                                     />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -466,7 +474,7 @@ export default function UnboxingPage() {
                                 }}
                             >
                                 <Descriptions.Item label={<span style={{ color: 'rgba(255,255,255,0.6)' }}>Order</span>}>
-                                    <span style={{ color: '#818cf8', fontWeight: 600 }}>{orderNo}</span>
+                                    <span style={{ color: '#818cf8', fontWeight: 600 }}>{orderNos.join(', ')}</span>
                                 </Descriptions.Item>
                                 {trackingNo && (
                                     <Descriptions.Item label={<span style={{ color: 'rgba(255,255,255,0.6)' }}>Tracking</span>}>
@@ -520,7 +528,7 @@ export default function UnboxingPage() {
                         </div>
                         <Card size="small" style={{ marginBottom: 16, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
                             <Descriptions size="small" column={2}>
-                                <Descriptions.Item label="Order No">{orderNo}</Descriptions.Item>
+                                <Descriptions.Item label="Order No">{orderNos.join(', ')}</Descriptions.Item>
                                 <Descriptions.Item label="Tracking No">{trackingNo || '—'}</Descriptions.Item>
                                 <Descriptions.Item label="Brand">{brand || '—'}</Descriptions.Item>
                                 <Descriptions.Item label="Duration">{formatDuration(recordDuration)}</Descriptions.Item>
