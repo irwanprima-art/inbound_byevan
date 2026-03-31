@@ -15,6 +15,7 @@ import (
 
 var Client *minio.Client
 var BucketName string
+var PublicEndpoint string
 
 func InitMinio() {
 	endpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
@@ -22,6 +23,7 @@ func InitMinio() {
 	secretKey := getEnv("MINIO_SECRET_KEY", "minioadmin123")
 	BucketName = getEnv("MINIO_BUCKET", "unboxing-videos")
 	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
+	PublicEndpoint = getEnv("MINIO_PUBLIC_ENDPOINT", "")
 
 	var err error
 	Client, err = minio.New(endpoint, &minio.Options{
@@ -68,6 +70,19 @@ func GetVideoURL(objectKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
+
+	// If a public endpoint is defined, replace the internal docker host with the public one
+	if PublicEndpoint != "" {
+		presignedURL.Host = PublicEndpoint
+		// Also respect the public SSL setting for the generated URL scheme
+		publicUseSSL := os.Getenv("MINIO_PUBLIC_USE_SSL") == "true"
+		if publicUseSSL {
+			presignedURL.Scheme = "https"
+		} else {
+			presignedURL.Scheme = "http"
+		}
+	}
+
 	return presignedURL.String(), nil
 }
 
