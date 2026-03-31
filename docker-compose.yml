@@ -22,7 +22,9 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8070}
       - GIN_MODE=release
       - CLOCK_ALLOWED_CIDRS=${CLOCK_ALLOWED_CIDRS:-192.168.6.0/24,192.168.0.0/24,172.16.0.0/12,127.0.0.0/8}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
+      # Use the server's existing MinIO instance (reachable via docker host bridge or public IP)
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-172.17.0.1:9000}
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-inbound.xzi.my.id:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin123}
       - MINIO_BUCKET=${MINIO_BUCKET:-unboxing-videos}
@@ -66,33 +68,8 @@ services:
     networks:
       - inbound-net
 
-  # ─── MinIO Object Storage (Unboxing Videos) ───
-  minio:
-    image: minio/minio:latest
-    container_name: inbound-minio
-    restart: unless-stopped
-    ports:
-      - "9090:9000"
-      - "9091:9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin123}
-    volumes:
-      - minio-data:/data
-    command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - inbound-net
-
 volumes:
   pg-data:
-    driver: local
-  minio-data:
     driver: local
 
 networks:
