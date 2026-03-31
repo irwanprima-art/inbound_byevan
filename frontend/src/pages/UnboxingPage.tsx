@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Table, Button, Space, Modal, Input, Typography, Tag, message, Popconfirm,
-    Steps, Card, Descriptions, Spin, Select,
+    Spin,
 } from 'antd';
 import {
     VideoCameraOutlined, DeleteOutlined, PlayCircleOutlined,
-    ScanOutlined, StopOutlined, CheckCircleOutlined,
-    CameraOutlined, ReloadOutlined,
+    CameraOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { unboxingApi } from '../api/client';
@@ -28,38 +27,37 @@ interface UnboxingRecord {
     created_at: string;
 }
 
-type WorkflowStep = 'idle' | 'scan' | 'recording' | 'preview' | 'uploading';
-
 export default function UnboxingPage() {
     const { user } = useAuth();
     const [data, setData] = useState<UnboxingRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [modalOpen, setModalOpen] = useState(false);
+    
+    // UI State
+    const [unboxingMode, setUnboxingMode] = useState(false);
     const [videoModalOpen, setVideoModalOpen] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [videoLoading, setVideoLoading] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
-    // Workflow state
-    const [step, setStep] = useState<WorkflowStep>('idle');
-    const [orderNos, setOrderNos] = useState<string[]>([]);
-    const [trackingNo, setTrackingNo] = useState('');
-    const [brand, setBrand] = useState('');
-    const [notes, setNotes] = useState('');
-
-    // Recording state
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const chunksRef = useRef<Blob[]>([]);
-    const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-    const [recordedUrl, setRecordedUrl] = useState('');
-    const previewRef = useRef<HTMLVideoElement>(null);
+    // Workflow State
+    const [currentResi, setCurrentResi] = useState('');
+    const [scanInput, setScanInput] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [recordDuration, setRecordDuration] = useState(0);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Search
-    const [searchText, setSearchText] = useState('');
+    // Refs
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const currentResiRef = useRef<string>('');
+    const isRecordingRef = useRef<boolean>(false);
+    
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const animationRef = useRef<number | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const stopReasonRef = useRef<'scan' | 'cancel'>('scan');
+    const inputRef = useRef<any>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -75,25 +73,92 @@ export default function UnboxingPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Cleanup on unmount
+    useEffect(() => {
+        currentResiRef.current = currentResi;
+    }, [currentResi]);
+
+    useEffect(() => {
+        isRecordingRef.current = isRecording;
+    }, [isRecording]);
+
     useEffect(() => {
         return () => {
             stopCamera();
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Focus input continually when modal is open so scanning always works
+    useEffect(() => {
+        let focusInterval: ReturnType<typeof setInterval>;
+        if (unboxingMode) {
+            focusInterval = setInterval(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 500);
+        }
+        return () => clearInterval(focusInterval);
+    }, [unboxingMode]);
+
     const stopCamera = () => {
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+            animationRef.current = null;
+        }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(t => t.stop());
             streamRef.current = null;
         }
     };
 
+    const startCanvasAnimation = () => {
+        const drawFrame = () => {
+            if (!canvasRef.current || !videoRef.current) return;
+            const ctx = canvasRef.current.getContext('2d');
+            if (!ctx) return;
+
+            const w = canvasRef.current.width;
+            const h = canvasRef.current.height;
+
+            // Draw video frame
+            ctx.drawImage(videoRef.current, 0, 0, w, h);
+
+            // Draw overlay background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, 0, w, 60);
+
+            // Timestamp
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textBaseline = 'middle';
+            const now = new Date();
+            const timeString = now.toLocaleString('id-ID');
+            ctx.fillText(`Waktu: ${timeString}`, 20, 30);
+
+            // Resi
+            const resi = currentResiRef.current;
+            const resiText = resi ? `Resi: ${resi}` : 'SCAN RESI UNTUK MULAI RECORD';
+            ctx.fillStyle = resi ? '#a78bfa' : '#9ca3af'; // purple / gray
+            ctx.fillText(resiText, 350, 30);
+
+            // REC indicator
+            if (isRecordingRef.current) {
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(w - 180, 30, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.fillText('REC', w - 160, 30);
+            }
+
+            animationRef.current = requestAnimationFrame(drawFrame);
+        };
+        drawFrame();
+    };
+
     const startCamera = async () => {
         try {
-            // Try rear camera first (mobile), fall back to any available
             let stream: MediaStream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
@@ -104,19 +169,26 @@ export default function UnboxingPage() {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             }
             streamRef.current = stream;
+            
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
+                videoRef.current.onloadedmetadata = () => {
+                    if (videoRef.current && canvasRef.current) {
+                        canvasRef.current.width = videoRef.current.videoWidth;
+                        canvasRef.current.height = videoRef.current.videoHeight;
+                        startCanvasAnimation();
+                    }
+                };
             }
             return true;
         } catch (err) {
             message.error('Tidak bisa akses kamera. Pastikan izin kamera sudah diberikan.');
-            console.error('Camera error:', err);
             return false;
         }
     };
 
     const startRecording = () => {
-        if (!streamRef.current) return;
+        if (!canvasRef.current) return;
 
         chunksRef.current = [];
         const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
@@ -128,9 +200,15 @@ export default function UnboxingPage() {
             }
         }
 
-        const recorder = new MediaRecorder(streamRef.current, {
+        const canvasStream = (canvasRef.current as any).captureStream(30);
+        const audioTracks = streamRef.current?.getAudioTracks() || [];
+        if (audioTracks.length > 0) {
+            canvasStream.addTrack(audioTracks[0]);
+        }
+
+        const recorder = new MediaRecorder(canvasStream, {
             mimeType: selectedMime || undefined,
-            videoBitsPerSecond: 2500000, // 2.5 Mbps
+            videoBitsPerSecond: 2500000,
         });
 
         recorder.ondataavailable = (e) => {
@@ -139,20 +217,20 @@ export default function UnboxingPage() {
 
         recorder.onstop = () => {
             const blob = new Blob(chunksRef.current, { type: selectedMime || 'video/webm' });
-            setRecordedBlob(blob);
-            const url = URL.createObjectURL(blob);
-            setRecordedUrl(url);
-            setStep('preview');
-            stopCamera();
+            if (stopReasonRef.current === 'scan' && currentResiRef.current) {
+                autoUpload(blob, currentResiRef.current);
+            }
+            setCurrentResi(''); // Clear it here so the UI resets
         };
 
-        recorder.start(1000); // collect data every second
+        recorder.start(1000);
         mediaRecorderRef.current = recorder;
         setIsRecording(true);
         setRecordDuration(0);
 
+        if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
-            setRecordDuration((prev: number) => prev + 1);
+            setRecordDuration((prev) => prev + 1);
         }, 1000);
     };
 
@@ -161,72 +239,60 @@ export default function UnboxingPage() {
             mediaRecorderRef.current.stop();
         }
         setIsRecording(false);
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
+        if (timerRef.current) clearInterval(timerRef.current);
     };
 
-    const handleStartUnboxing = () => {
-        setStep('scan');
-        setOrderNos([]);
-        setTrackingNo('');
-        setBrand('');
-        setNotes('');
-        setRecordedBlob(null);
-        setRecordedUrl('');
-        setRecordDuration(0);
-        setModalOpen(true);
-    };
-
-    const handleScanNext = async () => {
-        if (orderNos.length === 0) {
-            message.warning('Masukkan minimal 1 nomor resi / order');
-            return;
-        }
-        setStep('recording');
-        const ok = await startCamera();
-        if (!ok) setStep('scan');
-    };
-
-    const handleUpload = async () => {
-        if (!recordedBlob) return;
-        setStep('uploading');
-
+    const autoUpload = async (blob: Blob, resi: string) => {
         const formData = new FormData();
-        const combinedOrders = orderNos.join('_').replace(/[^a-zA-Z0-9_]/g, '');
-        formData.append('video', recordedBlob, `unboxing_${combinedOrders.substring(0, 50)}.webm`);
-        formData.append('order_no', orderNos.join(', '));
-        formData.append('tracking_no', trackingNo.trim());
-        formData.append('brand', brand.trim());
+        formData.append('video', blob, `unboxing_${resi.replace(/[^a-zA-Z0-9_]/g, '')}.webm`);
+        formData.append('order_no', resi);
         formData.append('operator', user?.username || '');
-        formData.append('notes', notes.trim());
         formData.append('date', new Date().toISOString().split('T')[0]);
 
+        const key = `upload_${Date.now()}`;
+        message.loading({ content: `Mengupload video resi ${resi}...`, key, duration: 0 });
         try {
             await unboxingApi.upload(formData);
-            message.success('Video unboxing berhasil diupload!');
-            setModalOpen(false);
-            setStep('idle');
-            // Cleanup
-            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-            setRecordedBlob(null);
-            setRecordedUrl('');
+            message.success({ content: `Video unboxing ${resi} berhasil disimpan!`, key, duration: 3 });
             fetchData();
         } catch {
-            message.error('Gagal mengupload video');
-            setStep('preview');
+            message.error({ content: `Gagal mengupload video ${resi}`, key, duration: 5 });
         }
     };
 
-    const handleCancel = () => {
-        stopRecording();
+    const handleStartTask = async () => {
+        setUnboxingMode(true);
+        setCurrentResi('');
+        setScanInput('');
+        setRecordDuration(0);
+        stopReasonRef.current = 'scan';
+        await startCamera();
+    };
+
+    const handleCloseTask = () => {
+        stopReasonRef.current = 'cancel'; // If they close the modal, don't auto-upload a partial thing
+        if (isRecording) {
+            stopRecording();
+        }
         stopCamera();
-        if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-        setRecordedBlob(null);
-        setRecordedUrl('');
-        setStep('idle');
-        setModalOpen(false);
+        setUnboxingMode(false);
+    };
+
+    const handleScan = (value: string) => {
+        const resi = value.trim();
+        if (!resi) return;
+
+        if (!isRecording) {
+            // First scan -> Start Recording
+            setCurrentResi(resi);
+            startRecording();
+            setScanInput('');
+        } else {
+            // Second scan -> Stop Recording & Upload
+            stopReasonRef.current = 'scan';
+            stopRecording(); // Will asynchronously trigger auto-upload and clear currentResi
+            setScanInput('');
+        }
     };
 
     const handlePlayVideo = async (record: UnboxingRecord) => {
@@ -246,10 +312,10 @@ export default function UnboxingPage() {
     const handleDelete = async (id: number) => {
         try {
             await unboxingApi.remove(id);
-            message.success('Data berhasil dihapus');
+            message.success('Data dihapus');
             fetchData();
         } catch {
-            message.error('Gagal menghapus data');
+            message.error('Gagal menghapus');
         }
     };
 
@@ -259,351 +325,86 @@ export default function UnboxingPage() {
         return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
-    const filteredData = data.filter((item: UnboxingRecord) => {
+    const filteredData = data.filter((item) => {
         if (!searchText) return true;
         const s = searchText.toLowerCase();
-        return (
-            (item.order_no || '').toLowerCase().includes(s) ||
-            (item.tracking_no || '').toLowerCase().includes(s) ||
-            (item.brand || '').toLowerCase().includes(s) ||
-            (item.operator || '').toLowerCase().includes(s)
-        );
+        return (item.order_no || '').toLowerCase().includes(s);
     });
 
     const columns: ColumnsType<UnboxingRecord> = [
-        {
-            title: 'Date', dataIndex: 'date', key: 'date', width: 110,
-            sorter: (a, b) => (a.date || '').localeCompare(b.date || ''),
-        },
-        {
-            title: 'Order / Resi No', dataIndex: 'order_no', key: 'order_no', width: 220,
-            render: (v: string) => (
-                <Space size={[0, 4]} wrap>
-                    {v ? v.split(',').map(tag => (
-                        <Tag color="cyan" key={tag.trim()} style={{ margin: 0 }}>{tag.trim()}</Tag>
-                    )) : null}
-                </Space>
-            ),
-        },
-        { title: 'Tracking No', dataIndex: 'tracking_no', key: 'tracking_no', width: 160 },
-        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
+        { title: 'Date', dataIndex: 'date', key: 'date', width: 110, sorter: (a, b) => (a.date || '').localeCompare(b.date || '') },
+        { title: 'Order / Resi No', dataIndex: 'order_no', key: 'order_no', width: 220, render: (v: string) => <Tag color="cyan">{v}</Tag> },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
-        {
-            title: 'Status', dataIndex: 'status', key: 'status', width: 100,
-            render: (v: string) => (
-                <Tag color={v === 'completed' ? 'green' : 'blue'}>{v || 'completed'}</Tag>
-            ),
-        },
-        { title: 'Notes', dataIndex: 'notes', key: 'notes', width: 200, ellipsis: true },
-        {
-            title: 'Video', key: 'video', width: 80, align: 'center' as const,
-            render: (_: unknown, record: UnboxingRecord) => (
-                record.video_key ? (
-                    <Button
-                        type="link"
-                        icon={<PlayCircleOutlined />}
-                        onClick={() => handlePlayVideo(record)}
-                        style={{ color: '#818cf8' }}
-                    />
-                ) : <Text type="secondary">—</Text>
-            ),
-        },
-        {
-            title: 'Action', key: 'action', width: 80, align: 'center' as const,
-            render: (_: unknown, record: UnboxingRecord) => (
-                <Popconfirm
-                    title="Hapus data unboxing ini?"
-                    description="Video juga akan dihapus dari server."
-                    onConfirm={() => handleDelete(record.id)}
-                    okText="Hapus"
-                    cancelText="Batal"
-                >
-                    <Button type="link" danger icon={<DeleteOutlined />} />
-                </Popconfirm>
-            ),
-        },
+        { title: 'Video', key: 'video', width: 80, align: 'center', render: (_: any, record: UnboxingRecord) => (
+            record.video_key ? <Button type="link" icon={<PlayCircleOutlined />} onClick={() => handlePlayVideo(record)} /> : <Text type="secondary">—</Text>
+        ) },
+        { title: 'Action', key: 'action', width: 80, align: 'center', render: (_: any, record: UnboxingRecord) => (
+            <Popconfirm title="Hapus?" onConfirm={() => handleDelete(record.id)}><Button type="link" danger icon={<DeleteOutlined />} /></Popconfirm>
+        ) },
     ];
-
-    const stepIndex = step === 'scan' ? 0 : step === 'recording' ? 1 : step === 'preview' || step === 'uploading' ? 2 : 0;
 
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Title level={4} style={{ margin: 0, color: '#e0e0e0' }}>
                     <VideoCameraOutlined style={{ marginRight: 8, color: '#818cf8' }} />
-                    Return Order — Unboxing
+                    Return Order — Unboxing Hands-Free
                 </Title>
                 <Space>
-                    <Input.Search
-                        placeholder="Cari order, resi, brand..."
-                        allowClear
-                        value={searchText}
-                        onChange={e => setSearchText(e.target.value)}
-                        style={{ width: 280 }}
-                    />
-                    <Button
-                        type="primary"
-                        icon={<CameraOutlined />}
-                        onClick={handleStartUnboxing}
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none' }}
-                    >
-                        Start Unboxing
+                    <Input.Search placeholder="Cari resi..." allowClear value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 280 }} />
+                    <Button type="primary" icon={<CameraOutlined />} onClick={handleStartTask} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none' }}>
+                        Start Task Unboxing
                     </Button>
                 </Space>
             </div>
 
-            <Table
-                columns={columns}
-                dataSource={filteredData}
-                rowKey="id"
-                loading={loading}
-                size="small"
-                scroll={{ x: 1100 }}
-                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t: number) => `Total: ${t}` }}
-            />
+            <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} size="small" scroll={{ x: 800 }} pagination={{ pageSize: 20 }} />
 
-            {/* Unboxing Workflow Modal */}
+            {/* Unboxing Task Modal */}
             <Modal
                 title={
                     <Space>
                         <VideoCameraOutlined style={{ color: '#818cf8' }} />
-                        <span>Unboxing Paket Return</span>
+                        <span>Hands-Free Unboxing Task</span>
                     </Space>
                 }
-                open={modalOpen}
-                onCancel={handleCancel}
+                open={unboxingMode}
+                onCancel={handleCloseTask}
                 footer={null}
-                width={720}
+                width={800}
                 destroyOnClose
                 maskClosable={false}
+                keyboard={false} // Prevent escape from interrupting
             >
-                <Steps
-                    current={stepIndex}
-                    size="small"
-                    style={{ marginBottom: 24 }}
-                    items={[
-                        { title: 'Scan Resi', icon: <ScanOutlined /> },
-                        { title: 'Record Video', icon: <VideoCameraOutlined /> },
-                        { title: 'Upload', icon: <CheckCircleOutlined /> },
-                    ]}
-                />
-
-                {/* Step 1: Scan */}
-                {step === 'scan' && (
-                    <div>
-                        <Card size="small" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
-                            <Space direction="vertical" style={{ width: '100%' }} size={12}>
-                                <div>
-                                    <Text strong style={{ display: 'block', marginBottom: 4 }}>Nomor Resi / Order No *</Text>
-                                    <Select
-                                        mode="tags"
-                                        style={{ width: '100%' }}
-                                        placeholder="Scan barcode (otomatis enter) atau ketik manual lalu Enter..."
-                                        value={orderNos}
-                                        onChange={setOrderNos}
-                                        size="large"
-                                        open={false}
-                                        autoFocus
-                                    />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                    <div>
-                                        <Text strong style={{ display: 'block', marginBottom: 4 }}>Tracking No</Text>
-                                        <Input
-                                            placeholder="Nomor tracking..."
-                                            value={trackingNo}
-                                            onChange={e => setTrackingNo(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Text strong style={{ display: 'block', marginBottom: 4 }}>Brand</Text>
-                                        <Input
-                                            placeholder="Brand..."
-                                            value={brand}
-                                            onChange={e => setBrand(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <Button
-                                    type="primary"
-                                    icon={<CameraOutlined />}
-                                    onClick={handleScanNext}
-                                    block
-                                    size="large"
-                                    style={{ marginTop: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none' }}
-                                >
-                                    Mulai Recording
-                                </Button>
-                            </Space>
-                        </Card>
-                    </div>
-                )}
-
-                {/* Step 2: Recording */}
-                {step === 'recording' && (
-                    <div>
-                        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                muted
-                                playsInline
-                                style={{ width: '100%', maxHeight: 400, display: 'block' }}
-                            />
-                            {isRecording && (
-                                <div style={{
-                                    position: 'absolute', top: 12, right: 12,
-                                    background: 'rgba(239,68,68,0.9)', color: '#fff',
-                                    padding: '4px 12px', borderRadius: 20, fontSize: 14,
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                    animation: 'pulse 1.5s infinite',
-                                }}>
-                                    <span style={{
-                                        width: 8, height: 8, borderRadius: '50%',
-                                        background: '#fff', display: 'inline-block',
-                                    }} />
-                                    REC {formatDuration(recordDuration)}
-                                </div>
-                            )}
-                            <Descriptions
-                                size="small"
-                                column={3}
-                                style={{
-                                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                                    background: 'rgba(0,0,0,0.7)', padding: '8px 12px',
-                                }}
-                            >
-                                <Descriptions.Item label={<span style={{ color: 'rgba(255,255,255,0.6)' }}>Order</span>}>
-                                    <span style={{ color: '#818cf8', fontWeight: 600 }}>{orderNos.join(', ')}</span>
-                                </Descriptions.Item>
-                                {trackingNo && (
-                                    <Descriptions.Item label={<span style={{ color: 'rgba(255,255,255,0.6)' }}>Tracking</span>}>
-                                        <span style={{ color: '#fff' }}>{trackingNo}</span>
-                                    </Descriptions.Item>
-                                )}
-                                {brand && (
-                                    <Descriptions.Item label={<span style={{ color: 'rgba(255,255,255,0.6)' }}>Brand</span>}>
-                                        <span style={{ color: '#fff' }}>{brand}</span>
-                                    </Descriptions.Item>
-                                )}
-                            </Descriptions>
-                        </div>
-                        <Space style={{ width: '100%', justifyContent: 'center' }}>
-                            {!isRecording ? (
-                                <Button
-                                    type="primary"
-                                    danger
-                                    icon={<VideoCameraOutlined />}
-                                    onClick={startRecording}
-                                    size="large"
-                                    style={{ minWidth: 200 }}
-                                >
-                                    Mulai Record
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="primary"
-                                    icon={<StopOutlined />}
-                                    onClick={stopRecording}
-                                    size="large"
-                                    style={{ minWidth: 200, background: '#ef4444', border: 'none' }}
-                                >
-                                    Stop Recording ({formatDuration(recordDuration)})
-                                </Button>
-                            )}
-                        </Space>
-                    </div>
-                )}
-
-                {/* Step 3: Preview & Upload */}
-                {(step === 'preview' || step === 'uploading') && (
-                    <div>
-                        <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
-                            <video
-                                ref={previewRef}
-                                src={recordedUrl}
-                                controls
-                                style={{ width: '100%', maxHeight: 360, display: 'block' }}
-                            />
-                        </div>
-                        <Card size="small" style={{ marginBottom: 16, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
-                            <Descriptions size="small" column={2}>
-                                <Descriptions.Item label="Order No">{orderNos.join(', ')}</Descriptions.Item>
-                                <Descriptions.Item label="Tracking No">{trackingNo || '—'}</Descriptions.Item>
-                                <Descriptions.Item label="Brand">{brand || '—'}</Descriptions.Item>
-                                <Descriptions.Item label="Duration">{formatDuration(recordDuration)}</Descriptions.Item>
-                                <Descriptions.Item label="Size">
-                                    {recordedBlob ? `${(recordedBlob.size / 1024 / 1024).toFixed(1)} MB` : '—'}
-                                </Descriptions.Item>
-                            </Descriptions>
-                        </Card>
-                        <div style={{ marginBottom: 16 }}>
-                            <Text strong style={{ display: 'block', marginBottom: 4 }}>Catatan (opsional)</Text>
-                            <Input.TextArea
-                                placeholder="Tambah catatan tentang kondisi paket..."
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                                rows={2}
-                            />
-                        </div>
-                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={() => {
-                                    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-                                    setRecordedBlob(null);
-                                    setRecordedUrl('');
-                                    setStep('recording');
-                                    startCamera();
-                                }}
-                                disabled={step === 'uploading'}
-                            >
-                                Record Ulang
-                            </Button>
-                            <Button
-                                type="primary"
-                                icon={<CheckCircleOutlined />}
-                                onClick={handleUpload}
-                                loading={step === 'uploading'}
-                                size="large"
-                                style={{ minWidth: 200, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}
-                            >
-                                {step === 'uploading' ? 'Mengupload...' : 'Upload Video'}
-                            </Button>
-                        </Space>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Video Playback Modal */}
-            <Modal
-                title="Video Unboxing"
-                open={videoModalOpen}
-                onCancel={() => { setVideoModalOpen(false); setVideoUrl(''); }}
-                footer={null}
-                width={720}
-                destroyOnClose
-            >
-                {videoLoading ? (
-                    <div style={{ textAlign: 'center', padding: 48 }}>
-                        <Spin size="large" tip="Memuat video..." />
-                    </div>
-                ) : (
-                    <video
-                        src={videoUrl}
-                        controls
-                        autoPlay
-                        style={{ width: '100%', maxHeight: 480, borderRadius: 8, background: '#000' }}
+                <div style={{ marginBottom: 16 }}>
+                    <Input
+                        ref={inputRef}
+                        autoFocus
+                        size="large"
+                        placeholder="Scan Resi Barcode di sini..."
+                        value={scanInput}
+                        onChange={(e) => setScanInput(e.target.value)}
+                        onPressEnter={() => handleScan(scanInput)}
+                        prefix={<CameraOutlined />}
+                        style={{ background: isRecording ? '#1e1b4b' : '#374151', color: '#fff', borderColor: isRecording ? '#4f46e5' : '#4b5563', borderWidth: 2 }}
                     />
-                )}
+                    <Text type="secondary" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>
+                        {!isRecording 
+                            ? "▶️ STATUS: READY. Silakan SCAN RESI BARCODE ke kotak di atas untuk MULAI MEREKAM." 
+                            : `⏸️ STATUS: MEREKAM [${formatDuration(recordDuration)}]. Silakan SCAN LAGI resi untuk BERHENTI dan UPLOAD.`}
+                    </Text>
+                </div>
+
+                <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
+                    <video ref={videoRef} autoPlay muted playsInline style={{ display: 'none' }} />
+                    <canvas ref={canvasRef} style={{ width: '100%', maxHeight: 480, display: 'block', background: '#000' }} />
+                </div>
             </Modal>
 
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                }
-            `}</style>
+            {/* View Video */}
+            <Modal title="Video Unboxing" open={videoModalOpen} onCancel={() => { setVideoModalOpen(false); setVideoUrl(''); }} footer={null} width={720} destroyOnClose>
+                {videoLoading ? <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div> : <video src={videoUrl} controls autoPlay style={{ width: '100%', maxHeight: 480, borderRadius: 8, background: '#000' }} />}
+            </Modal>
         </div>
     );
 }
