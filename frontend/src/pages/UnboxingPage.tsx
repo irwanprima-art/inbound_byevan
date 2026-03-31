@@ -314,12 +314,19 @@ export default function UnboxingPage() {
             message.loading({ content: 'Menyiapkan link download...', key: 'download' });
             const res = await unboxingApi.getVideoUrl(record.id, true);
             
-            // Mengarahkan browser langsung ke link download. 
-            // Karena server membalas dengan header tipe attachment, 
-            // halaman web tidak akan berpindah, tapi file langsung terunduh.
-            window.location.href = res.data.url;
+            // Membuat invisible iframe untuk memancing browser memulai download
+            // tanpa memblokir (CORS) atau memindahkan halaman utama (Navigation Block)
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = res.data.url;
+            document.body.appendChild(iframe);
             
-            message.success({ content: 'Download dimulai', key: 'download', duration: 3 });
+            // Hapus iframe setelah beberapa saat agar tidak menumpuk di memori
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 10000);
+            
+            message.success({ content: 'Download sedang diproses oleh browser', key: 'download', duration: 3 });
         } catch {
              message.error({ content: 'Gagal mendownload video', key: 'download' });
         }
