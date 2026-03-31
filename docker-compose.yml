@@ -21,11 +21,11 @@ services:
       - GIN_MODE=release
       - CLOCK_ALLOWED_CIDRS=${CLOCK_ALLOWED_CIDRS:-192.168.6.0/24,192.168.0.0/24,172.16.0.0/12,127.0.0.0/8}
       # Use the server's existing MinIO instance (reachable via docker host bridge or public IP)
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-172.17.0.1:9000}
-      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-inbound.xzi.my.id:9000}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-192.168.4.18:9000}
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-192.168.4.18:9000}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin123}
-      - MINIO_BUCKET=${MINIO_BUCKET:-unboxing-videos}
+      - MINIO_BUCKET=${MINIO_BUCKET:-warehouse-console}
       - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
     networks:
       - inbound-net
