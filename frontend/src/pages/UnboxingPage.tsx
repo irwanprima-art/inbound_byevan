@@ -396,7 +396,7 @@ export default function UnboxingPage() {
                 </div>
 
                 <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
-                    <video ref={videoRef} autoPlay muted playsInline style={{ display: 'none' }} />
+                    <video ref={videoRef} autoPlay muted playsInline style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} />
                     <canvas ref={canvasRef} style={{ width: '100%', maxHeight: 480, display: 'block', background: '#000' }} />
                 </div>
             </Modal>
