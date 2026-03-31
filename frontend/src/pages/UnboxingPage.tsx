@@ -313,12 +313,13 @@ export default function UnboxingPage() {
         try {
             message.loading({ content: 'Menyiapkan link download...', key: 'download' });
             const res = await unboxingApi.getVideoUrl(record.id, true);
-            const link = document.createElement('a');
-            link.href = res.data.url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            message.success({ content: 'Download dimulai', key: 'download' });
+            
+            // Mengarahkan browser langsung ke link download. 
+            // Karena server membalas dengan header tipe attachment, 
+            // halaman web tidak akan berpindah, tapi file langsung terunduh.
+            window.location.href = res.data.url;
+            
+            message.success({ content: 'Download dimulai', key: 'download', duration: 3 });
         } catch {
              message.error({ content: 'Gagal mendownload video', key: 'download' });
         }
