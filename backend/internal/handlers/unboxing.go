@@ -52,9 +52,10 @@ func (h *UnboxingHandler) Upload(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// Generate unique object key
+	// Generate unique object key inside a specific folder structure
 	timestamp := time.Now().Format("20060102_150405")
-	objectKey := fmt.Sprintf("%s_%s_%s.webm", orderNo, timestamp, header.Filename)
+	folderPath := "return documentasi/unboxing/vidio unboxingnya"
+	objectKey := fmt.Sprintf("%s/%s_%s_unboxing.webm", folderPath, orderNo, timestamp)
 
 	// Upload to MinIO
 	contentType := header.Header.Get("Content-Type")
