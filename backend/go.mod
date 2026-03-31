@@ -1,13 +1,15 @@
 module warehouse-report-monitoring
 
-go 1.25
+go 1.22
+
+toolchain go1.22.12
 
 require (
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/minio/minio-go/v7 v7.0.99
+	github.com/minio/minio-go/v7 v7.0.74
 	golang.org/x/crypto v0.46.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.30.0
