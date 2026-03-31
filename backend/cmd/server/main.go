@@ -9,6 +9,7 @@ import (
 	"warehouse-report-monitoring/internal/database"
 	"warehouse-report-monitoring/internal/handlers"
 	"warehouse-report-monitoring/internal/middleware"
+	minioClient "warehouse-report-monitoring/internal/minio"
 	"warehouse-report-monitoring/internal/models"
 
 	"github.com/gin-contrib/cors"
@@ -20,6 +21,7 @@ func main() {
 	database.Connect()
 	database.AutoMigrate()
 	database.SeedDefaultUsers()
+	minioClient.InitMinio()
 
 	// Setup Gin
 	if os.Getenv("GIN_MODE") == "release" {
@@ -175,6 +177,9 @@ func main() {
 
 	heatmapOverrides := handlers.NewResource[models.HeatmapOverride]("heatmap-overrides")
 	heatmapOverrides.RegisterRoutes(protected.Group("/heatmap-overrides"))
+
+	unboxingHandler := handlers.NewUnboxingHandler()
+	unboxingHandler.RegisterRoutes(protected.Group("/unboxings"))
 
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")

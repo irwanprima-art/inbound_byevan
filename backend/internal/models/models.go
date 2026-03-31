@@ -458,3 +458,20 @@ type HeatmapOverride struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// ReturnUnboxing represents a return order unboxing session with video recording
+type ReturnUnboxing struct {
+	ID         uint           `gorm:"primaryKey" json:"id"`
+	Date       FlexDate       `gorm:"column:date;type:text" json:"date"`
+	OrderNo    string         `gorm:"column:order_no" json:"order_no" binding:"required"`
+	TrackingNo string         `gorm:"column:tracking_no" json:"tracking_no"`
+	Brand      string         `gorm:"column:brand" json:"brand"`
+	Operator   string         `gorm:"column:operator" json:"operator"`
+	VideoKey   string         `gorm:"column:video_key" json:"video_key"`
+	Status     string         `gorm:"column:status;default:completed" json:"status"`
+	Notes      string         `gorm:"column:notes" json:"notes"`
+	UpdatedBy  string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+}

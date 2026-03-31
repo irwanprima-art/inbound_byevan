@@ -78,6 +78,17 @@ export const workflowsApi = createResourceApi('workflows');
 export const inventoryProjectsApi = createResourceApi('inventory-projects');
 export const heatmapOverridesApi = createResourceApi('heatmap-overrides');
 
+// Unboxing API (custom endpoints for video upload)
+export const unboxingApi = {
+    list: () => api.get('/unboxings'),
+    upload: (formData: FormData) => api.post('/unboxings/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000, // 2 min timeout for video upload
+    }),
+    getVideoUrl: (id: number) => api.get(`/unboxings/${id}/video`),
+    remove: (id: number) => api.delete(`/unboxings/${id}`),
+};
+
 // User management API (custom endpoints)
 export const usersApi = {
     list: () => api.get('/users'),
