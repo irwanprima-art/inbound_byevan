@@ -85,7 +85,7 @@ export const unboxingApi = {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 120000, // 2 min timeout for video upload
     }),
-    getVideoUrl: (id: number) => api.get(`/unboxings/${id}/video`),
+    getVideoUrl: (id: number, download?: boolean) => api.get(`/unboxings/${id}/video${download ? '?download=true' : ''}`),
     remove: (id: number) => api.delete(`/unboxings/${id}`),
 };
 

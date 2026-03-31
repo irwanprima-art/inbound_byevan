@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import {
     VideoCameraOutlined, DeleteOutlined, PlayCircleOutlined,
-    CameraOutlined,
+    CameraOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { unboxingApi } from '../api/client';
@@ -309,6 +309,21 @@ export default function UnboxingPage() {
         }
     };
 
+    const handleDownloadVideo = async (record: UnboxingRecord) => {
+        try {
+            message.loading({ content: 'Menyiapkan link download...', key: 'download' });
+            const res = await unboxingApi.getVideoUrl(record.id, true);
+            const link = document.createElement('a');
+            link.href = res.data.url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            message.success({ content: 'Download dimulai', key: 'download' });
+        } catch {
+             message.error({ content: 'Gagal mendownload video', key: 'download' });
+        }
+    };
+
     const handleDelete = async (id: number) => {
         try {
             await unboxingApi.remove(id);
@@ -335,8 +350,13 @@ export default function UnboxingPage() {
         { title: 'Date', dataIndex: 'date', key: 'date', width: 110, sorter: (a, b) => (a.date || '').localeCompare(b.date || '') },
         { title: 'Order / Resi No', dataIndex: 'order_no', key: 'order_no', width: 220, render: (v: string) => <Tag color="cyan">{v}</Tag> },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
-        { title: 'Video', key: 'video', width: 80, align: 'center', render: (_: any, record: UnboxingRecord) => (
-            record.video_key ? <Button type="link" icon={<PlayCircleOutlined />} onClick={() => handlePlayVideo(record)} /> : <Text type="secondary">—</Text>
+        { title: 'Video', key: 'video', width: 90, align: 'center', render: (_: any, record: UnboxingRecord) => (
+            record.video_key ? (
+                <Space>
+                    <Button type="text" style={{color: '#818cf8'}} icon={<PlayCircleOutlined />} onClick={() => handlePlayVideo(record)} title="Play Video" />
+                    <Button type="text" style={{color: '#2dd4bf'}} icon={<DownloadOutlined />} onClick={() => handleDownloadVideo(record)} title="Download Video" />
+                </Space>
+            ) : <Text type="secondary">—</Text>
         ) },
         { title: 'Action', key: 'action', width: 80, align: 'center', render: (_: any, record: UnboxingRecord) => (
             <Popconfirm title="Hapus?" onConfirm={() => handleDelete(record.id)}><Button type="link" danger icon={<DeleteOutlined />} /></Popconfirm>

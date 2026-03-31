@@ -63,9 +63,12 @@ func UploadVideo(objectKey string, reader io.Reader, size int64, contentType str
 }
 
 // GetVideoURL generates a presigned URL for video playback (24h expiry)
-func GetVideoURL(objectKey string) (string, error) {
+func GetVideoURL(objectKey string, contentDisposition string) (string, error) {
 	ctx := context.Background()
 	reqParams := make(url.Values)
+	if contentDisposition != "" {
+		reqParams.Set("response-content-disposition", contentDisposition)
+	}
 	presignedURL, err := Client.PresignedGetObject(ctx, BucketName, objectKey, 24*time.Hour, reqParams)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)

@@ -120,7 +120,13 @@ func (h *UnboxingHandler) GetVideo(c *gin.Context) {
 		return
 	}
 
-	videoURL, err := minioClient.GetVideoURL(record.VideoKey)
+	isDownload := c.Query("download") == "true"
+	disposition := ""
+	if isDownload {
+		disposition = fmt.Sprintf("attachment; filename=\"%s_unboxing.webm\"", record.OrderNo)
+	}
+
+	videoURL, err := minioClient.GetVideoURL(record.VideoKey, disposition)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate video URL"})
 		return
