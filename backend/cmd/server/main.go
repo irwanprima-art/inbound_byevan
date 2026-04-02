@@ -54,16 +54,6 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Debug: show client IP as seen by backend (temporary — remove after testing)
-	r.GET("/api/debug/ip", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"client_ip":       c.ClientIP(),
-			"remote_addr":     c.Request.RemoteAddr,
-			"x_real_ip":       c.GetHeader("X-Real-IP"),
-			"x_forwarded_for": c.GetHeader("X-Forwarded-For"),
-		})
-	})
-
 	// Public routes
 	api := r.Group("/api")
 

@@ -4,8 +4,8 @@ vendor/
 
 # Build outputs
 frontend/dist/
-backend/server.exe
-backend/warehouse.db
+backend/*.exe
+backend/*.db
 
 # Environment files
 .env
@@ -26,20 +26,5 @@ backend/warehouse.db
 .DS_Store
 Thumbs.db
 
-# Laravel leftovers
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
+# Logs
 *.log
-.phpactor.json
-.phpunit.result.cache
-.phpunit.cache
-auth.json
-Homestead.json
-Homestead.yaml
-
-# Docker scripts (old Laravel)
-docker/start.sh
-docker/queue-start.sh

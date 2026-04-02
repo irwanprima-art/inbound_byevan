@@ -1,8 +1,7 @@
 .git
 .gitignore
 .env
-.env.backup
-.env.production
+.env.*
 .idea
 .vscode
 .fleet
@@ -10,21 +9,13 @@
 .zed
 
 node_modules
-vendor
 
-public/build
-public/hot
-public/storage
+# Build artifacts (don't send pre-built binaries to Docker)
+backend/*.exe
+backend/*.db
+frontend/dist
 
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-
-tests
-.phpunit.cache
-phpunit.xml
-
+# Docs & misc
 *.md
 *.log
 Thumbs.db
