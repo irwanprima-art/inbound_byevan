@@ -757,29 +757,41 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tidakScheduled: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
+                        // Two-pass approach: collect per-kedKey info first, then classify each exactly once
+                        // This guarantees: Scheduled + Unscheduled = Total, and On Time + Late = Scheduled
+                        const kedKeyInfo: Record<string, { brand: string; schedTimes: string[]; arrival: string; urgensi: boolean }> = {};
                         enrichedArrivals.forEach((a: any) => {
-                            const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakScheduled: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
-
-                            // Unique kedatangan key = brand|date|arrival_time (same as stat card)
                             const kedKey = `${a.brand}|${a.date}|${a.arrival_time}`;
+                            const brand = (a.brand || 'Unknown').toUpperCase();
+                            if (!kedKeyInfo[kedKey]) {
+                                kedKeyInfo[kedKey] = { brand, schedTimes: [], arrival: (a.arrival_time || '').trim(), urgensi: false };
+                            }
+                            const sched = (a.scheduled_arrival_time || '').trim();
+                            if (sched && sched !== '-') kedKeyInfo[kedKey].schedTimes.push(sched);
+                            const urg = (a.urgensi || '').trim().toUpperCase();
+                            if (urg === 'YA') kedKeyInfo[kedKey].urgensi = true;
+                        });
 
+                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tidakScheduled: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
+                        Object.entries(kedKeyInfo).forEach(([kedKey, info]) => {
+                            const brand = info.brand;
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tidakScheduled: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
                             bMap[brand].kedatanganKeys.add(kedKey);
 
-                            const sched = (a.scheduled_arrival_time || '').trim();
-                            const arrival = (a.arrival_time || '').trim();
-                            if (sched && sched !== '-') {
+                            if (info.schedTimes.length > 0) {
                                 bMap[brand].terjadwal.add(kedKey);
-                                // Tepat waktu: arrival_time <= scheduled_arrival_time
-                                if (arrival && arrival !== '-' && arrival <= sched) bMap[brand].tepatWaktu.add(kedKey);
-                                else if (arrival && arrival !== '-') bMap[brand].terlambat.add(kedKey);
+                                // Use earliest schedule for on-time comparison
+                                const sched = info.schedTimes.sort()[0];
+                                const arrival = info.arrival;
+                                if (arrival && arrival !== '-') {
+                                    if (arrival <= sched) bMap[brand].tepatWaktu.add(kedKey);
+                                    else bMap[brand].terlambat.add(kedKey);
+                                }
                             } else {
                                 bMap[brand].tidakScheduled.add(kedKey);
                             }
 
-                            const urg = (a.urgensi || '').trim().toUpperCase();
-                            if (urg === 'YA') bMap[brand].urgensi.add(kedKey);
+                            if (info.urgensi) bMap[brand].urgensi.add(kedKey);
                         });
 
                         // Merge cases
@@ -798,7 +810,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, render: (v: string, r: any) => r._isTotal ? <span style={{ fontWeight: 700, color: '#fff' }}>{v}</span> : v },
                         { title: 'Total Arrivals', dataIndex: 'total', key: 'total', width: 130, align: 'center' as const, render: (v: number, r: any) => <span style={{ color: '#6366f1', fontWeight: r._isTotal ? 700 : 600 }}>{v}</span> },
                         { title: 'Scheduled', dataIndex: 'terjadwal', key: 'terjadwal', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 600 }}>{v || '-'}</span> },
-                        { title: 'Unscheduled', dataIndex: 'tidakTerjadwal', key: 'tidakScheduled', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
+                        { title: 'Unscheduled', dataIndex: 'tidakScheduled', key: 'tidakScheduled', width: 130, align: 'center' as const, render: (v: number) => <span style={{ color: '#f59e0b', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'On Time', dataIndex: 'tepatWaktu', key: 'tepatWaktu', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#10b981', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'Late', dataIndex: 'terlambat', key: 'terlambat', width: 110, align: 'center' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{v || '-'}</span> },
                         { title: 'Case', dataIndex: 'cases', key: 'cases', width: 80, align: 'center' as const, render: (v: number) => v ? <span style={{ color: '#ec4899', fontWeight: 600 }}>{v}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>-</span> },
