@@ -141,7 +141,7 @@ export default function DashboardPage() {
         if (!dateStr) return false;
         const d = dayjs(dateStr);
         if (!d.isValid()) return false;
-        return d.diff(dateRange[0], 'day') >= 0 && d.diff(dateRange[1], 'day') <= 0;
+        return !d.isBefore(dateRange[0], 'day') && !d.isAfter(dateRange[1], 'day');
     }, [dateRange]);
 
     // Loading spinner for a tab group
