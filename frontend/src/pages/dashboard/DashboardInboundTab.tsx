@@ -757,44 +757,61 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                             caseByBrand[brand] = (caseByBrand[brand] || 0) + 1;
                         });
 
-                        // Count scheduled/unscheduled per individual arrival row, then deduplicate
-                        // A row is "Scheduled" if it has a non-empty scheduled_arrival_time
-                        // A row is "Unscheduled" if scheduled_arrival_time is empty
-                        // Total Arrivals = unique kedatangan (brand|date|arrival_time)
-                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: number; tidakScheduled: number; tepatWaktu: number; terlambat: number; cases: number; urgensi: Set<string> }> = {};
+                        // kedKey-based counting — all metrics use unique kedatangan keys for consistency
+                        // Unscheduled is computed as (Total - Scheduled) to guarantee the math adds up
+                        const kedKeyInfo: Record<string, { brand: string; hasSchedule: boolean; arrival: string; sched: string; urgensi: boolean }> = {};
                         enrichedArrivals.forEach((a: any) => {
+                            if (!a.brand) return; // skip rows without brand (avoid UNKNOWN)
                             const kedKey = `${a.brand}|${a.date}|${a.arrival_time}`;
-                            const brand = (a.brand || 'Unknown').toUpperCase();
-                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: 0, tidakScheduled: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: new Set() };
+                            const brand = (a.brand || '').toUpperCase();
+                            if (!brand) return;
+                            const sched = (a.scheduled_arrival_time || '').trim();
+                            const hasSchedule = !!(sched && sched !== '-');
+                            if (!kedKeyInfo[kedKey]) {
+                                kedKeyInfo[kedKey] = { brand, hasSchedule: false, arrival: (a.arrival_time || '').trim(), sched: '', urgensi: false };
+                            }
+                            // A kedKey is "scheduled" if ANY of its rows has a scheduled time
+                            if (hasSchedule) {
+                                kedKeyInfo[kedKey].hasSchedule = true;
+                                // Keep earliest schedule for on-time comparison
+                                if (!kedKeyInfo[kedKey].sched || sched < kedKeyInfo[kedKey].sched) {
+                                    kedKeyInfo[kedKey].sched = sched;
+                                }
+                            }
+                            const urg = (a.urgensi || '').trim().toUpperCase();
+                            if (urg === 'YA') kedKeyInfo[kedKey].urgensi = true;
+                        });
+
+                        const bMap: Record<string, { kedatanganKeys: Set<string>; terjadwal: Set<string>; tepatWaktu: Set<string>; terlambat: Set<string>; cases: number; urgensi: Set<string> }> = {};
+                        Object.entries(kedKeyInfo).forEach(([kedKey, info]) => {
+                            const brand = info.brand;
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
                             bMap[brand].kedatanganKeys.add(kedKey);
 
-                            // Count scheduled/unscheduled per row (not per kedKey)
-                            const sched = (a.scheduled_arrival_time || '').trim();
-                            const hasSchedule = sched && sched !== '-';
-                            if (hasSchedule) {
-                                bMap[brand].terjadwal += 1;
-                                // On-time vs late comparison
-                                const arrival = (a.arrival_time || '').trim();
-                                if (arrival && arrival !== '-') {
-                                    if (arrival <= sched) bMap[brand].tepatWaktu += 1;
-                                    else bMap[brand].terlambat += 1;
+                            if (info.hasSchedule) {
+                                bMap[brand].terjadwal.add(kedKey);
+                                const arrival = info.arrival;
+                                if (arrival && arrival !== '-' && info.sched) {
+                                    if (arrival <= info.sched) bMap[brand].tepatWaktu.add(kedKey);
+                                    else bMap[brand].terlambat.add(kedKey);
                                 }
-                            } else {
-                                bMap[brand].tidakScheduled += 1;
                             }
 
-                            const urg = (a.urgensi || '').trim().toUpperCase();
-                            if (urg === 'YA') bMap[brand].urgensi.add(kedKey);
+                            if (info.urgensi) bMap[brand].urgensi.add(kedKey);
                         });
 
                         // Merge cases
                         Object.entries(caseByBrand).forEach(([brand, cnt]) => {
-                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: 0, tidakScheduled: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: new Set() };
+                            if (!bMap[brand]) bMap[brand] = { kedatanganKeys: new Set(), terjadwal: new Set(), tepatWaktu: new Set(), terlambat: new Set(), cases: 0, urgensi: new Set() };
                             bMap[brand].cases = cnt;
                         });
 
-                        // Total Arrivals = unique kedatangan per brand (consistent with stat card)
-                        const rows = Object.entries(bMap).map(([brand, v]) => ({ key: brand, brand, total: v.kedatanganKeys.size, terjadwal: v.terjadwal, tidakScheduled: v.tidakScheduled, tepatWaktu: v.tepatWaktu, terlambat: v.terlambat, cases: v.cases, urgensi: v.urgensi.size })).sort((a, b) => b.total - a.total);
+                        // Unscheduled = Total - Scheduled (guaranteed to add up)
+                        const rows = Object.entries(bMap).map(([brand, v]) => {
+                            const total = v.kedatanganKeys.size;
+                            const terjadwal = v.terjadwal.size;
+                            return { key: brand, brand, total, terjadwal, tidakScheduled: total - terjadwal, tepatWaktu: v.tepatWaktu.size, terlambat: v.terlambat.size, cases: v.cases, urgensi: v.urgensi.size };
+                        }).sort((a, b) => b.total - a.total);
                         const totalRow = { key: '_TOTAL', brand: 'TOTAL', total: 0, terjadwal: 0, tidakScheduled: 0, tepatWaktu: 0, terlambat: 0, cases: 0, urgensi: 0, _isTotal: true };
                         rows.forEach(r => { totalRow.total += r.total; totalRow.terjadwal += r.terjadwal; totalRow.tidakScheduled += r.tidakScheduled; totalRow.tepatWaktu += r.tepatWaktu; totalRow.terlambat += r.terlambat; totalRow.cases += r.cases; totalRow.urgensi += r.urgensi; });
                         return [totalRow, ...rows];
