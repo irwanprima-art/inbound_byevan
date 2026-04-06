@@ -93,6 +93,7 @@ export default function ArrivalsPage() {
 
             return {
                 ...row,
+                item_type: row.item_type || 'Barang Jual',
                 receive_qty: receiveQty,
                 putaway_qty: putawayQty,
                 pending_qty: pendingQty,
@@ -402,7 +403,7 @@ export default function ArrivalsPage() {
                 const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
                     ? dayjs(r.date_publish_do).diff(dayjs(r.date), 'day')
                     : '';
-                const row: any = { ...r, inbound_paperwork_sla_day: sla };
+                const row: any = { ...r, inbound_paperwork_sla_day: sla, item_type: r.item_type || 'Barang Jual' };
                 return headers.map(h => `"${row[h] ?? ''}"`).join(',');
             }).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
