@@ -90,6 +90,18 @@ func AutoMigrate() {
 	if err := DB.Exec("DROP INDEX IF EXISTS idx_berita_acaras_doc_number").Error; err != nil {
 		log.Printf("[DB] Warning: could not drop old unique index: %v", err)
 	}
+
+	// Normalize empty item_type to 'Barang Jual' for arrivals and vases
+	if res := DB.Exec("UPDATE arrivals SET item_type = 'Barang Jual' WHERE item_type IS NULL OR item_type = ''"); res.Error != nil {
+		log.Printf("[DB] Warning: could not normalize arrivals item_type: %v", res.Error)
+	} else if res.RowsAffected > 0 {
+		log.Printf("[DB] Normalized %d arrivals rows with empty item_type → 'Barang Jual'", res.RowsAffected)
+	}
+	if res := DB.Exec("UPDATE vases SET item_type = 'Barang Jual' WHERE item_type IS NULL OR item_type = ''"); res.Error != nil {
+		log.Printf("[DB] Warning: could not normalize vases item_type: %v", res.Error)
+	} else if res.RowsAffected > 0 {
+		log.Printf("[DB] Normalized %d vases rows with empty item_type → 'Barang Jual'", res.RowsAffected)
+	}
 }
 
 // SeedDefaultUsers creates default accounts if none exist
