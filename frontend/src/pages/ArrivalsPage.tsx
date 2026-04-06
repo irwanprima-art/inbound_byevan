@@ -344,8 +344,20 @@ export default function ArrivalsPage() {
                     return { ...entry, receipt_no: finalNo };
                 });
 
-                const promises = deduplicatedEntries.map((entry: any) =>
-                    arrivalsApi.create({ ...commonFields, receipt_no: entry.receipt_no, po_no: entry.po_no, po_qty: entry.po_qty })
+                // Split plan_qty evenly across entries (integer math, no decimals)
+                const totalPlanQty = parseInt(commonFields.plan_qty) || 0;
+                const entryCount = deduplicatedEntries.length;
+                const basePlanQty = entryCount > 0 ? Math.floor(totalPlanQty / entryCount) : totalPlanQty;
+                const remainder = entryCount > 0 ? totalPlanQty - basePlanQty * entryCount : 0;
+
+                const promises = deduplicatedEntries.map((entry: any, idx: number) =>
+                    arrivalsApi.create({
+                        ...commonFields,
+                        receipt_no: entry.receipt_no,
+                        po_no: entry.po_no,
+                        po_qty: entry.po_qty,
+                        plan_qty: basePlanQty + (idx < remainder ? 1 : 0),
+                    })
                 );
                 await Promise.all(promises);
 
