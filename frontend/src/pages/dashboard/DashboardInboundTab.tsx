@@ -131,6 +131,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
             else if (receiveQty >= poQty) status = 'Pending Putaway';
             return {
                 ...row,
+                item_type: row.item_type || 'Barang Jual',
                 receive_qty: receiveQty,
                 putaway_qty: putawayQty,
                 pending_qty: pendingQty,
@@ -255,9 +256,10 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
     const buildItemTypeData = (itemType: string) => {
         const map: Record<string, { po_qty: number; plan_qty: number }> = {};
         enrichedArrivals.forEach((a: any) => {
-            const t = (a.item_type || 'Barang Jual');
+            if (!a.brand) return; // skip rows without brand
+            const t = a.item_type; // already normalized in enrichedArrivals
             if (t !== itemType) return;
-            const brand = (a.brand || 'Unknown').toUpperCase();
+            const brand = a.brand.toUpperCase();
             if (!map[brand]) map[brand] = { po_qty: 0, plan_qty: 0 };
             map[brand].po_qty += parseInt(a.po_qty) || 0;
             map[brand].plan_qty += parseInt(a.plan_qty) || 0;
