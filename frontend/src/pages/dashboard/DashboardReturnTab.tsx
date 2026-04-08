@@ -166,7 +166,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         returnPerReasonQty.forEach((r: any) => { qtyMap[r.brand] = r; });
         returnPerReasonOrder.forEach((r: any) => { orderMap[r.brand] = r; });
         return Array.from(allBrands).map(brand => {
-            const row: any = { brand };
+            const row: any = { brand, owner: brandOwnerMap[brand] || '' };
             let totalQty = 0, totalOrder = 0;
             reasonGroups.forEach(g => {
                 row[`${g}_qty`] = qtyMap[brand]?.[g] || 0;
@@ -178,26 +178,59 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             row.total_order = totalOrder;
             return row;
         }).sort((a, b) => b.total_qty - a.total_qty);
-    }, [returnPerReasonQty, returnPerReasonOrder, reasonGroups]);
+    }, [returnPerReasonQty, returnPerReasonOrder, reasonGroups, brandOwnerMap]);
 
-    // Grouped columns for combined reason table
-    const reasonCombinedCols = useMemo(() => [
-        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120, fixed: 'left' as const },
-        ...reasonGroups.map(g => ({
-            title: g, key: g,
-            children: [
-                { title: 'Qty', dataIndex: `${g}_qty`, key: `${g}_qty`, width: 80, render: (v: number) => (v || 0).toLocaleString() },
-                { title: 'Order', dataIndex: `${g}_order`, key: `${g}_order`, width: 80, render: (v: number) => (v || 0).toLocaleString() },
-            ],
-        })),
-        {
-            title: 'Total', key: 'total_group',
-            children: [
-                { title: 'Qty', dataIndex: 'total_qty', key: 'total_qty', width: 80, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
-                { title: 'Order', dataIndex: 'total_order', key: 'total_order', width: 80, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text> },
-            ],
-        },
-    ], [reasonGroups]);
+    // Grouped reason combined data by owner
+    const returnPerReasonGrouped = useMemo(() => {
+        const ownerMap: Record<string, any[]> = {};
+        returnPerReasonCombined.forEach(r => {
+            const owner = r.owner || 'OTHER';
+            if (!ownerMap[owner]) ownerMap[owner] = [];
+            ownerMap[owner].push(r);
+        });
+        const ownerOrder = Object.keys(ownerMap).sort((a, b) => {
+            if (a === 'JC-ID') return -1; if (b === 'JC-ID') return 1;
+            if (a === 'JC-FFM') return -1; if (b === 'JC-FFM') return 1;
+            return a.localeCompare(b);
+        });
+        const rows: any[] = [];
+        const grandTotals: Record<string, number> = {};
+        ownerOrder.forEach(owner => {
+            const brands = ownerMap[owner];
+            rows.push({ _key: `header_${owner}`, _type: 'header', brand: owner });
+            const subTotals: Record<string, number> = {};
+            brands.forEach(b => {
+                rows.push({ ...b, _key: `brand_${owner}_${b.brand}`, _type: 'brand' });
+                reasonGroups.forEach(g => {
+                    subTotals[`${g}_qty`] = (subTotals[`${g}_qty`] || 0) + (b[`${g}_qty`] || 0);
+                    subTotals[`${g}_order`] = (subTotals[`${g}_order`] || 0) + (b[`${g}_order`] || 0);
+                });
+                subTotals['total_qty'] = (subTotals['total_qty'] || 0) + (b.total_qty || 0);
+                subTotals['total_order'] = (subTotals['total_order'] || 0) + (b.total_order || 0);
+            });
+            const subRow: any = { _key: `subtotal_${owner}`, _type: 'subtotal', brand: `Total ${owner}` };
+            reasonGroups.forEach(g => {
+                subRow[`${g}_qty`] = subTotals[`${g}_qty`] || 0;
+                subRow[`${g}_order`] = subTotals[`${g}_order`] || 0;
+                grandTotals[`${g}_qty`] = (grandTotals[`${g}_qty`] || 0) + (subTotals[`${g}_qty`] || 0);
+                grandTotals[`${g}_order`] = (grandTotals[`${g}_order`] || 0) + (subTotals[`${g}_order`] || 0);
+            });
+            subRow.total_qty = subTotals['total_qty'] || 0;
+            subRow.total_order = subTotals['total_order'] || 0;
+            grandTotals['total_qty'] = (grandTotals['total_qty'] || 0) + (subTotals['total_qty'] || 0);
+            grandTotals['total_order'] = (grandTotals['total_order'] || 0) + (subTotals['total_order'] || 0);
+            rows.push(subRow);
+        });
+        const grandRow: any = { _key: 'grand_total', _type: 'grandtotal', brand: 'Total All' };
+        reasonGroups.forEach(g => {
+            grandRow[`${g}_qty`] = grandTotals[`${g}_qty`] || 0;
+            grandRow[`${g}_order`] = grandTotals[`${g}_order`] || 0;
+        });
+        grandRow.total_qty = grandTotals['total_qty'] || 0;
+        grandRow.total_order = grandTotals['total_order'] || 0;
+        rows.push(grandRow);
+        return rows;
+    }, [returnPerReasonCombined, reasonGroups]);
 
     // ═══ 4. % Return per Brand per Month (uses ALL data, not date-filtered) ═══
     const MONTH_FORMATS = ['MMMM YYYY', 'YYYY-MM', 'MM-YYYY', 'MMM-YY', 'MMM YY', 'MMM-YYYY', 'MMM YYYY'];
@@ -571,33 +604,72 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 2+3 Combined: Return per Reason Group (Qty + Order) */}
             {show('reason_combined') && (
                 <Card title="📋 Return per Reason Group (Qty & Order)" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPerReasonCombined} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: sections ? undefined : 400 }} columns={reasonCombinedCols} bordered
-                        summary={() => {
-                            const totals: Record<string, number> = {};
-                            returnPerReasonCombined.forEach((r: any) => {
-                                reasonGroups.forEach(g => {
-                                    totals[`${g}_qty`] = (totals[`${g}_qty`] || 0) + (r[`${g}_qty`] || 0);
-                                    totals[`${g}_order`] = (totals[`${g}_order`] || 0) + (r[`${g}_order`] || 0);
-                                });
-                                totals.total_qty = (totals.total_qty || 0) + (r.total_qty || 0);
-                                totals.total_order = (totals.total_order || 0) + (r.total_order || 0);
-                            });
-                            return (
-                                <Table.Summary fixed>
-                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
-                                        {reasonGroups.map((g, i) => (
-                                            <>
-                                                <Table.Summary.Cell key={`${g}_qty`} index={i * 2 + 1}><Text strong style={{ color: '#fff' }}>{(totals[`${g}_qty`] || 0).toLocaleString()}</Text></Table.Summary.Cell>
-                                                <Table.Summary.Cell key={`${g}_order`} index={i * 2 + 2}><Text strong style={{ color: '#fff' }}>{(totals[`${g}_order`] || 0).toLocaleString()}</Text></Table.Summary.Cell>
-                                            </>
-                                        ))}
-                                        <Table.Summary.Cell index={reasonGroups.length * 2 + 1}><Text strong style={{ color: '#60a5fa' }}>{(totals.total_qty || 0).toLocaleString()}</Text></Table.Summary.Cell>
-                                        <Table.Summary.Cell index={reasonGroups.length * 2 + 2}><Text strong style={{ color: '#60a5fa' }}>{(totals.total_order || 0).toLocaleString()}</Text></Table.Summary.Cell>
-                                    </Table.Summary.Row>
-                                </Table.Summary>
-                            );
+                    <Table
+                        dataSource={returnPerReasonGrouped}
+                        rowKey="_key"
+                        size="small"
+                        pagination={false}
+                        scroll={{ x: 'max-content', y: sections ? undefined : 400 }}
+                        bordered
+                        rowClassName={(record: any) => {
+                            if (record._type === 'header') return 'owner-header-row';
+                            if (record._type === 'subtotal') return 'owner-subtotal-row';
+                            if (record._type === 'grandtotal') return 'owner-grandtotal-row';
+                            return '';
                         }}
+                        columns={[
+                            {
+                                title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140, fixed: 'left' as const,
+                                render: (v: string, record: any) => {
+                                    if (record._type === 'header') return <Text strong style={{ color: '#f59e0b', fontSize: 13 }}>▸ {v}</Text>;
+                                    if (record._type === 'subtotal') return <Text strong style={{ color: '#fff' }}>{v}</Text>;
+                                    if (record._type === 'grandtotal') return <Text strong style={{ color: '#60a5fa', fontSize: 13 }}>{v}</Text>;
+                                    return <Text style={{ color: 'rgba(255,255,255,0.85)', paddingLeft: 12 }}>{v}</Text>;
+                                }
+                            },
+                            ...reasonGroups.map(g => ({
+                                title: g, key: g,
+                                children: [
+                                    {
+                                        title: 'Qty', dataIndex: `${g}_qty`, key: `${g}_qty`, width: 80,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: isTotal ? '#fff' : undefined }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'Order', dataIndex: `${g}_order`, key: `${g}_order`, width: 80,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: isTotal ? '#fff' : undefined }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                ],
+                            })),
+                            {
+                                title: 'Total', key: 'total_group',
+                                children: [
+                                    {
+                                        title: 'Qty', dataIndex: 'total_qty', key: 'total_qty', width: 80,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong style={{ color: isTotal ? '#60a5fa' : '#60a5fa' }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'Order', dataIndex: 'total_order', key: 'total_order', width: 80,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong style={{ color: isTotal ? '#60a5fa' : '#60a5fa' }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                ],
+                            },
+                        ]}
                     />
                 </Card>
             )}
