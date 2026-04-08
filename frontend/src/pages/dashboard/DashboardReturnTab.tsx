@@ -49,8 +49,18 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         [rejectReturns, matchesDateRange]
     );
 
+    // Build brand → owner lookup from return receives (use first encountered owner per brand)
+    const brandOwnerMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        returnReceives.forEach((r: any) => {
+            const brand = normalizeBrand(r.brand || 'Unknown');
+            if (!map[brand] && r.owner) map[brand] = (r.owner || '').trim().toUpperCase();
+        });
+        return map;
+    }, [returnReceives]);
+
     // ═══ 1. Return per Brand (GOOD / DAMAGE / TOTAL) + Chart ═══
-    const returnPerBrand = useMemo(() => {
+    const returnPerBrandRaw = useMemo(() => {
         const map: Record<string, { good: number; damage: number }> = {};
         filteredReceives.forEach((r: any) => {
             const brand = normalizeBrand(r.brand || 'Unknown');
@@ -61,9 +71,45 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             else map[brand].good += qty;
         });
         return Object.entries(map)
-            .map(([brand, v]) => ({ brand, good: v.good, damage: v.damage, total: v.good + v.damage }))
+            .map(([brand, v]) => ({ brand, owner: brandOwnerMap[brand] || '', good: v.good, damage: v.damage, total: v.good + v.damage }))
             .sort((a, b) => b.total - a.total);
-    }, [filteredReceives]);
+    }, [filteredReceives, brandOwnerMap]);
+
+    // For chart usage (flat, no grouping)
+    const returnPerBrand = returnPerBrandRaw;
+
+    // Grouped Return per Brand data: owner header → brand rows → subtotal → grand total
+    const returnPerBrandGrouped = useMemo(() => {
+        // Group by owner
+        const ownerMap: Record<string, typeof returnPerBrandRaw> = {};
+        returnPerBrandRaw.forEach(r => {
+            const owner = r.owner || 'OTHER';
+            if (!ownerMap[owner]) ownerMap[owner] = [];
+            ownerMap[owner].push(r);
+        });
+        // Sort owners: JC-ID first, JC-FFM second, others after
+        const ownerOrder = Object.keys(ownerMap).sort((a, b) => {
+            if (a === 'JC-ID') return -1; if (b === 'JC-ID') return 1;
+            if (a === 'JC-FFM') return -1; if (b === 'JC-FFM') return 1;
+            return a.localeCompare(b);
+        });
+        const rows: any[] = [];
+        let grandGood = 0, grandDamage = 0;
+        ownerOrder.forEach(owner => {
+            const brands = ownerMap[owner];
+            // Owner header row
+            rows.push({ _key: `header_${owner}`, _type: 'header', brand: owner, good: '', damage: '', total: '' });
+            let subGood = 0, subDamage = 0;
+            brands.forEach(b => {
+                rows.push({ _key: `brand_${owner}_${b.brand}`, _type: 'brand', brand: b.brand, good: b.good, damage: b.damage, total: b.total });
+                subGood += b.good; subDamage += b.damage;
+            });
+            rows.push({ _key: `subtotal_${owner}`, _type: 'subtotal', brand: `Total ${owner}`, good: subGood, damage: subDamage, total: subGood + subDamage });
+            grandGood += subGood; grandDamage += subDamage;
+        });
+        rows.push({ _key: 'grand_total', _type: 'grandtotal', brand: 'Total All', good: grandGood, damage: grandDamage, total: grandGood + grandDamage });
+        return rows;
+    }, [returnPerBrandRaw]);
 
     // ═══ 2. Return per Reason Group (qty) ═══
     const reasonGroups = useMemo(() => {
@@ -171,7 +217,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         return Array.from(ms).sort();
     }, [returnReceives, orderPerBrands]);
 
-    const returnPercentData = useMemo(() => {
+    const returnPercentDataRaw = useMemo(() => {
         // Count unique receipt_no per brand per month from ALL return receives
         const returnMap: Record<string, Record<string, Set<string>>> = {};
         returnReceives.forEach((r: any) => {
@@ -201,7 +247,7 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
         // Build rows
         const allBrands = new Set<string>([...Object.keys(returnMap), ...Object.keys(orderMap)]);
         return Array.from(allBrands).map(brand => {
-            const row: any = { brand };
+            const row: any = { brand, owner: brandOwnerMap[brand] || '' };
             months.forEach(m => {
                 const retCount = returnMap[brand]?.[m]?.size || 0;
                 const ordCount = orderMap[brand]?.[m] || 0;
@@ -212,19 +258,60 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             });
             return row;
         }).sort((a, b) => a.brand.localeCompare(b.brand));
-    }, [returnReceives, orderPerBrands, months]);
+    }, [returnReceives, orderPerBrands, months, brandOwnerMap]);
 
-    const percentCols = useMemo(() => [
-        { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 100, fixed: 'left' as const },
-        ...months.map(m => ({
-            title: dayjs(m, 'YYYY-MM').format('MMM YYYY'),
-            children: [
-                { title: 'Return', dataIndex: `${m}_return`, key: `${m}_return`, width: 70, render: (v: number) => (v || 0).toLocaleString() },
-                { title: 'Order', dataIndex: `${m}_order`, key: `${m}_order`, width: 70, render: (v: number) => (v || 0).toLocaleString() },
-                { title: '%', dataIndex: `${m}_pct`, key: `${m}_pct`, width: 60, render: (v: string) => <Text style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : parseFloat(v) > 5 ? '#ef4444' : '#10b981' }}>{v === '-' ? '-' : `${v}%`}</Text> },
-            ],
-        })),
-    ], [months]);
+    // Grouped % Return per Brand data: owner header → brand rows → subtotal → grand total
+
+    const returnPercentGrouped = useMemo(() => {
+        const ownerMap: Record<string, any[]> = {};
+        returnPercentDataRaw.forEach(r => {
+            const owner = r.owner || 'OTHER';
+            if (!ownerMap[owner]) ownerMap[owner] = [];
+            ownerMap[owner].push(r);
+        });
+        const ownerOrder = Object.keys(ownerMap).sort((a, b) => {
+            if (a === 'JC-ID') return -1; if (b === 'JC-ID') return 1;
+            if (a === 'JC-FFM') return -1; if (b === 'JC-FFM') return 1;
+            return a.localeCompare(b);
+        });
+        const rows: any[] = [];
+        const grandTotals: Record<string, number> = {};
+        ownerOrder.forEach(owner => {
+            const brands = ownerMap[owner];
+            rows.push({ _key: `header_${owner}`, _type: 'header', brand: owner });
+            const subTotals: Record<string, number> = {};
+            brands.forEach(b => {
+                rows.push({ ...b, _key: `brand_${owner}_${b.brand}`, _type: 'brand' });
+                months.forEach(m => {
+                    subTotals[`${m}_return`] = (subTotals[`${m}_return`] || 0) + (b[`${m}_return`] || 0);
+                    subTotals[`${m}_order`] = (subTotals[`${m}_order`] || 0) + (b[`${m}_order`] || 0);
+                });
+            });
+            // Compute subtotal pct
+            const subRow: any = { _key: `subtotal_${owner}`, _type: 'subtotal', brand: `Total ${owner}` };
+            months.forEach(m => {
+                subRow[`${m}_return`] = subTotals[`${m}_return`] || 0;
+                subRow[`${m}_order`] = subTotals[`${m}_order`] || 0;
+                const ret = subRow[`${m}_return`], ord = subRow[`${m}_order`];
+                subRow[`${m}_pct`] = ord > 0 ? ((ret / ord) * 100).toFixed(1) : '-';
+                grandTotals[`${m}_return`] = (grandTotals[`${m}_return`] || 0) + (subTotals[`${m}_return`] || 0);
+                grandTotals[`${m}_order`] = (grandTotals[`${m}_order`] || 0) + (subTotals[`${m}_order`] || 0);
+            });
+            rows.push(subRow);
+        });
+        // Grand total
+        const grandRow: any = { _key: 'grand_total', _type: 'grandtotal', brand: 'Total All' };
+        months.forEach(m => {
+            grandRow[`${m}_return`] = grandTotals[`${m}_return`] || 0;
+            grandRow[`${m}_order`] = grandTotals[`${m}_order`] || 0;
+            const ret = grandRow[`${m}_return`], ord = grandRow[`${m}_order`];
+            grandRow[`${m}_pct`] = ord > 0 ? ((ret / ord) * 100).toFixed(1) : '-';
+        });
+        rows.push(grandRow);
+        return rows;
+    }, [returnPercentDataRaw, months]);
+
+
 
     // ═══ 5. Reject Return per Logistics (countunique AWB per brand) ═══
     const logistics = useMemo(() => {
@@ -409,32 +496,58 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
                     <Col xs={24} lg={12}>
                         <Card title="📦 Return per Brand (Qty)" size="small" style={cardStyle} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
                             <Table
-                                dataSource={returnPerBrand}
-                                rowKey="brand"
+                                dataSource={returnPerBrandGrouped}
+                                rowKey="_key"
                                 size="small"
                                 pagination={false}
-                                scroll={{ y: sections ? undefined : 300 }}
-                                columns={[
-                                    { title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120 },
-                                    { title: 'GOOD', dataIndex: 'good', key: 'good', width: 90, render: (v: number) => <Text style={{ color: '#10b981' }}>{v.toLocaleString()}</Text> },
-                                    { title: 'DAMAGE', dataIndex: 'damage', key: 'damage', width: 90, render: (v: number) => <Text style={{ color: '#ef4444' }}>{v.toLocaleString()}</Text> },
-                                    { title: 'TOTAL', dataIndex: 'total', key: 'total', width: 90, render: (v: number) => <Text strong style={{ color: '#60a5fa' }}>{v.toLocaleString()}</Text> },
-                                ]}
-                                summary={() => {
-                                    const totGood = returnPerBrand.reduce((s, r) => s + r.good, 0);
-                                    const totDamage = returnPerBrand.reduce((s, r) => s + r.damage, 0);
-                                    return (
-                                        <Table.Summary fixed>
-                                            <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                                <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1}><Text strong style={{ color: '#10b981' }}>{totGood.toLocaleString()}</Text></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={2}><Text strong style={{ color: '#ef4444' }}>{totDamage.toLocaleString()}</Text></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={3}><Text strong style={{ color: '#60a5fa' }}>{(totGood + totDamage).toLocaleString()}</Text></Table.Summary.Cell>
-                                            </Table.Summary.Row>
-                                        </Table.Summary>
-                                    );
+                                scroll={{ y: sections ? undefined : 400 }}
+                                rowClassName={(record: any) => {
+                                    if (record._type === 'header') return 'owner-header-row';
+                                    if (record._type === 'subtotal') return 'owner-subtotal-row';
+                                    if (record._type === 'grandtotal') return 'owner-grandtotal-row';
+                                    return '';
                                 }}
+                                columns={[
+                                    {
+                                        title: 'Brand', dataIndex: 'brand', key: 'brand', width: 140,
+                                        render: (v: string, record: any) => {
+                                            if (record._type === 'header') return <Text strong style={{ color: '#f59e0b', fontSize: 13 }}>▸ {v}</Text>;
+                                            if (record._type === 'subtotal') return <Text strong style={{ color: '#fff' }}>{v}</Text>;
+                                            if (record._type === 'grandtotal') return <Text strong style={{ color: '#60a5fa', fontSize: 13 }}>{v}</Text>;
+                                            return <Text style={{ color: 'rgba(255,255,255,0.85)', paddingLeft: 12 }}>{v}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'GOOD', dataIndex: 'good', key: 'good', width: 90,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: '#10b981' }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'DAMAGE', dataIndex: 'damage', key: 'damage', width: 90,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: '#ef4444' }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'TOTAL', dataIndex: 'total', key: 'total', width: 90,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: '#60a5fa' }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                ]}
                             />
+                            <style>{`
+                                .owner-header-row td { background: rgba(245,158,11,0.12) !important; border-bottom: 1px solid rgba(245,158,11,0.3) !important; }
+                                .owner-subtotal-row td { background: rgba(255,255,255,0.06) !important; border-top: 1px solid rgba(255,255,255,0.15) !important; }
+                                .owner-grandtotal-row td { background: rgba(96,165,250,0.12) !important; border-top: 2px solid rgba(96,165,250,0.4) !important; }
+                            `}</style>
                         </Card>
                     </Col>
                     <Col xs={24} lg={12}>
@@ -492,33 +605,60 @@ export default function DashboardReturnTab({ dateRange, setDateRange, returnRece
             {/* 4. % Return per Brand per Month */}
             {show('return_pct') && months.length > 0 && (
                 <Card title="📊 % Return per Brand" size="small" style={{ ...cardStyle, marginBottom: 24 }} styles={{ header: { color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)' }, body: { padding: 0 } }}>
-                    <Table dataSource={returnPercentData} rowKey="brand" size="small" pagination={false} scroll={{ x: 'max-content', y: sections ? undefined : 300 }} columns={percentCols} bordered
-                        summary={() => {
-                            const totals: Record<string, number> = {};
-                            returnPercentData.forEach((r: any) => {
-                                months.forEach(m => {
-                                    totals[`${m}_return`] = (totals[`${m}_return`] || 0) + (r[`${m}_return`] || 0);
-                                    totals[`${m}_order`] = (totals[`${m}_order`] || 0) + (r[`${m}_order`] || 0);
-                                });
-                            });
-                            return (
-                                <Table.Summary fixed>
-                                    <Table.Summary.Row style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                        <Table.Summary.Cell index={0}><Text strong style={{ color: '#fff' }}>TOTAL</Text></Table.Summary.Cell>
-                                        {months.map((m, mi) => {
-                                            const ret = totals[`${m}_return`] || 0;
-                                            const ord = totals[`${m}_order`] || 0;
-                                            const pct = ord > 0 ? ((ret / ord) * 100).toFixed(1) : '-';
-                                            return [
-                                                <Table.Summary.Cell key={`${m}_r`} index={mi * 3 + 1}><Text strong style={{ color: '#fff' }}>{ret.toLocaleString()}</Text></Table.Summary.Cell>,
-                                                <Table.Summary.Cell key={`${m}_o`} index={mi * 3 + 2}><Text strong style={{ color: '#fff' }}>{ord.toLocaleString()}</Text></Table.Summary.Cell>,
-                                                <Table.Summary.Cell key={`${m}_p`} index={mi * 3 + 3}><Text strong style={{ color: pct === '-' ? 'rgba(255,255,255,0.3)' : parseFloat(pct) > 5 ? '#ef4444' : '#10b981' }}>{pct === '-' ? '-' : `${pct}%`}</Text></Table.Summary.Cell>,
-                                            ];
-                                        })}
-                                    </Table.Summary.Row>
-                                </Table.Summary>
-                            );
+                    <Table
+                        dataSource={returnPercentGrouped}
+                        rowKey="_key"
+                        size="small"
+                        pagination={false}
+                        scroll={{ x: 'max-content', y: sections ? undefined : 400 }}
+                        bordered
+                        rowClassName={(record: any) => {
+                            if (record._type === 'header') return 'owner-header-row';
+                            if (record._type === 'subtotal') return 'owner-subtotal-row';
+                            if (record._type === 'grandtotal') return 'owner-grandtotal-row';
+                            return '';
                         }}
+                        columns={[
+                            {
+                                title: 'Brand', dataIndex: 'brand', key: 'brand', width: 120, fixed: 'left' as const,
+                                render: (v: string, record: any) => {
+                                    if (record._type === 'header') return <Text strong style={{ color: '#f59e0b', fontSize: 13 }}>▸ {v}</Text>;
+                                    if (record._type === 'subtotal') return <Text strong style={{ color: '#fff' }}>{v}</Text>;
+                                    if (record._type === 'grandtotal') return <Text strong style={{ color: '#60a5fa', fontSize: 13 }}>{v}</Text>;
+                                    return <Text style={{ color: 'rgba(255,255,255,0.85)', paddingLeft: 12 }}>{v}</Text>;
+                                }
+                            },
+                            ...months.map(m => ({
+                                title: dayjs(m, 'YYYY-MM').format('MMM YYYY'),
+                                children: [
+                                    {
+                                        title: 'Return', dataIndex: `${m}_return`, key: `${m}_return`, width: 70,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: isTotal ? '#fff' : undefined }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: 'Order', dataIndex: `${m}_order`, key: `${m}_order`, width: 70,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            return <Text strong={isTotal} style={{ color: isTotal ? '#fff' : undefined }}>{(v || 0).toLocaleString()}</Text>;
+                                        }
+                                    },
+                                    {
+                                        title: '%', dataIndex: `${m}_pct`, key: `${m}_pct`, width: 60,
+                                        render: (v: any, record: any) => {
+                                            if (record._type === 'header') return null;
+                                            const isTotal = record._type === 'subtotal' || record._type === 'grandtotal';
+                                            const strV = String(v || '-');
+                                            return <Text strong={isTotal} style={{ color: strV === '-' ? 'rgba(255,255,255,0.3)' : parseFloat(strV) > 5 ? '#ef4444' : '#10b981' }}>{strV === '-' ? '-' : `${strV}%`}</Text>;
+                                        }
+                                    },
+                                ],
+                            })),
+                        ]}
                     />
                 </Card>
             )}
