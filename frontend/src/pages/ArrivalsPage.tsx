@@ -161,7 +161,16 @@ export default function ArrivalsPage() {
         { title: 'Last Putaway', dataIndex: 'last_putaway', key: 'last_putaway', width: 160, render: (v: string) => <span style={{ color: v === '-' ? 'rgba(255,255,255,0.3)' : '#a78bfa' }}>{v}</span> },
         { title: 'Operator', dataIndex: 'operator', key: 'operator', width: 120 },
         { title: 'Note', dataIndex: 'note', key: 'note', width: 150, ellipsis: true },
-        { title: 'Status', dataIndex: 'status', key: 'status', width: 140, render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
+        {
+            title: 'Status', dataIndex: 'status', key: 'status', width: 140,
+            render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag>,
+            filters: [
+                { text: 'Completed', value: 'Completed' },
+                { text: 'Pending Putaway', value: 'Pending Putaway' },
+                { text: 'Pending Receive', value: 'Pending Receive' },
+            ],
+            onFilter: (value: any, record: any) => record.status === value,
+        },
         {
             title: 'Status Jadwal', key: 'schedule_status', width: 130,
             render: (_: any, r: any) => {
