@@ -183,7 +183,7 @@ export default function BeritaAcaraInventoryPage() {
             doc_number: docNumber,
             date: dayjs(vals.date).format('YYYY-MM-DD'),
             checker: vals.checker,
-            kepada: vals.kepada || '',
+            kepada: vals.kepada ? `${vals.kepada}:::${vals.kepada_posisi || ''}` : '',
             dari: 'PT. Global Jet Ecommerce',
             items: JSON.stringify(finalItems),
             notes: isStockOpname ? JSON.stringify(summary) : (vals.notes || ''),
@@ -192,7 +192,7 @@ export default function BeritaAcaraInventoryPage() {
         try {
             await beritaAcaraApi.create(payload);
             message.success('Berita Acara tersimpan!');
-            setPreviewDoc({ ...payload, items: finalItems, summary });
+            setPreviewDoc({ ...payload, items: finalItems, summary, kepadaName: vals.kepada || '', kepadaPosisi: vals.kepada_posisi || '' });
             setPreviewOpen(true);
             form.resetFields();
             form.setFieldsValue({ dari: 'PT. Global Jet Ecommerce', date: dayjs() });
@@ -271,7 +271,14 @@ export default function BeritaAcaraInventoryPage() {
             try { summary = JSON.parse(record.notes || '{}'); } catch { summary = calcSummary(parsedItems); }
             if (!summary || !summary.totalSku) summary = calcSummary(parsedItems);
         }
-        setPreviewDoc({ ...record, items: parsedItems, summary });
+        let kepadaName = record.kepada || '';
+        let kepadaPosisi = '';
+        if (kepadaName.includes(':::')) {
+            const parts = kepadaName.split(':::');
+            kepadaName = parts[0];
+            kepadaPosisi = parts[1] || '';
+        }
+        setPreviewDoc({ ...record, items: parsedItems, summary, kepadaName, kepadaPosisi });
         setPreviewOpen(true);
     };
 
@@ -319,8 +326,11 @@ export default function BeritaAcaraInventoryPage() {
                                     <Form.Item name="checker" label="PIC" rules={[{ required: true, message: 'Isi nama PIC' }]}>
                                         <Input placeholder="Nama PIC" />
                                     </Form.Item>
-                                    <Form.Item name="kepada" label="Kepada" rules={isStockOpname ? [{ required: true, message: 'Isi tujuan' }] : []}>
-                                        <Input placeholder="Tujuan" />
+                                    <Form.Item name="kepada" label="Kepada (Nama)">
+                                        <Input placeholder="Nama Tujuan" />
+                                    </Form.Item>
+                                    <Form.Item name="kepada_posisi" label="Jabatan/Posisi Kepada">
+                                        <Input placeholder="Contoh: Manager" />
                                     </Form.Item>
                                     <Form.Item name="dari" label="Dari">
                                         <Input disabled />
@@ -378,6 +388,52 @@ export default function BeritaAcaraInventoryPage() {
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                             <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={handleAddSku} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
                                             <Button icon={<PlusOutlined />} onClick={handleAddSku}>Tambah</Button>
+                                            <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                <Button icon={<FileTextOutlined />}>Import CSV</Button>
+                                                <input 
+                                                    type="file" 
+                                                    accept=".csv" 
+                                                    style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            const text = event.target?.result as string;
+                                                            const lines = text.split('\n');
+                                                            const newItems: SkuItem[] = [];
+                                                            lines.forEach((line, i) => {
+                                                                const separator = line.includes(';') ? ';' : ',';
+                                                                const cols = line.split(separator).map(c => c.trim().replace(/^"|"$/g, ''));
+                                                                if (cols.length >= 1 && cols[0] !== '') {
+                                                                    if (i === 0 && isNaN(parseInt(cols[2] || '0')) && cols.length > 1) return; // skip header
+                                                                    newItems.push({
+                                                                        sku: cols[0],
+                                                                        description: cols[1] || '',
+                                                                        location: '',
+                                                                        sys_qty: 0,
+                                                                        phy_qty: parseInt(cols[2] || '0') || 0,
+                                                                        variance: 0,
+                                                                        note: cols[3] || ''
+                                                                    });
+                                                                }
+                                                            });
+                                                            if (newItems.length > 0) {
+                                                                setItems((prev) => {
+                                                                    const set = new Set(prev.map(p => p.sku.toLowerCase()));
+                                                                    const filtered = newItems.filter(n => !set.has(n.sku.toLowerCase()));
+                                                                    return [...prev, ...filtered];
+                                                                });
+                                                                message.success(`${newItems.length} SKU diproses`);
+                                                            } else {
+                                                                message.warning('Format CSV tidak sesuai. Format: SKU, Deskripsi, Qty, Catatan');
+                                                            }
+                                                        };
+                                                        reader.readAsText(file);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
                                         {items.length > 0 && (
                                             <Table
@@ -474,7 +530,6 @@ export default function BeritaAcaraInventoryPage() {
                             {/* Meta */}
                             <div style={{ marginBottom: 20 }}>
                                 <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Tanggal</strong>: {previewDoc.date}</div>
-                                {previewDoc.kepada && <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Kepada</strong>: {previewDoc.kepada}</div>}
                                 <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>Dari</strong>: {previewDoc.dari}</div>
                                 <div style={{ marginBottom: 6 }}><strong style={{ display: 'inline-block', width: 80 }}>PIC</strong>: {previewDoc.checker}</div>
                             </div>
@@ -526,7 +581,7 @@ export default function BeritaAcaraInventoryPage() {
                                         </div>
 
                                         {/* Signatures on summary page */}
-                                        <SignatureBlock pic={previewDoc.checker} kepada={previewDoc.kepada} />
+                                        <SignatureBlock pic={previewDoc.checker} kepadaName={previewDoc.kepadaName} kepadaPosisi={previewDoc.kepadaPosisi} />
 
                                         {/* Page 2: Lampiran */}
                                         <div className="page-break" style={{ pageBreakBefore: 'always', paddingTop: 16 }}>
@@ -609,7 +664,7 @@ export default function BeritaAcaraInventoryPage() {
                                         </div>
                                     )}
 
-                                    <SignatureBlock pic={previewDoc.checker} kepada={previewDoc.kepada} />
+                                    <SignatureBlock pic={previewDoc.checker} kepadaName={previewDoc.kepadaName} kepadaPosisi={previewDoc.kepadaPosisi} />
                                 </>
                             )}
                         </div>
@@ -630,7 +685,7 @@ export default function BeritaAcaraInventoryPage() {
     );
 }
 
-function SignatureBlock({ pic, kepada }: { pic: string; kepada?: string }) {
+function SignatureBlock({ pic, kepadaName, kepadaPosisi }: { pic: string; kepadaName?: string; kepadaPosisi?: string }) {
     const sigStyle: React.CSSProperties = { width: '45%', textAlign: 'center', marginBottom: 24 };
     const labelStyle: React.CSSProperties = { fontSize: 11, marginBottom: 60 };
     const lineStyle: React.CSSProperties = { borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600, fontSize: 11 };
@@ -657,7 +712,8 @@ function SignatureBlock({ pic, kepada }: { pic: string; kepada?: string }) {
                 </div>
                 <div style={sigStyle}>
                     <div style={labelStyle}>Mengetahui,</div>
-                    <div style={lineStyle}>({kepada || '\u00a0'})</div>
+                    <div style={lineStyle}>({kepadaName || '\u00a0'})</div>
+                    {kepadaPosisi && <div style={roleStyle}>{kepadaPosisi}</div>}
                 </div>
             </div>
         </div>
