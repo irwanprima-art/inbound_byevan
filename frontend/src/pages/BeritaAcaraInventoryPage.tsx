@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
     PrinterOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined,
-    FileTextOutlined, SearchOutlined, EyeOutlined,
+    FileTextOutlined, SearchOutlined, EyeOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import { beritaAcaraApi, stockOpnamesApi } from '../api/client';
 import dayjs from 'dayjs';
@@ -388,6 +388,21 @@ export default function BeritaAcaraInventoryPage() {
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                             <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={handleAddSku} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
                                             <Button icon={<PlusOutlined />} onClick={handleAddSku}>Tambah</Button>
+                                            <Button 
+                                                icon={<DownloadOutlined />} 
+                                                onClick={() => {
+                                                    const template = "SKU,Deskripsi,Qty,Catatan\n111017,Cesar Beef & Veg 100gr Makanan Anjing Basah Premium,50,-\n112181,Cesar Tender Lamb dengan Coutry Veg 100gr Makanan Anjing Basah Super Premium,8,-";
+                                                    const blob = new Blob([template], { type: 'text/csv' });
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = 'Template_Berita_Acara_Inventory.csv';
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                }}
+                                            >
+                                                Template CSV
+                                            </Button>
                                             <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
                                                 <Button icon={<FileTextOutlined />}>Import CSV</Button>
                                                 <input 
