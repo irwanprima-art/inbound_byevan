@@ -78,6 +78,7 @@ func main() {
 	api.GET("/public/soh", publicSoh.List)
 	api.GET("/public/locations", publicLocations.List)
 	api.GET("/public/berita-acara", publicBeritaAcara.List)
+	api.POST("/public/berita-acara", publicBeritaAcara.Create)
 
 	// Protected routes
 	protected := api.Group("")
