@@ -74,8 +74,10 @@ func main() {
 	// Public read-only routes for Key Account pages (no auth needed)
 	publicSoh := handlers.NewResource[models.Soh]("soh")
 	publicLocations := handlers.NewResource[models.Location]("locations")
+	publicBeritaAcara := handlers.NewResource[models.BeritaAcara]("berita-acara")
 	api.GET("/public/soh", publicSoh.List)
 	api.GET("/public/locations", publicLocations.List)
+	api.GET("/public/berita-acara", publicBeritaAcara.List)
 
 	// Protected routes
 	protected := api.Group("")

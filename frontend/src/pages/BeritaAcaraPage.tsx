@@ -32,16 +32,21 @@ interface SkuItem {
     note: string;
 }
 
-// Generate doc number: MMYY-XXXX/WH-JC/YYYY (per doc_type)
-function generateDocNumber(existingDocs: any[], docType: string): string {
+const WAREHOUSE_OPTIONS = [
+    { label: 'WH-JC', value: 'WH-JC' },
+    { label: 'WH-JC-02', value: 'WH-JC-02' },
+];
+
+// Generate doc number: MMYY-XXXX/{warehouse}/YYYY (per doc_type)
+function generateDocNumber(existingDocs: any[], docType: string, warehouse: string): string {
     const now = dayjs();
     const prefix = now.format('MMYY');
     const year = now.format('YYYY');
 
-    // Find the highest sequence number for this month + same doc type
+    // Find the highest sequence number for this month + same doc type + same warehouse
     let maxSeq = 0;
     existingDocs
-        .filter(d => d.doc_type === docType)
+        .filter(d => d.doc_type === docType && (d.doc_number || '').includes(`/${warehouse}/`))
         .forEach(d => {
             const dn = d.doc_number || '';
             if (dn.startsWith(prefix + '-')) {
@@ -51,7 +56,15 @@ function generateDocNumber(existingDocs: any[], docType: string): string {
             }
         });
     const nextSeq = (maxSeq + 1).toString().padStart(4, '0');
-    return `${prefix}-${nextSeq}/WH-JC/${year}`;
+    return `${prefix}-${nextSeq}/${warehouse}/${year}`;
+}
+
+// Helper: determine warehouse from doc_number for legacy records
+function getWarehouseFromDoc(doc: any): string {
+    if (doc.warehouse) return doc.warehouse;
+    const dn = doc.doc_number || '';
+    if (dn.includes('/WH-JC-02/')) return 'WH-JC-02';
+    return 'WH-JC';
 }
 
 export default function BeritaAcaraPage() {
@@ -66,8 +79,10 @@ export default function BeritaAcaraPage() {
     const [skuInput, setSkuInput] = useState('');
     const skuRef = useRef<any>(null);
     const docType = Form.useWatch('doc_type', form);
+    const warehouse = Form.useWatch('warehouse', form) || 'WH-JC';
     const isBarangKurang = docType === 'Pemberitahuan Barang Kurang';
     const isPenolakanBarang = docType === 'Penolakan Barang';
+    const isWHJC02 = warehouse === 'WH-JC-02';
 
     // Preview
     const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -122,7 +137,8 @@ export default function BeritaAcaraPage() {
         }
         if (items.length === 0) { message.warning('Tambahkan minimal 1 SKU!'); return; }
 
-        const docNumber = generateDocNumber(docs, vals.doc_type);
+        const wh = vals.warehouse || 'WH-JC';
+        const docNumber = generateDocNumber(docs, vals.doc_type, wh);
         const payload = {
             doc_type: vals.doc_type,
             doc_number: docNumber,
@@ -132,6 +148,8 @@ export default function BeritaAcaraPage() {
             dari: 'PT. Global Jet Ecommerce',
             items: JSON.stringify(items),
             notes: vals.notes || '',
+            warehouse: wh,
+            pic_name: wh === 'WH-JC-02' ? (vals.pic_name || '') : '',
         };
 
         try {
@@ -267,6 +285,7 @@ export default function BeritaAcaraPage() {
                             <Form form={form} layout="vertical" initialValues={{
                                 dari: 'PT. Global Jet Ecommerce',
                                 date: dayjs(),
+                                warehouse: 'WH-JC',
                             }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
                                     <Form.Item name="doc_type" label="Jenis Berita Acara" rules={[{ required: true, message: 'Pilih jenis' }]}>
@@ -284,6 +303,14 @@ export default function BeritaAcaraPage() {
                                     <Form.Item name="dari" label="Dari">
                                         <Input disabled />
                                     </Form.Item>
+                                    <Form.Item name="warehouse" label="Warehouse" rules={[{ required: true }]}>
+                                        <Select options={WAREHOUSE_OPTIONS} />
+                                    </Form.Item>
+                                    {isWHJC02 && (
+                                        <Form.Item name="pic_name" label="Nama PIC" rules={[{ required: true, message: 'Isi nama PIC' }]}>
+                                            <Input placeholder="Masukkan nama PIC" />
+                                        </Form.Item>
+                                    )}
                                 </div>
 
                                 {/* SKU Scanner */}
@@ -491,20 +518,26 @@ export default function BeritaAcaraPage() {
                             )}
 
                             {/* Signatures */}
+                            {(() => {
+                                const wh = getWarehouseFromDoc(docForPreview);
+                                const isJC02 = wh === 'WH-JC-02';
+                                return (
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48 }}>
                                 <div style={{ width: '30%', textAlign: 'center' }}>
                                     <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Checker</div>
                                     <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{docForPreview.checker}</div>
                                 </div>
                                 <div style={{ width: '30%', textAlign: 'center' }}>
-                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Supervisor</div>
-                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>Evan Budi Setiawan Pasaribu</div>
+                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>{isJC02 ? 'PIC' : 'Supervisor'}</div>
+                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{isJC02 ? (docForPreview.pic_name || '') : 'Evan Budi Setiawan Pasaribu'}</div>
                                 </div>
                                 <div style={{ width: '30%', textAlign: 'center' }}>
                                     <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Driver</div>
                                     <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>&nbsp;</div>
                                 </div>
                             </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Footer - pinned to bottom */}
