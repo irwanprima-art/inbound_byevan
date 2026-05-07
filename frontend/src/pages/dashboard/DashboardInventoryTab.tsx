@@ -530,6 +530,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                             });
 
                             // Find latest update_date (DATE ONLY) only within filtered set
+                            const filteredSoh = dateRange ? sohList.filter(s => matchesDateRange(s.update_date || s.date)) : sohList;
                             const latestDateOnly = filteredSoh.reduce((latest: string, s: any) => {
                                 const ud = (s.update_date || s.date || '').substring(0, 10);
                                 if (ud && ud > latest) return ud;
