@@ -7,6 +7,14 @@ interface Props {
     locations: any[];
 }
 
+// Normalize location type variants to canonical names
+function normalizeLocType(raw: string): '' | 'Picking Area' | 'Storage Area' {
+    const t = (raw || '').trim().toLowerCase();
+    if (t.includes('pick')) return 'Picking Area';
+    if (t.includes('storag')) return 'Storage Area';
+    return '';
+}
+
 export default function DashboardUtilizationTab({ sohList, locations }: Props) {
     // Only use records from the latest update_date (most recent snapshot)
     const latestDateStr = sohList.reduce((latest: string, s: any) => {
@@ -24,15 +32,12 @@ export default function DashboardUtilizationTab({ sohList, locations }: Props) {
         if (loc && qty > 0) occupiedLocs.add(loc);
     });
 
-    // Filter locations to Picking Area and Storage Area, then group
-    const filtered = locations.filter((l: any) => {
-        const lt = (l.location_type || '').trim();
-        return lt === 'Picking Area' || lt === 'Storage Area';
-    });
+    // Filter locations to Picking Area and Storage Area (fuzzy match), then group
+    const filtered = locations.filter((l: any) => normalizeLocType(l.location_type) !== '');
 
     const groupMap: Record<string, { category: string; zone: string; total: number; occupied: number }> = {};
     filtered.forEach((l: any) => {
-        const cat = (l.location_type || '').trim();
+        const cat = normalizeLocType(l.location_type);
         const zone = (l.zone || '').trim() || '-';
         const key = `${cat}|${zone}`;
         if (!groupMap[key]) groupMap[key] = { category: cat, zone, total: 0, occupied: 0 };
@@ -105,7 +110,7 @@ export default function DashboardUtilizationTab({ sohList, locations }: Props) {
 
     const brandCount: Record<string, Record<string, number>> = { 'Picking Area': {}, 'Storage Area': {} };
     filtered.forEach((l: any) => {
-        const lt = (l.location_type || '').trim();
+        const lt = normalizeLocType(l.location_type);
         const locName = (l.location || '').trim();
         const brand = locDominant[locName];
         if (!brand || !brandCount[lt]) return;
