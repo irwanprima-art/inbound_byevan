@@ -519,22 +519,24 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ body: { overflow: 'hidden' } }}>
                     <ResizableTable
                         dataSource={(() => {
-                            // Build location -> damage_type map from Location master
+                            // Build location maps from Location master
+                            const locCatMap: Record<string, string> = {};
                             const locDmgMap: Record<string, string> = {};
                             locations.forEach((loc: any) => {
                                 if (!loc.location) return;
-                                if (loc.damage_type) locDmgMap[loc.location] = loc.damage_type.trim().toLowerCase();
+                                const lKey = loc.location.trim();
+                                if (loc.location_category) locCatMap[lKey] = loc.location_category.trim().toLowerCase();
+                                if (loc.damage_type) locDmgMap[lKey] = loc.damage_type.trim().toLowerCase();
                             });
 
-                            // Find latest update_date only within filtered set
-                            const filteredSoh = dateRange ? sohList.filter(s => matchesDateRange(s.update_date || s.date)) : sohList;
-                            const latestDate = filteredSoh.reduce((latest: string, s: any) => {
-                                const ud = s.update_date || s.date;
+                            // Find latest update_date (DATE ONLY) only within filtered set
+                            const latestDateOnly = filteredSoh.reduce((latest: string, s: any) => {
+                                const ud = (s.update_date || s.date || '').substring(0, 10);
                                 if (ud && ud > latest) return ud;
                                 return latest;
                             }, '');
-                            // Filter by EXACT latestDate string to avoid summing multiple daily snapshots
-                            const latestSoh = latestDate ? filteredSoh.filter((s: any) => (s.update_date || s.date) === latestDate) : filteredSoh;
+                            // Filter by DATE part to include all records from that snapshot day
+                            const latestSoh = latestDateOnly ? filteredSoh.filter((s: any) => (s.update_date || s.date || '').startsWith(latestDateOnly)) : filteredSoh;
 
                             const brandMap: Record<string, {
                                 brand: string;
@@ -552,26 +554,29 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 const qty = parseInt(s.qty) || 0;
                                 const loc = (s.location || '').trim();
                                 const locLower = loc.toLowerCase();
-                                const locCat = (s.location_category || '').trim().toLowerCase();
                                 const zone = (s.zone || '').trim().toUpperCase();
-                                // Prefer damage_type from SOH record, fall back to Location master
+                                
+                                // Fallback: prefer SOH field, then Location Master
+                                const locCat = (s.location_category || locCatMap[loc] || '').trim().toLowerCase();
                                 const dmgType = (s.damage_type || locDmgMap[loc] || '').trim().toLowerCase();
 
                                 if (!brandMap[brand]) brandMap[brand] = { brand, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0, disposal: 0 };
 
-                                // Sellable: location_category = Sellable from SOH
-                                if (locCat === 'sellable') {
-                                    brandMap[brand].storagePicking += qty;
-                                }
-                                // Variance: location VAR01 or SUSPEND
-                                else if (locLower === 'var01' || locLower === 'suspend') {
+                                // Order of precedence: 
+                                // 1. Variance (Hardcoded locations)
+                                // 2. Disposal (Zone)
+                                // 3. Sellable (Category)
+                                // 4. Damages (Damage Type)
+
+                                if (locLower === 'var01' || locLower === 'suspend') {
                                     brandMap[brand].variance += qty;
                                 }
-                                // DISPOSAL: zone = DISPOSAL
                                 else if (zone === 'DISPOSAL') {
                                     brandMap[brand].disposal += qty;
                                 }
-                                // Non-sellable based on damage_type from Location master
+                                else if (locCat === 'sellable') {
+                                    brandMap[brand].storagePicking += qty;
+                                }
                                 else if (dmgType === 'external damage') {
                                     brandMap[brand].extDamage += qty;
                                 } else if (dmgType === 'internal damage') {
