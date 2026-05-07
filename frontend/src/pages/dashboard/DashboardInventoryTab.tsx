@@ -499,31 +499,42 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                 </div></>}
             {/* Inventory Rate */}
             {show('inventory_rate') && <><div style={{ marginTop: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontSize: 20 }}>📈</span>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Inventory Rate — Per Brand</span>
-                </div>
+                {(() => {
+                    // Find latest update_date from SOH (optionally filtered by dateRange)
+                    const filteredSoh = dateRange ? sohList.filter(s => matchesDateRange(s.update_date || s.date)) : sohList;
+                    const latestDate = filteredSoh.reduce((latest: string, s: any) => {
+                        const ud = s.update_date || s.date;
+                        if (ud && ud > latest) return ud;
+                        return latest;
+                    }, '');
+                    const displayDate = latestDate.substring(0, 16); // Show date + time if available
+                    return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 20 }}>📈</span>
+                            <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Inventory Rate — Per Brand</span>
+                            {displayDate && <Tag color="blue" style={{ marginLeft: 8, fontSize: 12 }}>SOH Update: {displayDate}</Tag>}
+                        </div>
+                    );
+                })()}
                 <Card style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }} styles={{ body: { overflow: 'hidden' } }}>
                     <ResizableTable
                         dataSource={(() => {
-                            // Build location -> damage_type and location -> category/type maps
+                            // Build location -> damage_type map from Location master
                             const locDmgMap: Record<string, string> = {};
-                            const locCatMap: Record<string, string> = {};
-                            const locTypeMap: Record<string, string> = {};
                             locations.forEach((loc: any) => {
                                 if (!loc.location) return;
                                 if (loc.damage_type) locDmgMap[loc.location] = loc.damage_type.trim().toLowerCase();
-                                if (loc.location_category) locCatMap[loc.location] = loc.location_category.trim().toLowerCase();
-                                if (loc.location_type) locTypeMap[loc.location] = loc.location_type.trim().toLowerCase();
                             });
 
-                            // Filter SOH to latest update_date only
-                            const latestDate = sohList.reduce((latest: string, s: any) => {
-                                if (s.update_date && s.update_date > latest) return s.update_date;
+                            // Find latest update_date only within filtered set
+                            const filteredSoh = dateRange ? sohList.filter(s => matchesDateRange(s.update_date || s.date)) : sohList;
+                            const latestDate = filteredSoh.reduce((latest: string, s: any) => {
+                                const ud = s.update_date || s.date;
+                                if (ud && ud > latest) return ud;
                                 return latest;
                             }, '');
-                            const latestPrefix = latestDate ? latestDate.substring(0, 10) : '';
-                            const latestSoh = latestPrefix ? sohList.filter((s: any) => (s.update_date || '').startsWith(latestPrefix)) : sohList;
+                            // Filter by EXACT latestDate string to avoid summing multiple daily snapshots
+                            const latestSoh = latestDate ? filteredSoh.filter((s: any) => (s.update_date || s.date) === latestDate) : filteredSoh;
 
                             const brandMap: Record<string, {
                                 brand: string;
@@ -533,6 +544,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 intDamage: number;
                                 expired: number;
                                 pest: number;
+                                disposal: number;
                             }> = {};
 
                             latestSoh.forEach((s: any) => {
@@ -540,21 +552,26 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 const qty = parseInt(s.qty) || 0;
                                 const loc = (s.location || '').trim();
                                 const locLower = loc.toLowerCase();
-                                const locCat = locCatMap[loc] || (s.location_category || '').trim().toLowerCase();
-                                const locType = locTypeMap[loc] || (s.location_type || '').trim().toLowerCase();
-                                const dmgType = locDmgMap[loc] || '';
+                                const locCat = (s.location_category || '').trim().toLowerCase();
+                                const zone = (s.zone || '').trim().toUpperCase();
+                                // Prefer damage_type from SOH record, fall back to Location master
+                                const dmgType = (s.damage_type || locDmgMap[loc] || '').trim().toLowerCase();
 
-                                if (!brandMap[brand]) brandMap[brand] = { brand, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0 };
+                                if (!brandMap[brand]) brandMap[brand] = { brand, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0, disposal: 0 };
 
-                                // Sellable: Storage+Picking where location_category = sellable
-                                if ((locType === 'storage' || locType === 'picking') && locCat === 'sellable') {
+                                // Sellable: location_category = Sellable from SOH
+                                if (locCat === 'sellable') {
                                     brandMap[brand].storagePicking += qty;
                                 }
-                                // Variance: location VAR01 or suspend
+                                // Variance: location VAR01 or SUSPEND
                                 else if (locLower === 'var01' || locLower === 'suspend') {
                                     brandMap[brand].variance += qty;
                                 }
-                                // Non-sellable based on damage_type
+                                // DISPOSAL: zone = DISPOSAL
+                                else if (zone === 'DISPOSAL') {
+                                    brandMap[brand].disposal += qty;
+                                }
+                                // Non-sellable based on damage_type from Location master
                                 else if (dmgType === 'external damage') {
                                     brandMap[brand].extDamage += qty;
                                 } else if (dmgType === 'internal damage') {
@@ -568,11 +585,10 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
 
                             const rows = Object.values(brandMap).map(b => {
                                 const totalSellable = b.storagePicking + b.variance;
-                                const totalNonSellable = b.extDamage + b.intDamage + b.expired + b.pest;
-                                const total = totalSellable + totalNonSellable;
-                                const nonSellableRate = total > 0 ? ((totalNonSellable / total) * 100).toFixed(2) : '0.00';
-                                return { ...b, totalSellable, totalNonSellable, nonSellableRate, total };
-                            }).sort((a, b) => b.total - a.total);
+                                const totalNonSellable = b.extDamage + b.intDamage + b.expired + b.pest + b.disposal;
+                                const nonSellableRate = totalSellable > 0 ? ((totalNonSellable / totalSellable) * 100).toFixed(2) : '0.00';
+                                return { ...b, totalSellable, totalNonSellable, nonSellableRate };
+                            }).sort((a, b) => b.totalSellable - a.totalSellable);
 
                             // Add summary row
                             const summary = rows.reduce((acc, r) => ({
@@ -583,12 +599,12 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                 intDamage: acc.intDamage + r.intDamage,
                                 expired: acc.expired + r.expired,
                                 pest: acc.pest + r.pest,
+                                disposal: acc.disposal + r.disposal,
                                 totalSellable: acc.totalSellable + r.totalSellable,
                                 totalNonSellable: acc.totalNonSellable + r.totalNonSellable,
-                                total: acc.total + r.total,
                                 nonSellableRate: '0',
-                            }), { brand: 'TOTAL', isSummary: true, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0, totalSellable: 0, totalNonSellable: 0, total: 0, nonSellableRate: '0' });
-                            summary.nonSellableRate = summary.total > 0 ? ((summary.totalNonSellable / summary.total) * 100).toFixed(2) : '0.00';
+                            }), { brand: 'TOTAL', isSummary: true, storagePicking: 0, variance: 0, extDamage: 0, intDamage: 0, expired: 0, pest: 0, disposal: 0, totalSellable: 0, totalNonSellable: 0, nonSellableRate: '0' });
+                            summary.nonSellableRate = summary.totalSellable > 0 ? ((summary.totalNonSellable / summary.totalSellable) * 100).toFixed(2) : '0.00';
 
                             return [...rows, summary];
                         })()}
@@ -612,6 +628,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
                                     { title: 'Internal Damage', dataIndex: 'intDamage', key: 'intDamage', width: 130, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
                                     { title: 'Expired', dataIndex: 'expired', key: 'expired', width: 100, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#fb923c' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
                                     { title: 'PEST', dataIndex: 'pest', key: 'pest', width: 80, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#c084fc' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
+                                    { title: 'Disposal', dataIndex: 'disposal', key: 'disposal', width: 100, render: (v: number, r: any) => <span style={{ color: v > 0 ? '#fb7185' : 'rgba(255,255,255,0.3)', fontWeight: r.isSummary ? 700 : 400 }}>{v.toLocaleString()}</span> },
                                 ],
                             },
                             { title: 'Total Non Sellable', dataIndex: 'totalNonSellable', key: 'totalNonSellable', width: 140, render: (v: number) => <span style={{ color: v > 0 ? '#f87171' : 'rgba(255,255,255,0.3)', fontWeight: 700 }}>{v.toLocaleString()}</span> },

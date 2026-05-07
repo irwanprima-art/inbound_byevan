@@ -202,6 +202,7 @@ type Soh struct {
 	MfgDate          FlexDate       `gorm:"column:mfg_date;type:text" json:"mfg_date"`
 	ExpDate          FlexDate       `gorm:"column:exp_date;type:text" json:"exp_date"`
 	BatchNo          string         `gorm:"column:batch_no" json:"batch_no"`
+	DamageType       string         `gorm:"column:damage_type" json:"damage_type"`
 	UpdateDate       FlexDate       `gorm:"column:update_date;type:text" json:"update_date"`
 	UpdatedBy        string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt        time.Time      `json:"created_at"`
