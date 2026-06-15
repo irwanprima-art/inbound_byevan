@@ -18,6 +18,7 @@ const INVENTORY_DOC_TYPES = [
     { label: 'Stock Opname', value: 'Stock Opname' },
     { label: 'Disposal', value: 'Disposal' },
     { label: 'Adjustment', value: 'Adjustment' },
+    { label: 'Transfer Barang Damage', value: 'Transfer Barang Damage' },
 ];
 
 const INVENTORY_TYPE_SET = new Set(INVENTORY_DOC_TYPES.map(d => d.value));
@@ -30,6 +31,15 @@ interface SkuItem {
     phy_qty: number;
     variance: number;
     note: string;
+}
+
+interface TransferDamageItem {
+    sku: string;
+    description: string;
+    batch_number: string;
+    mfg_date: string;
+    exp_date: string;
+    damage_reason: string;
 }
 
 interface SOSummary {
@@ -86,6 +96,9 @@ export default function BeritaAcaraInventoryPage() {
     const [skuInput, setSkuInput] = useState('');
     const skuRef = useRef<any>(null);
     const docType = Form.useWatch('doc_type', form);
+
+    const [transferItems, setTransferItems] = useState<TransferDamageItem[]>([]);
+    const isTransferDamage = docType === 'Transfer Barang Damage';
     const formDate = Form.useWatch('date', form);
 
     const [soLoading, setSoLoading] = useState(false);
@@ -95,6 +108,7 @@ export default function BeritaAcaraInventoryPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const isStockOpname = docType === 'Stock Opname';
+    const isManualEntry = !isStockOpname && !isTransferDamage;
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -147,16 +161,25 @@ export default function BeritaAcaraInventoryPage() {
     const handleAddSku = () => {
         const sku = skuInput.trim();
         if (!sku) return;
-        if (items.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
-            message.warning('SKU sudah ada di daftar');
+        if (isTransferDamage) {
+            if (transferItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
+                message.warning('SKU sudah ada di daftar');
+            } else {
+                setTransferItems([...transferItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', damage_reason: '' }]);
+            }
         } else {
-            setItems([...items, { sku, description: '', location: '', sys_qty: 0, phy_qty: 0, variance: 0, note: '' }]);
+            if (items.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
+                message.warning('SKU sudah ada di daftar');
+            } else {
+                setItems([...items, { sku, description: '', location: '', sys_qty: 0, phy_qty: 0, variance: 0, note: '' }]);
+            }
         }
         setSkuInput('');
         setTimeout(() => skuRef.current?.focus(), 50);
     };
 
     const handleRemoveSku = (index: number) => setItems(items.filter((_, i) => i !== index));
+    const handleRemoveTransferItem = (index: number) => setTransferItems(transferItems.filter((_, i) => i !== index));
 
     const handleItemChange = (index: number, field: string, value: any) => {
         setItems(items.map((item, i) => {
@@ -169,15 +192,19 @@ export default function BeritaAcaraInventoryPage() {
         }));
     };
 
+    const handleTransferItemChange = (index: number, field: string, value: any) => {
+        setTransferItems(transferItems.map((item, i) => i !== index ? item : { ...item, [field]: value }));
+    };
+
     const handleSaveAndPrint = async () => {
         let vals: any;
         try { vals = await form.validateFields(); } catch { message.error('Lengkapi semua field!'); return; }
 
-        const finalItems = isStockOpname ? soItems : items;
+        const finalItems = isTransferDamage ? transferItems : (isStockOpname ? soItems : items);
         if (finalItems.length === 0) { message.warning(isStockOpname ? 'Tidak ada data stock opname di tanggal ini!' : 'Tambahkan minimal 1 SKU!'); return; }
 
         const docNumber = generateDocNumber(docs, vals.doc_type);
-        const summary = isStockOpname ? calcSummary(finalItems) : null;
+        const summary = isStockOpname ? calcSummary(finalItems as SkuItem[]) : null;
         const payload = {
             doc_type: vals.doc_type,
             doc_number: docNumber,
@@ -198,6 +225,7 @@ export default function BeritaAcaraInventoryPage() {
             form.setFieldsValue({ dari: 'PT. Global Jet Ecommerce', date: dayjs() });
             setItems([]);
             setSoItems([]);
+            setTransferItems([]);
             fetchData();
         } catch (err: any) {
             message.error(err?.response?.data?.error || 'Gagal menyimpan');
@@ -288,7 +316,7 @@ export default function BeritaAcaraInventoryPage() {
 
     const columns = [
         { title: 'No. Dokumen', dataIndex: 'doc_number', key: 'doc_number', width: 220, render: (v: string) => <Text style={{ color: '#60a5fa', fontWeight: 600 }}>{v}</Text> },
-        { title: 'Jenis', dataIndex: 'doc_type', key: 'doc_type', width: 150, render: (v: string) => { const c = v === 'Stock Opname' ? '#10b981' : v === 'Disposal' ? '#f87171' : '#fbbf24'; return <span style={{ color: c, fontWeight: 600 }}>{v}</span>; } },
+        { title: 'Jenis', dataIndex: 'doc_type', key: 'doc_type', width: 200, render: (v: string) => { const c = v === 'Stock Opname' ? '#10b981' : v === 'Disposal' ? '#f87171' : v === 'Transfer Barang Damage' ? '#38bdf8' : '#fbbf24'; return <span style={{ color: c, fontWeight: 600 }}>{v}</span>; } },
         { title: 'Tanggal', dataIndex: 'date', key: 'date', width: 110 },
         { title: 'PIC', dataIndex: 'checker', key: 'checker', width: 150 },
         { title: 'Items', dataIndex: 'items', key: 'items', width: 80, render: (v: string) => { try { return JSON.parse(v || '[]').length; } catch { return 0; } } },
@@ -382,7 +410,7 @@ export default function BeritaAcaraInventoryPage() {
                                 )}
 
                                 {/* Disposal / Adjustment: manual SKU entry */}
-                                {!isStockOpname && (
+                                {isManualEntry && (
                                     <>
                                         <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>📦 Item SKU</Divider>
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -469,6 +497,96 @@ export default function BeritaAcaraInventoryPage() {
                                         <Form.Item name="notes" label="Catatan Umum">
                                             <TextArea rows={2} placeholder="Catatan tambahan (opsional)" />
                                         </Form.Item>
+                                    </>
+                                )}
+
+                                {/* Transfer Barang Damage: entry with batch, mfg, exp, damage reason */}
+                                {isTransferDamage && (
+                                    <>
+                                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>📦 Item Transfer Damage</Divider>
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                            <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={handleAddSku} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
+                                            <Button icon={<PlusOutlined />} onClick={handleAddSku}>Tambah</Button>
+                                            <Button 
+                                                icon={<DownloadOutlined />} 
+                                                onClick={() => {
+                                                    const template = "SKU,Deskripsi,Batch Number,Mfg Date,Exp Date,Damage Reason\n111017,Cesar Beef 100gr,BN001,2025-01-15,2026-01-15,External Damage\n112181,Cesar Lamb 100gr,BN002,2025-02-20,2026-02-20,Internal Damage";
+                                                    const blob = new Blob([template], { type: 'text/csv' });
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = 'Template_Transfer_Damage.csv';
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                }}
+                                            >
+                                                Template CSV
+                                            </Button>
+                                            <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                <Button icon={<FileTextOutlined />}>Import CSV</Button>
+                                                <input 
+                                                    type="file" 
+                                                    accept=".csv" 
+                                                    style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            const text = event.target?.result as string;
+                                                            const lines = text.split('\n');
+                                                            const newItems: TransferDamageItem[] = [];
+                                                            lines.forEach((line, i) => {
+                                                                const separator = line.includes(';') ? ';' : ',';
+                                                                const cols = line.split(separator).map(c => c.trim().replace(/^"|"$/g, ''));
+                                                                if (cols.length >= 1 && cols[0] !== '') {
+                                                                    if (i === 0 && cols[0].toLowerCase().includes('sku')) return; // skip header
+                                                                    newItems.push({
+                                                                        sku: cols[0],
+                                                                        description: cols[1] || '',
+                                                                        batch_number: cols[2] || '',
+                                                                        mfg_date: cols[3] || '',
+                                                                        exp_date: cols[4] || '',
+                                                                        damage_reason: cols[5] || '',
+                                                                    });
+                                                                }
+                                                            });
+                                                            if (newItems.length > 0) {
+                                                                setTransferItems((prev) => {
+                                                                    const set = new Set(prev.map(p => p.sku.toLowerCase()));
+                                                                    const filtered = newItems.filter(n => !set.has(n.sku.toLowerCase()));
+                                                                    return [...prev, ...filtered];
+                                                                });
+                                                                message.success(`${newItems.length} SKU diproses`);
+                                                            } else {
+                                                                message.warning('Format CSV tidak sesuai.');
+                                                            }
+                                                        };
+                                                        reader.readAsText(file);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        {transferItems.length > 0 && (
+                                            <Table
+                                                dataSource={transferItems.map((item, i) => ({ ...item, key: i }))}
+                                                pagination={false}
+                                                size="small"
+                                                style={{ marginBottom: 16 }}
+                                                scroll={{ x: 1000 }}
+                                                columns={[
+                                                    { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 130 },
+                                                    { title: 'Deskripsi', dataIndex: 'description', key: 'desc', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Nama barang" onChange={e => handleTransferItemChange(i, 'description', e.target.value)} /> },
+                                                    { title: 'Batch No.', dataIndex: 'batch_number', key: 'batch', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Batch" onChange={e => handleTransferItemChange(i, 'batch_number', e.target.value)} /> },
+                                                    { title: 'Mfg. Date', dataIndex: 'mfg_date', key: 'mfg', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleTransferItemChange(i, 'mfg_date', e.target.value)} /> },
+                                                    { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleTransferItemChange(i, 'exp_date', e.target.value)} /> },
+                                                    { title: 'Damage Reason', dataIndex: 'damage_reason', key: 'reason', width: 160, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Alasan" onChange={e => handleTransferItemChange(i, 'damage_reason', e.target.value)} /> },
+                                                    { title: '', key: 'del', width: 40, render: (_: any, __: any, i: number) => <Button type="text" size="small" icon={<DeleteOutlined />} danger onClick={() => handleRemoveTransferItem(i)} /> },
+                                                ]}
+                                            />
+                                        )}
                                     </>
                                 )}
 
@@ -648,7 +766,7 @@ export default function BeritaAcaraInventoryPage() {
                             })()}
 
                             {/* Disposal / Adjustment print */}
-                            {previewDoc.doc_type !== 'Stock Opname' && (
+                            {previewDoc.doc_type !== 'Stock Opname' && previewDoc.doc_type !== 'Transfer Barang Damage' && (
                                 <>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
                                         <thead>
@@ -682,6 +800,57 @@ export default function BeritaAcaraInventoryPage() {
                                     <SignatureBlock pic={previewDoc.checker} kepadaName={previewDoc.kepadaName} kepadaPosisi={previewDoc.kepadaPosisi} />
                                 </>
                             )}
+
+                            {/* Transfer Barang Damage print */}
+                            {previewDoc.doc_type === 'Transfer Barang Damage' && (() => {
+                                const docDate = dayjs(previewDoc.date);
+                                const hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                                const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                                const hariStr = hariNames[docDate.day()];
+                                const tglStr = docDate.date();
+                                const bulanStr = bulanNames[docDate.month()];
+                                const tahunStr = docDate.year();
+                                return (
+                                    <>
+                                        {/* Introductory paragraph */}
+                                        <div style={{ fontSize: 11, lineHeight: 1.8, marginBottom: 16, textAlign: 'justify' }}>
+                                            <p style={{ marginBottom: 8 }}>
+                                                Pada hari <strong>{hariStr}</strong>, {tglStr} {bulanStr} {tahunStr}, kami (Fulfillment Center Jetcommerce) project damage telah melakukan <strong>transfer barang damage</strong> dengan pengawasan security.
+                                            </p>
+                                            <p>Berikut adalah daftar barang yang ditransfer:</p>
+                                        </div>
+
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '12px 0' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={printTh}>No</th>
+                                                    <th style={printTh}>SKU</th>
+                                                    <th style={printTh}>Deskripsi</th>
+                                                    <th style={printTh}>Batch Number</th>
+                                                    <th style={printTh}>Mfg. Date</th>
+                                                    <th style={printTh}>Exp. Date</th>
+                                                    <th style={printTh}>Damage Reason</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(previewDoc.items || []).map((item: TransferDamageItem, i: number) => (
+                                                    <tr key={i}>
+                                                        <td style={printTd}>{i + 1}</td>
+                                                        <td style={printTd}>{item.sku}</td>
+                                                        <td style={printTd}>{item.description || '-'}</td>
+                                                        <td style={printTd}>{item.batch_number || '-'}</td>
+                                                        <td style={printTd}>{item.mfg_date || '-'}</td>
+                                                        <td style={printTd}>{item.exp_date || '-'}</td>
+                                                        <td style={printTd}>{item.damage_reason || '-'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+
+                                        <TransferDamageSignatureBlock pic={previewDoc.checker} />
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         {/* Preview-only footer (visible in modal) */}
@@ -729,6 +898,35 @@ function SignatureBlock({ pic, kepadaName, kepadaPosisi }: { pic: string; kepada
                     <div style={labelStyle}>Mengetahui,</div>
                     <div style={lineStyle}>({kepadaName || '\u00a0'})</div>
                     {kepadaPosisi && <div style={roleStyle}>{kepadaPosisi}</div>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function TransferDamageSignatureBlock({ pic }: { pic: string }) {
+    const sigStyle: React.CSSProperties = { width: '30%', textAlign: 'center', marginBottom: 24 };
+    const labelStyle: React.CSSProperties = { fontSize: 11, marginBottom: 60 };
+    const lineStyle: React.CSSProperties = { borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600, fontSize: 11 };
+    const roleStyle: React.CSSProperties = { fontSize: 10, color: '#555', marginTop: 2 };
+
+    return (
+        <div style={{ marginTop: 48 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Dibuat,</div>
+                    <div style={lineStyle}>({pic})</div>
+                    <div style={roleStyle}>PIC Project Damage</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Diketahui,</div>
+                    <div style={lineStyle}>(Evan Budi Setiawan Pasaribu)</div>
+                    <div style={roleStyle}>Warehouse, Supervisor</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Disetujui,</div>
+                    <div style={lineStyle}>(Muhamad Irwan Prima)</div>
+                    <div style={roleStyle}>Supply Chain, Manager</div>
                 </div>
             </div>
         </div>
