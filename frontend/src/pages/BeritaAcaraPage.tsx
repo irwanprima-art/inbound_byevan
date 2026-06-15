@@ -521,7 +521,7 @@ export default function BeritaAcaraPage() {
                                             <td style={printTd}>{item.note || '-'}</td>
                                         </tr>
                                         );
-                                    }))
+                                    })}
                                 </tbody>
                             </table>
 
