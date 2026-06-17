@@ -1041,7 +1041,9 @@ function TransferDamageSignatureBlock({ pic, securityName }: { pic: string; secu
                 </div>
                 <div style={sigStyle}>
                     <div style={labelStyle}>Dicek oleh Security,</div>
-                    <div style={lineStyle}>({securityName || '\u00a0'})</div>
+                    <div style={lineStyle}>
+                        {securityName ? `(${securityName})` : '(.........................................)'}
+                    </div>
                     <div style={roleStyle}>Security</div>
                 </div>
             </div>
