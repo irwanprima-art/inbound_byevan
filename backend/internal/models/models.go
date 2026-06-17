@@ -353,7 +353,7 @@ type BeritaAcara struct {
 	Kepada    string         `gorm:"column:kepada" json:"kepada"`
 	Dari      string         `gorm:"column:dari" json:"dari"`
 	Items     string         `gorm:"column:items;type:text" json:"items"`
-	Notes     string         `gorm:"column:notes" json:"notes"`
+	Notes     string         `gorm:"column:notes;type:text" json:"notes"`
 	Warehouse string         `gorm:"column:warehouse;default:WH-JC" json:"warehouse"`
 	PicName   string         `gorm:"column:pic_name" json:"pic_name"`
 	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`

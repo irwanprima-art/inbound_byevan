@@ -7,6 +7,7 @@ import {
 import {
     PrinterOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined,
     FileTextOutlined, SearchOutlined, EyeOutlined, DownloadOutlined,
+    CameraOutlined,
 } from '@ant-design/icons';
 import { beritaAcaraApi, stockOpnamesApi } from '../api/client';
 import dayjs from 'dayjs';
@@ -100,6 +101,11 @@ export default function BeritaAcaraInventoryPage() {
     const [transferItems, setTransferItems] = useState<TransferDamageItem[]>([]);
     const isTransferDamage = docType === 'Transfer Barang Damage';
     const formDate = Form.useWatch('date', form);
+
+    // Photos for Transfer Barang Damage
+    const [photoFisik, setPhotoFisik] = useState<string>('');
+    const [photoWms, setPhotoWms] = useState<string>('');
+
 
     const [soLoading, setSoLoading] = useState(false);
     const [soItems, setSoItems] = useState<SkuItem[]>([]);
@@ -205,6 +211,13 @@ export default function BeritaAcaraInventoryPage() {
 
         const docNumber = generateDocNumber(docs, vals.doc_type);
         const summary = isStockOpname ? calcSummary(finalItems as SkuItem[]) : null;
+
+        // For Transfer Damage, store photos + security name in notes as JSON
+        let notesVal = isStockOpname ? JSON.stringify(summary) : (vals.notes || '');
+        if (isTransferDamage) {
+            notesVal = JSON.stringify({ security_name: vals.security_name || '', photo_fisik: photoFisik, photo_wms: photoWms });
+        }
+
         const payload = {
             doc_type: vals.doc_type,
             doc_number: docNumber,
@@ -213,24 +226,32 @@ export default function BeritaAcaraInventoryPage() {
             kepada: vals.kepada ? `${vals.kepada}:::${vals.kepada_posisi || ''}` : '',
             dari: 'PT. Global Jet Ecommerce',
             items: JSON.stringify(finalItems),
-            notes: isStockOpname ? JSON.stringify(summary) : (vals.notes || ''),
+            notes: notesVal,
         };
 
         try {
             await beritaAcaraApi.create(payload);
             message.success('Berita Acara tersimpan!');
-            setPreviewDoc({ ...payload, items: finalItems, summary, kepadaName: vals.kepada || '', kepadaPosisi: vals.kepada_posisi || '' });
+            setPreviewDoc({
+                ...payload, items: finalItems, summary,
+                kepadaName: vals.kepada || '', kepadaPosisi: vals.kepada_posisi || '',
+                securityName: vals.security_name || '',
+                photoFisik, photoWms,
+            });
             setPreviewOpen(true);
             form.resetFields();
             form.setFieldsValue({ dari: 'PT. Global Jet Ecommerce', date: dayjs() });
             setItems([]);
             setSoItems([]);
             setTransferItems([]);
+            setPhotoFisik('');
+            setPhotoWms('');
             fetchData();
         } catch (err: any) {
             message.error(err?.response?.data?.error || 'Gagal menyimpan');
         }
     };
+
 
     const handlePrint = async () => {
         const el = document.getElementById('ba-inventory-print');
@@ -306,7 +327,19 @@ export default function BeritaAcaraInventoryPage() {
             kepadaName = parts[0];
             kepadaPosisi = parts[1] || '';
         }
-        setPreviewDoc({ ...record, items: parsedItems, summary, kepadaName, kepadaPosisi });
+        // Parse Transfer Damage metadata from notes
+        let securityName = '';
+        let viewPhotoFisik = '';
+        let viewPhotoWms = '';
+        if (record.doc_type === 'Transfer Barang Damage') {
+            try {
+                const meta = JSON.parse(record.notes || '{}');
+                securityName = meta.security_name || '';
+                viewPhotoFisik = meta.photo_fisik || '';
+                viewPhotoWms = meta.photo_wms || '';
+            } catch { /* old format, ignore */ }
+        }
+        setPreviewDoc({ ...record, items: parsedItems, summary, kepadaName, kepadaPosisi, securityName, photoFisik: viewPhotoFisik, photoWms: viewPhotoWms });
         setPreviewOpen(true);
     };
 
@@ -587,6 +620,66 @@ export default function BeritaAcaraInventoryPage() {
                                                 ]}
                                             />
                                         )}
+
+                                        {/* Security name + Photo uploads */}
+                                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>🔒 Pihak Security & Foto Dokumentasi</Divider>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+                                            <Form.Item name="security_name" label="Nama Security" style={{ marginBottom: 0 }}>
+                                                <Input placeholder="Nama petugas security yang cek" />
+                                            </Form.Item>
+                                            <div>
+                                                <div style={{ marginBottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>📸 Foto Fisik Barang</div>
+                                                <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                    <Button icon={<CameraOutlined />} type={photoFisik ? 'primary' : 'default'}>{photoFisik ? '✓ Foto Terupload' : 'Upload Foto'}</Button>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+                                                            if (file.size > 5 * 1024 * 1024) { message.error('Ukuran file max 5MB'); return; }
+                                                            const reader = new FileReader();
+                                                            reader.onload = (ev) => { setPhotoFisik(ev.target?.result as string); message.success('Foto fisik barang terupload'); };
+                                                            reader.readAsDataURL(file);
+                                                            e.target.value = '';
+                                                        }}
+                                                    />
+                                                </div>
+                                                {photoFisik && (
+                                                    <div style={{ marginTop: 8 }}>
+                                                        <img src={photoFisik} alt="Foto Fisik" style={{ maxWidth: 200, maxHeight: 150, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)' }} />
+                                                        <Button type="text" size="small" danger onClick={() => setPhotoFisik('')} style={{ display: 'block', marginTop: 4 }}>Hapus Foto</Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div style={{ marginBottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>📸 Foto History Transfer WMS</div>
+                                                <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                    <Button icon={<CameraOutlined />} type={photoWms ? 'primary' : 'default'}>{photoWms ? '✓ Foto Terupload' : 'Upload Foto'}</Button>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+                                                            if (file.size > 5 * 1024 * 1024) { message.error('Ukuran file max 5MB'); return; }
+                                                            const reader = new FileReader();
+                                                            reader.onload = (ev) => { setPhotoWms(ev.target?.result as string); message.success('Foto WMS history terupload'); };
+                                                            reader.readAsDataURL(file);
+                                                            e.target.value = '';
+                                                        }}
+                                                    />
+                                                </div>
+                                                {photoWms && (
+                                                    <div style={{ marginTop: 8 }}>
+                                                        <img src={photoWms} alt="Foto WMS" style={{ maxWidth: 200, maxHeight: 150, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)' }} />
+                                                        <Button type="text" size="small" danger onClick={() => setPhotoWms('')} style={{ display: 'block', marginTop: 4 }}>Hapus Foto</Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </>
                                 )}
 
@@ -847,7 +940,30 @@ export default function BeritaAcaraInventoryPage() {
                                             </tbody>
                                         </table>
 
-                                        <TransferDamageSignatureBlock pic={previewDoc.checker} />
+                                        <TransferDamageSignatureBlock pic={previewDoc.checker} securityName={previewDoc.securityName} />
+
+                                        {/* Photos documentation page */}
+                                        {(previewDoc.photoFisik || previewDoc.photoWms) && (
+                                            <div className="page-break" style={{ pageBreakBefore: 'always', paddingTop: 16 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 16, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
+                                                    Lampiran Foto — {previewDoc.doc_number}
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                                                    {previewDoc.photoFisik && (
+                                                        <div>
+                                                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: '#333' }}>1. Foto Fisik Barang</div>
+                                                            <img src={previewDoc.photoFisik} alt="Foto Fisik Barang" style={{ width: '100%', maxHeight: 400, objectFit: 'contain', border: '1px solid #ccc', borderRadius: 4 }} />
+                                                        </div>
+                                                    )}
+                                                    {previewDoc.photoWms && (
+                                                        <div>
+                                                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: '#333' }}>2. Foto History Transfer ke Damage dari WMS</div>
+                                                            <img src={previewDoc.photoWms} alt="Foto WMS History" style={{ width: '100%', maxHeight: 400, objectFit: 'contain', border: '1px solid #ccc', borderRadius: 4 }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </>
                                 );
                             })()}
@@ -904,7 +1020,7 @@ function SignatureBlock({ pic, kepadaName, kepadaPosisi }: { pic: string; kepada
     );
 }
 
-function TransferDamageSignatureBlock({ pic }: { pic: string }) {
+function TransferDamageSignatureBlock({ pic, securityName }: { pic: string; securityName?: string }) {
     const sigStyle: React.CSSProperties = { width: '30%', textAlign: 'center', marginBottom: 24 };
     const labelStyle: React.CSSProperties = { fontSize: 11, marginBottom: 60 };
     const lineStyle: React.CSSProperties = { borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600, fontSize: 11 };
@@ -924,9 +1040,9 @@ function TransferDamageSignatureBlock({ pic }: { pic: string }) {
                     <div style={roleStyle}>Warehouse, Supervisor</div>
                 </div>
                 <div style={sigStyle}>
-                    <div style={labelStyle}>Disetujui,</div>
-                    <div style={lineStyle}>(Muhamad Irwan Prima)</div>
-                    <div style={roleStyle}>Supply Chain, Manager</div>
+                    <div style={labelStyle}>Dicek oleh Security,</div>
+                    <div style={lineStyle}>({securityName || '\u00a0'})</div>
+                    <div style={roleStyle}>Security</div>
                 </div>
             </div>
         </div>
