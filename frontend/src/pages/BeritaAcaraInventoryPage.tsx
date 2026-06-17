@@ -43,6 +43,15 @@ interface TransferDamageItem {
     damage_reason: string;
 }
 
+interface DisposalItem {
+    sku: string;
+    description: string;
+    batch_number: string;
+    mfg_date: string;
+    exp_date: string;
+    qty: number;
+}
+
 interface SOSummary {
     totalSku: number;
     totalSysQty: number;
@@ -106,6 +115,12 @@ export default function BeritaAcaraInventoryPage() {
     const [photoFisik, setPhotoFisik] = useState<string>('');
     const [photoWms, setPhotoWms] = useState<string>('');
 
+    // Disposal items and photos
+    const [disposalItems, setDisposalItems] = useState<DisposalItem[]>([]);
+    const isDisposal = docType === 'Disposal';
+    const [disposalPhotoFisik, setDisposalPhotoFisik] = useState<string>('');
+    const [disposalPhotoWms, setDisposalPhotoWms] = useState<string>('');
+
 
     const [soLoading, setSoLoading] = useState(false);
     const [soItems, setSoItems] = useState<SkuItem[]>([]);
@@ -114,7 +129,7 @@ export default function BeritaAcaraInventoryPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const isStockOpname = docType === 'Stock Opname';
-    const isManualEntry = !isStockOpname && !isTransferDamage;
+    const isManualEntry = !isStockOpname && !isTransferDamage && !isDisposal;
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -202,11 +217,16 @@ export default function BeritaAcaraInventoryPage() {
         setTransferItems(transferItems.map((item, i) => i !== index ? item : { ...item, [field]: value }));
     };
 
+    const handleDisposalItemChange = (index: number, field: string, value: any) => {
+        setDisposalItems(disposalItems.map((item, i) => i !== index ? item : { ...item, [field]: value }));
+    };
+    const handleRemoveDisposalItem = (index: number) => setDisposalItems(disposalItems.filter((_, i) => i !== index));
+
     const handleSaveAndPrint = async () => {
         let vals: any;
         try { vals = await form.validateFields(); } catch { message.error('Lengkapi semua field!'); return; }
 
-        const finalItems = isTransferDamage ? transferItems : (isStockOpname ? soItems : items);
+        const finalItems = isDisposal ? disposalItems : (isTransferDamage ? transferItems : (isStockOpname ? soItems : items));
         if (finalItems.length === 0) { message.warning(isStockOpname ? 'Tidak ada data stock opname di tanggal ini!' : 'Tambahkan minimal 1 SKU!'); return; }
 
         const docNumber = generateDocNumber(docs, vals.doc_type);
@@ -216,6 +236,9 @@ export default function BeritaAcaraInventoryPage() {
         let notesVal = isStockOpname ? JSON.stringify(summary) : (vals.notes || '');
         if (isTransferDamage) {
             notesVal = JSON.stringify({ security_name: vals.security_name || '', photo_fisik: photoFisik, photo_wms: photoWms });
+        }
+        if (isDisposal) {
+            notesVal = JSON.stringify({ photo_fisik: disposalPhotoFisik, photo_wms: disposalPhotoWms });
         }
 
         const payload = {
@@ -236,7 +259,8 @@ export default function BeritaAcaraInventoryPage() {
                 ...payload, items: finalItems, summary,
                 kepadaName: vals.kepada || '', kepadaPosisi: vals.kepada_posisi || '',
                 securityName: vals.security_name || '',
-                photoFisik, photoWms,
+                photoFisik: isDisposal ? disposalPhotoFisik : photoFisik,
+                photoWms: isDisposal ? disposalPhotoWms : photoWms,
             });
             setPreviewOpen(true);
             form.resetFields();
@@ -244,6 +268,9 @@ export default function BeritaAcaraInventoryPage() {
             setItems([]);
             setSoItems([]);
             setTransferItems([]);
+            setDisposalItems([]);
+            setDisposalPhotoFisik('');
+            setDisposalPhotoWms('');
             setPhotoFisik('');
             setPhotoWms('');
             fetchData();
@@ -331,7 +358,7 @@ export default function BeritaAcaraInventoryPage() {
         let securityName = '';
         let viewPhotoFisik = '';
         let viewPhotoWms = '';
-        if (record.doc_type === 'Transfer Barang Damage') {
+        if (record.doc_type === 'Transfer Barang Damage' || record.doc_type === 'Disposal') {
             try {
                 const meta = JSON.parse(record.notes || '{}');
                 securityName = meta.security_name || '';
@@ -683,6 +710,117 @@ export default function BeritaAcaraInventoryPage() {
                                     </>
                                 )}
 
+                                {/* Disposal: entry with batch, mfg, exp, qty */}
+                                {isDisposal && (
+                                    <>
+                                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>🗑️ Item Disposal</Divider>
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                            <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
+                                            <Button icon={<PlusOutlined />} onClick={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }}>Tambah</Button>
+                                            <Button 
+                                                icon={<DownloadOutlined />} 
+                                                onClick={() => {
+                                                    const template = "SKU,Deskripsi,Batch Number,Mfg Date,Exp Date,Qty\n111017,Cesar Beef 100gr,BN001,2025-01-15,2026-01-15,50\n112181,Cesar Lamb 100gr,BN002,2025-02-20,2026-02-20,25";
+                                                    const blob = new Blob([template], { type: 'text/csv' });
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = 'Template_Disposal.csv';
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                }}
+                                            >
+                                                Template CSV
+                                            </Button>
+                                            <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                <Button icon={<FileTextOutlined />}>Import CSV</Button>
+                                                <input 
+                                                    type="file" 
+                                                    accept=".csv,.xlsx,.xls" 
+                                                    style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            const text = event.target?.result as string;
+                                                            const lines = text.split('\n');
+                                                            const newItems: DisposalItem[] = [];
+                                                            lines.forEach((line, i) => {
+                                                                const separator = line.includes(';') ? ';' : ',';
+                                                                const cols = line.split(separator).map(c => c.trim().replace(/^"|"$/g, ''));
+                                                                if (cols.length >= 1 && cols[0] !== '') {
+                                                                    if (i === 0 && cols[0].toLowerCase().includes('sku')) return;
+                                                                    newItems.push({
+                                                                        sku: cols[0],
+                                                                        description: cols[1] || '',
+                                                                        batch_number: cols[2] || '',
+                                                                        mfg_date: cols[3] || '',
+                                                                        exp_date: cols[4] || '',
+                                                                        qty: parseInt(cols[5] || '0') || 0,
+                                                                    });
+                                                                }
+                                                            });
+                                                            if (newItems.length > 0) {
+                                                                setDisposalItems((prev) => {
+                                                                    const set = new Set(prev.map(p => p.sku.toLowerCase()));
+                                                                    const filtered = newItems.filter(n => !set.has(n.sku.toLowerCase()));
+                                                                    return [...prev, ...filtered];
+                                                                });
+                                                                message.success(`${newItems.length} SKU diproses`);
+                                                            } else {
+                                                                message.warning('Format CSV tidak sesuai.');
+                                                            }
+                                                        };
+                                                        reader.readAsText(file);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        {disposalItems.length > 0 && (
+                                            <Table
+                                                dataSource={disposalItems.map((item, i) => ({ ...item, key: i }))}
+                                                pagination={false}
+                                                size="small"
+                                                style={{ marginBottom: 16 }}
+                                                scroll={{ x: 900 }}
+                                                columns={[
+                                                    { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                                    { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 130 },
+                                                    { title: 'Deskripsi', dataIndex: 'description', key: 'desc', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Nama barang" onChange={e => handleDisposalItemChange(i, 'description', e.target.value)} /> },
+                                                    { title: 'Batch No.', dataIndex: 'batch_number', key: 'batch', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Batch" onChange={e => handleDisposalItemChange(i, 'batch_number', e.target.value)} /> },
+                                                    { title: 'Mfg. Date', dataIndex: 'mfg_date', key: 'mfg', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleDisposalItemChange(i, 'mfg_date', e.target.value)} /> },
+                                                    { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleDisposalItemChange(i, 'exp_date', e.target.value)} /> },
+                                                    { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 90, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleDisposalItemChange(i, 'qty', parseInt(e.target.value) || 0)} /> },
+                                                    { title: '', key: 'del', width: 40, render: (_: any, __: any, i: number) => <Button type="text" size="small" icon={<DeleteOutlined />} danger onClick={() => handleRemoveDisposalItem(i)} /> },
+                                                ]}
+                                            />
+                                        )}
+
+                                        {/* Photo uploads for Disposal */}
+                                        <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>📸 Foto Dokumentasi</Divider>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                                            <div>
+                                                <div style={{ marginBottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>📸 Foto Fisik Barang</div>
+                                                <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                    <Button icon={<CameraOutlined />} type={disposalPhotoFisik ? 'primary' : 'default'}>{disposalPhotoFisik ? '✓ Foto Terupload' : 'Upload Foto'}</Button>
+                                                    <input type="file" accept="image/*" style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) { message.error('Max 5MB'); return; } const reader = new FileReader(); reader.onload = (ev) => { setDisposalPhotoFisik(ev.target?.result as string); message.success('Foto terupload'); }; reader.readAsDataURL(file); e.target.value = ''; }} />
+                                                </div>
+                                                {disposalPhotoFisik && (<div style={{ marginTop: 8 }}><img src={disposalPhotoFisik} alt="Foto Fisik" style={{ maxWidth: 200, maxHeight: 150, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)' }} /><Button type="text" size="small" danger onClick={() => setDisposalPhotoFisik('')} style={{ display: 'block', marginTop: 4 }}>Hapus Foto</Button></div>)}
+                                            </div>
+                                            <div>
+                                                <div style={{ marginBottom: 8, color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>📸 Foto Dokumentasi Disposal</div>
+                                                <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                                                    <Button icon={<CameraOutlined />} type={disposalPhotoWms ? 'primary' : 'default'}>{disposalPhotoWms ? '✓ Foto Terupload' : 'Upload Foto'}</Button>
+                                                    <input type="file" accept="image/*" style={{ position: 'absolute', left: 0, top: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) { message.error('Max 5MB'); return; } const reader = new FileReader(); reader.onload = (ev) => { setDisposalPhotoWms(ev.target?.result as string); message.success('Foto terupload'); }; reader.readAsDataURL(file); e.target.value = ''; }} />
+                                                </div>
+                                                {disposalPhotoWms && (<div style={{ marginTop: 8 }}><img src={disposalPhotoWms} alt="Foto Disposal" style={{ maxWidth: 200, maxHeight: 150, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)' }} /><Button type="text" size="small" danger onClick={() => setDisposalPhotoWms('')} style={{ display: 'block', marginTop: 4 }}>Hapus Foto</Button></div>)}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
                                 <Button type="primary" icon={<PrinterOutlined />} size="large" onClick={handleSaveAndPrint}
                                     loading={soLoading}
                                     style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', fontWeight: 700 }}>
@@ -858,8 +996,8 @@ export default function BeritaAcaraInventoryPage() {
                                 );
                             })()}
 
-                            {/* Disposal / Adjustment print */}
-                            {previewDoc.doc_type !== 'Stock Opname' && previewDoc.doc_type !== 'Transfer Barang Damage' && (
+                            {/* Adjustment print */}
+                            {previewDoc.doc_type !== 'Stock Opname' && previewDoc.doc_type !== 'Transfer Barang Damage' && previewDoc.doc_type !== 'Disposal' && (
                                 <>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
                                         <thead>
@@ -893,6 +1031,82 @@ export default function BeritaAcaraInventoryPage() {
                                     <SignatureBlock pic={previewDoc.checker} kepadaName={previewDoc.kepadaName} kepadaPosisi={previewDoc.kepadaPosisi} />
                                 </>
                             )}
+
+                            {/* Disposal print */}
+                            {previewDoc.doc_type === 'Disposal' && (() => {
+                                const docDate = dayjs(previewDoc.date);
+                                const hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                                const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                                const hariStr = hariNames[docDate.day()];
+                                const tglStr = docDate.date();
+                                const bulanStr = bulanNames[docDate.month()];
+                                const tahunStr = docDate.year();
+                                return (
+                                    <>
+                                        <div style={{ fontSize: 11, lineHeight: 1.8, marginBottom: 16, textAlign: 'justify' }}>
+                                            <p style={{ marginBottom: 8 }}>
+                                                Pada hari <strong>{hariStr}</strong>, {tglStr} {bulanStr} {tahunStr}, kami (Fulfillment Center Jetcommerce) telah melakukan proses <strong>disposal barang</strong> yang tidak layak jual/tidak dapat digunakan kembali.
+                                            </p>
+                                            <p style={{ marginBottom: 8 }}>
+                                                Proses disposal dilakukan sesuai dengan prosedur yang berlaku, dengan persetujuan pihak terkait dan pengawasan dari tim Finance serta Vendor yang ditunjuk untuk pengangkutan barang disposal.
+                                            </p>
+                                            <p>Berikut adalah daftar barang yang di-disposal:</p>
+                                        </div>
+
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '12px 0' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={printTh}>No</th>
+                                                    <th style={printTh}>SKU</th>
+                                                    <th style={printTh}>Deskripsi</th>
+                                                    <th style={printTh}>Batch Number</th>
+                                                    <th style={printTh}>Mfg. Date</th>
+                                                    <th style={printTh}>Exp. Date</th>
+                                                    <th style={printTh}>Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(previewDoc.items || []).map((item: any, i: number) => (
+                                                    <tr key={i}>
+                                                        <td style={printTd}>{i + 1}</td>
+                                                        <td style={printTd}>{item.sku}</td>
+                                                        <td style={printTd}>{item.description || '-'}</td>
+                                                        <td style={printTd}>{item.batch_number || '-'}</td>
+                                                        <td style={printTd}>{item.mfg_date || '-'}</td>
+                                                        <td style={printTd}>{item.exp_date || '-'}</td>
+                                                        <td style={{ ...printTd, textAlign: 'center' }}>{item.qty ?? 0}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+
+                                        <DisposalSignatureBlock pic={previewDoc.checker} />
+
+                                        {/* Photos */}
+                                        {(previewDoc.photoFisik || previewDoc.photoWms) && (
+                                            <div className="page-break" style={{ pageBreakBefore: 'always', paddingTop: 16 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 16, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
+                                                    Lampiran Foto — {previewDoc.doc_number}
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                                                    {previewDoc.photoFisik && (
+                                                        <div>
+                                                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: '#333' }}>1. Foto Fisik Barang</div>
+                                                            <img src={previewDoc.photoFisik} alt="Foto Fisik Barang" style={{ width: '100%', maxHeight: 400, objectFit: 'contain', border: '1px solid #ccc', borderRadius: 4 }} />
+                                                        </div>
+                                                    )}
+                                                    {previewDoc.photoWms && (
+                                                        <div>
+                                                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: '#333' }}>2. Foto Dokumentasi Disposal</div>
+                                                            <img src={previewDoc.photoWms} alt="Foto Disposal" style={{ width: '100%', maxHeight: 400, objectFit: 'contain', border: '1px solid #ccc', borderRadius: 4 }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
 
                             {/* Transfer Barang Damage print */}
                             {previewDoc.doc_type === 'Transfer Barang Damage' && (() => {
@@ -1045,6 +1259,40 @@ function TransferDamageSignatureBlock({ pic, securityName }: { pic: string; secu
                         {securityName ? `(${securityName})` : '(.........................................)'}
                     </div>
                     <div style={roleStyle}>Security</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DisposalSignatureBlock({ pic }: { pic: string }) {
+    const sigStyle: React.CSSProperties = { width: '23%', textAlign: 'center', marginBottom: 24 };
+    const labelStyle: React.CSSProperties = { fontSize: 11, marginBottom: 60 };
+    const lineStyle: React.CSSProperties = { borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600, fontSize: 11 };
+    const roleStyle: React.CSSProperties = { fontSize: 10, color: '#555', marginTop: 2 };
+
+    return (
+        <div style={{ marginTop: 48 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Dibuat,</div>
+                    <div style={lineStyle}>({pic})</div>
+                    <div style={roleStyle}>PIC</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Diketahui,</div>
+                    <div style={lineStyle}>(Evan Budi Setiawan Pasaribu)</div>
+                    <div style={roleStyle}>Warehouse, Supervisor</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Diketahui,</div>
+                    <div style={lineStyle}>(Yohannes)</div>
+                    <div style={roleStyle}>Tim Finance</div>
+                </div>
+                <div style={sigStyle}>
+                    <div style={labelStyle}>Vendor,</div>
+                    <div style={lineStyle}>(.........................................)</div>
+                    <div style={roleStyle}>Vendor Disposal</div>
                 </div>
             </div>
         </div>
