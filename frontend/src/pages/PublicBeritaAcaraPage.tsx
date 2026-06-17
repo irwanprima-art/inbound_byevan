@@ -24,6 +24,7 @@ const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
 const WAREHOUSE_OPTIONS = [
     { label: 'WH-JC', value: 'WH-JC' },
     { label: 'WH-JC-02', value: 'WH-JC-02' },
+    { label: 'HUB-BKI', value: 'HUB-BKI' },
 ];
 
 interface SkuItem { sku: string; serial_number: string; qty: number; qty_po: number; qty_actual: number; note: string; }
@@ -40,7 +41,9 @@ function generateDocNumber(existingDocs: any[], docType: string, warehouse: stri
 
 function getWarehouseFromDoc(doc: any): string {
     if (doc.warehouse) return doc.warehouse;
-    return (doc.doc_number || '').includes('/WH-JC-02/') ? 'WH-JC-02' : 'WH-JC';
+    if ((doc.doc_number || '').includes('/WH-JC-02/')) return 'WH-JC-02';
+    if ((doc.doc_number || '').includes('/HUB-BKI/')) return 'HUB-BKI';
+    return 'WH-JC';
 }
 
 const printTh: React.CSSProperties = { border: '1px solid #333', padding: '6px 10px', textAlign: 'left', background: '#eee', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' };
@@ -66,7 +69,7 @@ export default function PublicBeritaAcaraPage() {
     const isBarangLebih = docType === 'Pemberitahuan Barang Lebih';
     const isBarangKurangLebih = isBarangKurang || isBarangLebih;
     const isPenolakanBarang = docType === 'Penolakan Barang';
-    const isWHJC02 = warehouse === 'WH-JC-02';
+    const isRequiresPic = warehouse === 'WH-JC-02' || warehouse === 'HUB-BKI';
     const [previewDoc, setPreviewDoc] = useState<any>(null);
     const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -103,7 +106,7 @@ export default function PublicBeritaAcaraPage() {
             doc_type: vals.doc_type, doc_number: docNumber, date: dayjs(vals.date).format('YYYY-MM-DD'),
             checker: vals.checker, kepada: vals.kepada, dari: 'PT. Global Jet Ecommerce',
             items: JSON.stringify(items), notes: vals.notes || '',
-            warehouse: wh, pic_name: wh === 'WH-JC-02' ? (vals.pic_name || '') : '',
+            warehouse: wh, pic_name: (wh === 'WH-JC-02' || wh === 'HUB-BKI') ? (vals.pic_name || '') : '',
         };
         try {
             await publicApi.beritaAcaraCreate(payload);
@@ -180,7 +183,7 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                         <Form.Item name="warehouse" label="Warehouse" rules={[{ required: true }]}>
                                             <Select options={WAREHOUSE_OPTIONS} />
                                         </Form.Item>
-                                        {isWHJC02 && (
+                                        {isRequiresPic && (
                                             <Form.Item name="pic_name" label="Nama PIC" rules={[{ required: true, message: 'Isi nama PIC' }]}>
                                                 <Input placeholder="Masukkan nama PIC" />
                                             </Form.Item>
@@ -231,9 +234,9 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                 <Modal open={previewOpen} onCancel={() => setPreviewOpen(false)} width={800}
                     footer={<Space><Button onClick={() => setPreviewOpen(false)}>Tutup</Button><Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>Print</Button></Space>}
                     title="Preview Berita Acara">
-                    {docForPreview && (() => {
-                        const wh = getWarehouseFromDoc(docForPreview);
-                        const isJC02 = wh === 'WH-JC-02';
+                    {previewDoc && (() => {
+                        const wh = getWarehouseFromDoc(previewDoc);
+                        const isRequiresPicPrint = wh === 'WH-JC-02' || wh === 'HUB-BKI';
                         return (
                     <div id="public-ba-print" className="print-wrapper" style={{ background: '#fff', color: '#1a1a1a', padding: 24, borderRadius: 8, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div className="print-content" style={{ flex: 1 }}>
@@ -273,8 +276,8 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                     <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{docForPreview.checker}</div>
                                 </div>
                                 <div style={{ width: '30%', textAlign: 'center' }}>
-                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>{isJC02 ? 'PIC' : 'Supervisor'}</div>
-                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{isJC02 ? (docForPreview.pic_name || '') : 'Evan Budi Setiawan Pasaribu'}</div>
+                                    <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>{isRequiresPicPrint ? 'PIC' : 'Supervisor'}</div>
+                                    <div style={{ borderTop: '1px solid #333', paddingTop: 4, fontWeight: 600 }}>{isRequiresPicPrint ? (docForPreview.pic_name || '') : 'Evan Budi Setiawan Pasaribu'}</div>
                                 </div>
                                 <div style={{ width: '30%', textAlign: 'center' }}>
                                     <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 60, textTransform: 'uppercase' }}>Driver</div>
