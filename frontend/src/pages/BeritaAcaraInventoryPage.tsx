@@ -860,7 +860,13 @@ export default function BeritaAcaraInventoryPage() {
                                     <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 3 }}>
                                         Berita Acara — {previewDoc.doc_type}
                                     </div>
+                                    {previewDoc.doc_type === 'Transfer Barang Damage' && (
+                                        <div style={{ fontSize: 10, color: '#555', marginBottom: 2 }}>No Form: FRM-WH-JC/TRFDMG/001</div>
+                                    )}
                                     <div style={{ fontSize: 11, color: '#555' }}>No: {previewDoc.doc_number}</div>
+                                    {previewDoc.doc_type === 'Transfer Barang Damage' && (
+                                        <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 2 }}>Berlaku sejak 15 Juni 2026</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -883,7 +889,13 @@ export default function BeritaAcaraInventoryPage() {
                                     <div style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1a1a1a', marginBottom: 4 }}>
                                         Berita Acara — {previewDoc.doc_type}
                                     </div>
+                                    {previewDoc.doc_type === 'Transfer Barang Damage' && (
+                                        <div style={{ fontSize: 11, color: '#555', marginBottom: 2 }}>No Form: FRM-WH-JC/TRFDMG/001</div>
+                                    )}
                                     <div style={{ fontSize: 12, color: '#555' }}>No: {previewDoc.doc_number}</div>
+                                    {previewDoc.doc_type === 'Transfer Barang Damage' && (
+                                        <div style={{ fontSize: 11, color: '#777', fontStyle: 'italic', marginTop: 2 }}>Berlaku sejak 15 Juni 2026</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
