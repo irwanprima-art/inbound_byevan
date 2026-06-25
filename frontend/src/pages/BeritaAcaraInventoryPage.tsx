@@ -41,6 +41,7 @@ interface TransferDamageItem {
     mfg_date: string;
     exp_date: string;
     damage_reason: string;
+    qty?: number;
 }
 
 interface DisposalItem {
@@ -186,7 +187,7 @@ export default function BeritaAcaraInventoryPage() {
             if (transferItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
                 message.warning('SKU sudah ada di daftar');
             } else {
-                setTransferItems([...transferItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', damage_reason: '' }]);
+                setTransferItems([...transferItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', damage_reason: '', qty: 0 }]);
             }
         } else {
             if (items.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
@@ -570,7 +571,7 @@ export default function BeritaAcaraInventoryPage() {
                                             <Button 
                                                 icon={<DownloadOutlined />} 
                                                 onClick={() => {
-                                                    const template = "SKU,Deskripsi,Batch Number,Mfg Date,Exp Date,Damage Reason\n111017,Cesar Beef 100gr,BN001,2025-01-15,2026-01-15,External Damage\n112181,Cesar Lamb 100gr,BN002,2025-02-20,2026-02-20,Internal Damage";
+                                                    const template = "SKU,Deskripsi,Batch Number,Mfg Date,Exp Date,Damage Reason,Qty\n111017,Cesar Beef 100gr,BN001,2025-01-15,2026-01-15,External Damage,10\n112181,Cesar Lamb 100gr,BN002,2025-02-20,2026-02-20,Internal Damage,5";
                                                     const blob = new Blob([template], { type: 'text/csv' });
                                                     const url = window.URL.createObjectURL(blob);
                                                     const a = document.createElement('a');
@@ -608,6 +609,7 @@ export default function BeritaAcaraInventoryPage() {
                                                                         mfg_date: cols[3] || '',
                                                                         exp_date: cols[4] || '',
                                                                         damage_reason: cols[5] || '',
+                                                                        qty: parseInt(cols[6]) || 0,
                                                                     });
                                                                 }
                                                             });
@@ -639,6 +641,7 @@ export default function BeritaAcaraInventoryPage() {
                                                     { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
                                                     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 130 },
                                                     { title: 'Deskripsi', dataIndex: 'description', key: 'desc', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Nama barang" onChange={e => handleTransferItemChange(i, 'description', e.target.value)} /> },
+                                                    { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80, render: (v: number, _: any, i: number) => <Input type="number" value={v} size="small" placeholder="Qty" onChange={e => handleTransferItemChange(i, 'qty', parseInt(e.target.value) || 0)} /> },
                                                     { title: 'Batch No.', dataIndex: 'batch_number', key: 'batch', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Batch" onChange={e => handleTransferItemChange(i, 'batch_number', e.target.value)} /> },
                                                     { title: 'Mfg. Date', dataIndex: 'mfg_date', key: 'mfg', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleTransferItemChange(i, 'mfg_date', e.target.value)} /> },
                                                     { title: 'Exp. Date', dataIndex: 'exp_date', key: 'exp', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="YYYY-MM-DD" onChange={e => handleTransferItemChange(i, 'exp_date', e.target.value)} /> },
@@ -1145,6 +1148,7 @@ export default function BeritaAcaraInventoryPage() {
                                                     <th style={printTh}>No</th>
                                                     <th style={printTh}>SKU</th>
                                                     <th style={printTh}>Deskripsi</th>
+                                                    <th style={printTh}>Qty</th>
                                                     <th style={printTh}>Batch Number</th>
                                                     <th style={printTh}>Mfg. Date</th>
                                                     <th style={printTh}>Exp. Date</th>
@@ -1157,6 +1161,7 @@ export default function BeritaAcaraInventoryPage() {
                                                         <td style={printTd}>{i + 1}</td>
                                                         <td style={printTd}>{item.sku}</td>
                                                         <td style={printTd}>{item.description || '-'}</td>
+                                                        <td style={printTd}>{item.qty || 0}</td>
                                                         <td style={printTd}>{item.batch_number || '-'}</td>
                                                         <td style={printTd}>{item.mfg_date || '-'}</td>
                                                         <td style={printTd}>{item.exp_date || '-'}</td>
