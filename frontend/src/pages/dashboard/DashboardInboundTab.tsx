@@ -424,7 +424,7 @@ export default function DashboardInboundTab({ dateRange, setDateRange, arrivals,
                         ]}
                         rowKey="id"
                         size="small"
-                        pagination={{ pageSize: 10, showTotal: (t) => `Total: ${t}` }}
+                        pagination={{ defaultPageSize: 10, showTotal: (t) => `Total: ${t}` }}
                         scroll={{ x: 'max-content' }}
                     />
                 ) : (

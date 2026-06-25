@@ -452,7 +452,7 @@ export default function BeritaAcaraInventoryPage() {
 
                                                 <Table
                                                     dataSource={soItems.map((item, i) => ({ ...item, key: i }))}
-                                                    pagination={{ pageSize: 20, showTotal: t => `${t} SKU` }}
+                                                    pagination={{ defaultPageSize: 20, showTotal: t => `${t} SKU` }}
                                                     size="small"
                                                     scroll={{ x: 800 }}
                                                     columns={[
@@ -841,7 +841,7 @@ export default function BeritaAcaraInventoryPage() {
                                 <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                                 <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
                             </div>
-                            <Table dataSource={filteredDocs} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 1000 }} pagination={{ pageSize: 20, showTotal: t => `${t} dokumen` }} />
+                            <Table dataSource={filteredDocs} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 1000 }} pagination={{ defaultPageSize: 20, showTotal: t => `${t} dokumen` }} />
                         </div>
                     ),
                 },

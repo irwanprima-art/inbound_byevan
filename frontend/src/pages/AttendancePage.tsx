@@ -500,7 +500,7 @@ export default function AttendancePage() {
             <Table
                 rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
                 scroll={{ x: 1300, y: 'calc(100vh - 280px)' }}
-                pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
+                pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={canDelete ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
                 sortDirections={['descend', 'ascend']}
             />

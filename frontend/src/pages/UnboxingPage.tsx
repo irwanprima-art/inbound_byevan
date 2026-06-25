@@ -386,7 +386,7 @@ export default function UnboxingPage() {
                 </Space>
             </div>
 
-            <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} size="small" scroll={{ x: 800 }} pagination={{ pageSize: 20 }} />
+            <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} size="small" scroll={{ x: 800 }} pagination={{ defaultPageSize: 20 }} />
 
             {/* Unboxing Task Modal */}
             <Modal

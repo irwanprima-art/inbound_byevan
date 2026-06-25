@@ -480,7 +480,7 @@ export default function DataPage<T extends { id: number }>({
                 dataSource={filtered}
                 loading={loading}
                 scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
-                pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (t) => `Total: ${t}` }}
+                pagination={{ defaultPageSize: 50, showSizeChanger: true, showTotal: (t) => `Total: ${t}` }}
                 rowSelection={canDelete ? {
                     selectedRowKeys: selectedKeys,
                     onChange: setSelectedKeys,

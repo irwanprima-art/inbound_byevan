@@ -220,7 +220,7 @@ export default function PublicSohPage() {
                     <Table
                         rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
                         scroll={{ x: 2500, y: 'calc(100vh - 280px)' }}
-                        pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
+                        pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                     />
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
                         <Text style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>Warehouse Report & Monitoring System</Text>

@@ -942,7 +942,7 @@ export default function VasPage() {
                 loading={loading}
                 size="small"
                 scroll={{ x: 1200, y: 'calc(100vh - 280px)' }}
-                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: t => `Total ${t} data` }}
+                pagination={{ defaultPageSize: 20, showSizeChanger: true, showTotal: t => `Total ${t} data` }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: setSelectedKeys } : undefined}
             />
 

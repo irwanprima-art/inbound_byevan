@@ -456,7 +456,7 @@ export default function BeritaAcaraPage() {
                                 loading={loading}
                                 size="small"
                                 scroll={{ x: 1200 }}
-                                pagination={{ pageSize: 20, showTotal: (t) => `${t} dokumen` }}
+                                pagination={{ defaultPageSize: 20, showTotal: (t) => `${t} dokumen` }}
                             />
                         </div>
                     ),

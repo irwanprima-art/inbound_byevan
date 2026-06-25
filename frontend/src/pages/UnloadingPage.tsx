@@ -314,7 +314,7 @@ export default function UnloadingPage() {
                 loading={loading}
                 size="small"
                 scroll={{ x: 700, y: 'calc(100vh - 280px)' }}
-                pagination={{ pageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
+                pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
             />
 

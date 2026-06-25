@@ -343,7 +343,7 @@ export default function WorkflowPage() {
                 rowKey="id"
                 loading={loading}
                 size="small"
-                pagination={{ pageSize: 20, showTotal: t => `Total ${t} workflow` }}
+                pagination={{ defaultPageSize: 20, showTotal: t => `Total ${t} workflow` }}
             />
 
             {/* ═══ CREATE / EDIT MODAL ═══ */}
