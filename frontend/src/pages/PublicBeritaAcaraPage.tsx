@@ -19,6 +19,7 @@ const DOC_TYPES = [
     { label: 'Penolakan Barang', value: 'Penolakan Barang' },
     { label: 'Pemberitahuan Barang Lebih', value: 'Pemberitahuan Barang Lebih' },
     { label: 'Pengembalian Barang', value: 'Pengembalian Barang' },
+    { label: 'Pemberitahuan Barang Tidak Sesuai', value: 'Pemberitahuan Barang Tidak Sesuai' },
 ];
 const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
 const WAREHOUSE_OPTIONS = [
@@ -27,7 +28,7 @@ const WAREHOUSE_OPTIONS = [
     { label: 'HUB-BKI', value: 'HUB-BKI' },
 ];
 
-interface SkuItem { sku: string; serial_number: string; qty: number; qty_po: number; qty_actual: number; note: string; }
+interface SkuItem { sku: string; description?: string; serial_number: string; qty: number; qty_po: number; qty_actual: number; note: string; }
 
 function generateDocNumber(existingDocs: any[], docType: string, warehouse: string): string {
     const now = dayjs(); const prefix = now.format('MMYY'); const year = now.format('YYYY');
@@ -67,7 +68,8 @@ export default function PublicBeritaAcaraPage() {
     const warehouse = Form.useWatch('warehouse', form) || 'WH-JC';
     const isBarangKurang = docType === 'Pemberitahuan Barang Kurang';
     const isBarangLebih = docType === 'Pemberitahuan Barang Lebih';
-    const isBarangKurangLebih = isBarangKurang || isBarangLebih;
+    const isBarangTidakSesuai = docType === 'Pemberitahuan Barang Tidak Sesuai';
+    const isBarangKurangLebih = isBarangKurang || isBarangLebih || isBarangTidakSesuai;
     const isPenolakanBarang = docType === 'Penolakan Barang';
     const isRequiresPic = warehouse === 'WH-JC-02' || warehouse === 'HUB-BKI';
     const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -90,7 +92,7 @@ export default function PublicBeritaAcaraPage() {
         const sku = skuInput.trim(); if (!sku) return;
         const existing = items.find(i => i.sku.toLowerCase() === sku.toLowerCase());
         if (existing) { setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i)); }
-        else { setItems([...items, { sku, serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]); }
+        else { setItems([...items, { sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]); }
         setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50);
     };
     const handleRemoveSku = (index: number) => setItems(items.filter((_, i) => i !== index));
@@ -198,10 +200,11 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                         <Table dataSource={items.map((item, i) => ({ ...item, key: i }))} pagination={false} size="small" style={{ marginBottom: 16 }} columns={[
                                             { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
                                             { title: 'SKU', dataIndex: 'sku', key: 'sku' },
+                                            ...(isBarangTidakSesuai ? [{ title: 'Description', dataIndex: 'description', key: 'description', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Deskripsi" onChange={e => handleItemChange(i, 'description', e.target.value)} /> }] : []),
                                             ...(isBarangKurangLebih ? [
-                                                { title: 'Qty PO', dataIndex: 'qty_po', key: 'qty_po', width: 90, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleItemChange(i, 'qty_po', parseInt(e.target.value) || 0)} /> },
-                                                { title: 'Qty Actual', dataIndex: 'qty_actual', key: 'qty_actual', width: 100, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleItemChange(i, 'qty_actual', parseInt(e.target.value) || 0)} /> },
-                                                { title: 'Qty Diff', key: 'qty_diff', width: 90, render: (_: any, record: any) => { const diff = (record.qty_actual || 0) - (record.qty_po || 0); return <span style={{ color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{diff}</span>; } },
+                                                { title: isBarangTidakSesuai ? 'Qty DO' : 'Qty PO', dataIndex: 'qty_po', key: 'qty_po', width: 90, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleItemChange(i, 'qty_po', parseInt(e.target.value) || 0)} /> },
+                                                { title: isBarangTidakSesuai ? 'Qty Fisik' : 'Qty Actual', dataIndex: 'qty_actual', key: 'qty_actual', width: 100, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleItemChange(i, 'qty_actual', parseInt(e.target.value) || 0)} /> },
+                                                { title: isBarangTidakSesuai ? 'Selisih' : 'Qty Diff', key: 'qty_diff', width: 90, render: (_: any, record: any) => { const diff = (record.qty_actual || 0) - (record.qty_po || 0); return <span style={{ color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{diff}</span>; } },
                                             ] : [
                                                 { title: 'Qty', dataIndex: 'qty', key: 'qty', width: 80, render: (v: number, _: any, i: number) => <Input type="number" min={1} value={v} size="small" style={{ width: 70 }} onChange={e => handleItemChange(i, 'qty', parseInt(e.target.value) || 1)} /> },
                                             ]),
@@ -256,7 +259,8 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                             <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
                                 <thead><tr>
                                     <th style={printTh}>No</th><th style={printTh}>SKU</th>
-                                    {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih') ? <><th style={printTh}>Qty PO</th><th style={printTh}>Qty Actual</th><th style={printTh}>Qty Diff</th></> : <th style={printTh}>Qty</th>}
+                                    {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && <th style={printTh}>Description</th>}
+                                    {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih' || docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai') ? <><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Qty DO' : 'Qty PO'}</th><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Qty Fisik' : 'Qty Actual'}</th><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Selisih' : 'Qty Diff'}</th></> : <th style={printTh}>Qty</th>}
                                     <th style={printTh}>Serial Number</th><th style={printTh}>Catatan</th>
                                 </tr></thead>
                                 <tbody>{(docForPreview.items || []).map((item: SkuItem, i: number) => {
@@ -264,7 +268,8 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                     return (
                                     <tr key={i}>
                                         <td style={printTd}>{i + 1}</td><td style={printTd}>{item.sku}</td>
-                                        {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih') ? <><td style={printTd}>{item.qty_po ?? '-'}</td><td style={printTd}>{item.qty_actual ?? '-'}</td><td style={{ ...printTd, color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{diff}</td></> : <td style={printTd}>{item.qty}</td>}
+                                        {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && <td style={printTd}>{item.description || '-'}</td>}
+                                        {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih' || docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai') ? <><td style={printTd}>{item.qty_po ?? '-'}</td><td style={printTd}>{item.qty_actual ?? '-'}</td><td style={{ ...printTd, color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{diff}</td></> : <td style={printTd}>{item.qty}</td>}
                                         <td style={printTd}>{item.serial_number || '-'}</td><td style={printTd}>{item.note || '-'}</td>
                                     </tr>);
                                 })}</tbody>
