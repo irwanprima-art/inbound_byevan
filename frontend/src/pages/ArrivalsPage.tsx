@@ -4,7 +4,7 @@ import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
     DownloadOutlined, UploadOutlined, ClearOutlined, MinusCircleOutlined,
 } from '@ant-design/icons';
-import { arrivalsApi, transactionsApi } from '../api/client';
+import { arrivalsApi, transactionsApi, employeesApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -23,17 +23,23 @@ export default function ArrivalsPage() {
     const [editId, setEditId] = useState<number | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
+    const [employees, setEmployees] = useState<any[]>([]);
     const [form] = Form.useForm();
 
     // Fetch arrivals + transactions data
     const fetchAll = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const [aRes, tRes] = await Promise.all([arrivalsApi.list(), transactionsApi.list()]);
+            const [aRes, tRes, eRes] = await Promise.all([
+                arrivalsApi.list(), 
+                transactionsApi.list(),
+                employeesApi.list()
+            ]);
             const arrivals = aRes.data || [];
             arrivals.sort((a: any, b: any) => b.id - a.id);
             setData(arrivals);
             setTransData(tRes.data || []);
+            setEmployees(eRes.data || []);
         } catch {
             if (!silent) message.error('Gagal memuat data');
         } finally {
@@ -775,7 +781,15 @@ export default function ArrivalsPage() {
                         </>
                     )}
                     <Form.Item name="operator" label="Operator">
-                        <Input />
+                        <Select
+                            showSearch
+                            allowClear
+                            placeholder="Pilih operator"
+                            options={employees
+                                .filter(e => e.is_active !== 'Inactive')
+                                .map(e => ({ label: e.name, value: e.name }))
+                            }
+                        />
                     </Form.Item>
                     <Form.Item name="note" label="Note">
                         <Input.TextArea rows={2} />
