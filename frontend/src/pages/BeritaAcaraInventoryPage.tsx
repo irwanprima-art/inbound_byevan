@@ -25,6 +25,7 @@ const INVENTORY_DOC_TYPES = [
 const INVENTORY_TYPE_SET = new Set(INVENTORY_DOC_TYPES.map(d => d.value));
 
 interface SkuItem {
+    do_number?: string;
     sku: string;
     description: string;
     location: string;
@@ -35,6 +36,7 @@ interface SkuItem {
 }
 
 interface TransferDamageItem {
+    do_number?: string;
     sku: string;
     description: string;
     batch_number: string;
@@ -45,6 +47,7 @@ interface TransferDamageItem {
 }
 
 interface DisposalItem {
+    do_number?: string;
     sku: string;
     description: string;
     batch_number: string;
@@ -162,6 +165,7 @@ export default function BeritaAcaraInventoryPage() {
                 const filtered = all.filter((r: any) => r.date === dateStr);
                 if (!cancelled) {
                     setSoItems(filtered.map((r: any) => ({
+                        do_number: '',
                         sku: r.sku || '',
                         description: r.description || '',
                         location: r.location || '',
@@ -187,13 +191,13 @@ export default function BeritaAcaraInventoryPage() {
             if (transferItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
                 message.warning('SKU sudah ada di daftar');
             } else {
-                setTransferItems([...transferItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', damage_reason: '', qty: 0 }]);
+                setTransferItems([...transferItems, { do_number: '', sku, description: '', batch_number: '', mfg_date: '', exp_date: '', damage_reason: '', qty: 0 }]);
             }
         } else {
             if (items.find(i => i.sku.toLowerCase() === sku.toLowerCase())) {
                 message.warning('SKU sudah ada di daftar');
             } else {
-                setItems([...items, { sku, description: '', location: '', sys_qty: 0, phy_qty: 0, variance: 0, note: '' }]);
+                setItems([...items, { do_number: '', sku, description: '', location: '', sys_qty: 0, phy_qty: 0, variance: 0, note: '' }]);
             }
         }
         setSkuInput('');
@@ -457,6 +461,7 @@ export default function BeritaAcaraInventoryPage() {
                                                     scroll={{ x: 800 }}
                                                     columns={[
                                                         { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                                        { title: 'No DO', dataIndex: 'do_number', key: 'do_number', width: 100 },
                                                         { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 140 },
                                                         { title: 'Description', dataIndex: 'description', key: 'desc' },
                                                         { title: 'Location', dataIndex: 'location', key: 'loc', width: 120 },
@@ -547,6 +552,7 @@ export default function BeritaAcaraInventoryPage() {
                                                 style={{ marginBottom: 16 }}
                                                 columns={[
                                                     { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                                    { title: 'No DO', dataIndex: 'do_number', key: 'do_number', width: 100, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="No DO" onChange={e => handleItemChange(i, 'do_number', e.target.value)} /> },
                                                     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 140 },
                                                     { title: 'Deskripsi', dataIndex: 'description', key: 'desc', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Nama barang" onChange={e => handleItemChange(i, 'description', e.target.value)} /> },
                                                     { title: 'Qty', dataIndex: 'phy_qty', key: 'qty', width: 90, render: (v: number, _: any, i: number) => <Input type="number" min={0} value={v} size="small" style={{ width: 75 }} onChange={e => handleItemChange(i, 'phy_qty', parseInt(e.target.value) || 0)} /> },
@@ -718,8 +724,8 @@ export default function BeritaAcaraInventoryPage() {
                                     <>
                                         <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>🗑️ Item Disposal</Divider>
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                                            <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
-                                            <Button icon={<PlusOutlined />} onClick={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }}>Tambah</Button>
+                                            <Input ref={skuRef} placeholder="Scan / Ketik SKU lalu Enter" value={skuInput} onChange={e => setSkuInput(e.target.value)} onPressEnter={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { do_number: '', sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }} style={{ maxWidth: 400 }} prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />} />
+                                            <Button icon={<PlusOutlined />} onClick={() => { const sku = skuInput.trim(); if (!sku) return; if (disposalItems.find(i => i.sku.toLowerCase() === sku.toLowerCase())) { message.warning('SKU sudah ada'); } else { setDisposalItems([...disposalItems, { do_number: '', sku, description: '', batch_number: '', mfg_date: '', exp_date: '', qty: 0 }]); } setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50); }}>Tambah</Button>
                                             <Button 
                                                 icon={<DownloadOutlined />} 
                                                 onClick={() => {
@@ -790,6 +796,7 @@ export default function BeritaAcaraInventoryPage() {
                                                 scroll={{ x: 900 }}
                                                 columns={[
                                                     { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                                    { title: 'No DO', dataIndex: 'do_number', key: 'do_number', width: 100, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="No DO" onChange={e => handleDisposalItemChange(i, 'do_number', e.target.value)} /> },
                                                     { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 130 },
                                                     { title: 'Deskripsi', dataIndex: 'description', key: 'desc', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Nama barang" onChange={e => handleDisposalItemChange(i, 'description', e.target.value)} /> },
                                                     { title: 'Batch No.', dataIndex: 'batch_number', key: 'batch', width: 120, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Batch" onChange={e => handleDisposalItemChange(i, 'batch_number', e.target.value)} /> },
@@ -972,6 +979,7 @@ export default function BeritaAcaraInventoryPage() {
                                                 <thead>
                                                     <tr>
                                                         <th style={printTh}>No</th>
+                                                        <th style={printTh}>No DO</th>
                                                         <th style={printTh}>SKU</th>
                                                         <th style={printTh}>Description</th>
                                                         <th style={printTh}>Sys. Qty</th>
@@ -982,11 +990,11 @@ export default function BeritaAcaraInventoryPage() {
                                                 </thead>
                                                 <tbody>
                                                     {(() => {
-                                                        const grouped: Record<string, { sku: string; description: string; sys_qty: number; phy_qty: number; variance: number }> = {};
+                                                        const grouped: Record<string, { do_number?: string; sku: string; description: string; sys_qty: number; phy_qty: number; variance: number }> = {};
                                                         (previewDoc.items || []).forEach((item: SkuItem) => {
                                                             const key = item.sku;
                                                             if (!grouped[key]) {
-                                                                grouped[key] = { sku: item.sku, description: item.description || '', sys_qty: 0, phy_qty: 0, variance: 0 };
+                                                                grouped[key] = { do_number: item.do_number || '', sku: item.sku, description: item.description || '', sys_qty: 0, phy_qty: 0, variance: 0 };
                                                             }
                                                             grouped[key].sys_qty += item.sys_qty || 0;
                                                             grouped[key].phy_qty += item.phy_qty || 0;
@@ -995,6 +1003,7 @@ export default function BeritaAcaraInventoryPage() {
                                                         return Object.values(grouped).map((g, i) => (
                                                             <tr key={i}>
                                                                 <td style={printTd}>{i + 1}</td>
+                                                                <td style={printTd}>{g.do_number || '-'}</td>
                                                                 <td style={printTd}>{g.sku}</td>
                                                                 <td style={printTd}>{g.description || '-'}</td>
                                                                 <td style={{ ...printTd, textAlign: 'center' }}>{g.sys_qty}</td>
@@ -1018,6 +1027,7 @@ export default function BeritaAcaraInventoryPage() {
                                         <thead>
                                             <tr>
                                                 <th style={printTh}>No</th>
+                                                <th style={printTh}>No DO</th>
                                                 <th style={printTh}>SKU</th>
                                                 <th style={printTh}>Deskripsi</th>
                                                 <th style={printTh}>Qty</th>
@@ -1028,6 +1038,7 @@ export default function BeritaAcaraInventoryPage() {
                                             {(previewDoc.items || []).map((item: SkuItem, i: number) => (
                                                 <tr key={i}>
                                                     <td style={printTd}>{i + 1}</td>
+                                                    <td style={printTd}>{item.do_number || '-'}</td>
                                                     <td style={printTd}>{item.sku}</td>
                                                     <td style={printTd}>{item.description || '-'}</td>
                                                     <td style={printTd}>{item.phy_qty ?? 0}</td>
@@ -1072,6 +1083,7 @@ export default function BeritaAcaraInventoryPage() {
                                             <thead>
                                                 <tr>
                                                     <th style={printTh}>No</th>
+                                                    <th style={printTh}>No DO</th>
                                                     <th style={printTh}>SKU</th>
                                                     <th style={printTh}>Deskripsi</th>
                                                     <th style={printTh}>Batch Number</th>
@@ -1084,6 +1096,7 @@ export default function BeritaAcaraInventoryPage() {
                                                 {(previewDoc.items || []).map((item: any, i: number) => (
                                                     <tr key={i}>
                                                         <td style={printTd}>{i + 1}</td>
+                                                        <td style={printTd}>{item.do_number || '-'}</td>
                                                         <td style={printTd}>{item.sku}</td>
                                                         <td style={printTd}>{item.description || '-'}</td>
                                                         <td style={printTd}>{item.batch_number || '-'}</td>
@@ -1146,6 +1159,7 @@ export default function BeritaAcaraInventoryPage() {
                                             <thead>
                                                 <tr>
                                                     <th style={printTh}>No</th>
+                                                    <th style={printTh}>No DO</th>
                                                     <th style={printTh}>SKU</th>
                                                     <th style={printTh}>Deskripsi</th>
                                                     <th style={printTh}>Qty</th>
@@ -1159,6 +1173,7 @@ export default function BeritaAcaraInventoryPage() {
                                                 {(previewDoc.items || []).map((item: TransferDamageItem, i: number) => (
                                                     <tr key={i}>
                                                         <td style={printTd}>{i + 1}</td>
+                                                        <td style={printTd}>{item.do_number || '-'}</td>
                                                         <td style={printTd}>{item.sku}</td>
                                                         <td style={printTd}>{item.description || '-'}</td>
                                                         <td style={printTd}>{item.qty || 0}</td>

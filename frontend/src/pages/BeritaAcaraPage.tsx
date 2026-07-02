@@ -25,6 +25,7 @@ const DOC_TYPES = [
 const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
 
 interface SkuItem {
+    do_number?: string;
     sku: string;
     description?: string;
     serial_number: string;
@@ -115,7 +116,7 @@ export default function BeritaAcaraPage() {
         if (existing) {
             setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i));
         } else {
-            setItems([...items, { sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]);
+            setItems([...items, { do_number: '', sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]);
         }
         setSkuInput('');
         setTimeout(() => skuRef.current?.focus(), 50);
@@ -343,6 +344,13 @@ export default function BeritaAcaraPage() {
                                         style={{ marginBottom: 16 }}
                                         columns={[
                                             { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+                                            {
+                                                title: 'No DO', dataIndex: 'do_number', key: 'do_number',
+                                                render: (v: string, _: any, i: number) => (
+                                                    <Input value={v} size="small" placeholder="No DO"
+                                                        onChange={e => handleItemChange(i, 'do_number', e.target.value)} />
+                                                ),
+                                            },
                                             { title: 'SKU', dataIndex: 'sku', key: 'sku' },
                                             ...(isBarangTidakSesuai ? [
                                                 {
@@ -499,6 +507,7 @@ export default function BeritaAcaraPage() {
                                 <thead>
                                     <tr>
                                         <th style={printTh}>No</th>
+                                        <th style={printTh}>No DO</th>
                                         <th style={printTh}>SKU</th>
                                         {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && (
                                             <th style={printTh}>Description</th>
@@ -522,6 +531,7 @@ export default function BeritaAcaraPage() {
                                         return (
                                         <tr key={i}>
                                             <td style={printTd}>{i + 1}</td>
+                                            <td style={printTd}>{item.do_number || '-'}</td>
                                             <td style={printTd}>{item.sku}</td>
                                             {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && (
                                                 <td style={printTd}>{item.description || '-'}</td>

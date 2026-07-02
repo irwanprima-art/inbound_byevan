@@ -77,6 +77,7 @@ const formFields = (
 
 // ---- Berita Acara item interface ----
 interface BaItem {
+    do_number?: string;
     sku: string;
     deskripsi: string;
     qty_actual: number;
@@ -166,6 +167,7 @@ export default function InboundCasePage() {
             ));
         } else {
             setBaItems([...baItems, {
+                do_number: '',
                 sku,
                 deskripsi: '',
                 qty_actual: 0,
@@ -314,6 +316,13 @@ export default function InboundCasePage() {
     // ---- BA items table columns ----
     const baItemColumns = [
         { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
+        {
+            title: 'No DO', dataIndex: 'do_number', key: 'do_number', width: 120,
+            render: (v: string, _: any, i: number) => (
+                <Input value={v} size="small" placeholder="No DO"
+                    onChange={e => handleItemChange(i, 'do_number', e.target.value)} />
+            ),
+        },
         { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 160 },
         {
             title: 'Deskripsi', dataIndex: 'deskripsi', key: 'deskripsi', width: 200,
@@ -541,6 +550,7 @@ export default function InboundCasePage() {
                                 <thead>
                                     <tr>
                                         <th style={printTh}>No</th>
+                                        <th style={printTh}>No DO</th>
                                         <th style={printTh}>SKU</th>
                                         <th style={printTh}>Deskripsi</th>
                                         <th style={printTh}>Qty Actual</th>
@@ -556,6 +566,7 @@ export default function InboundCasePage() {
                                         return (
                                             <tr key={i}>
                                                 <td style={printTd}>{i + 1}</td>
+                                                <td style={printTd}>{item.do_number || '-'}</td>
                                                 <td style={printTd}>{item.sku}</td>
                                                 <td style={printTd}>{item.deskripsi || '-'}</td>
                                                 <td style={printTd}>{item.qty_actual}</td>
