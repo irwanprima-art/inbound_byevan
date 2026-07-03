@@ -478,3 +478,17 @@ type ReturnUnboxing struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// DownloadTask represents an asynchronous report or file generation task
+type DownloadTask struct {
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	ReportName   string         `gorm:"column:report_name" json:"report_name" binding:"required"`
+	Status       string         `gorm:"column:status;default:Pending" json:"status"`
+	DownloadTime FlexDate       `gorm:"column:download_time;type:text" json:"download_time"`
+	ErrorMessage string         `gorm:"column:error_message;type:text" json:"error_message"`
+	FileUrl      string         `gorm:"column:file_url" json:"file_url"`
+	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}

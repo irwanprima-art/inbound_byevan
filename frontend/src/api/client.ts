@@ -77,6 +77,7 @@ export const orderPerBrandsApi = createResourceApi('order-per-brands');
 export const workflowsApi = createResourceApi('workflows');
 export const inventoryProjectsApi = createResourceApi('inventory-projects');
 export const heatmapOverridesApi = createResourceApi('heatmap-overrides');
+export const downloadTasksApi = createResourceApi('download-tasks');
 
 // Unboxing API (custom endpoints for video upload)
 export const unboxingApi = {

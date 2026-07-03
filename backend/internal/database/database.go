@@ -80,6 +80,7 @@ func AutoMigrate() {
 		&models.InventoryProject{},
 		&models.HeatmapOverride{},
 		&models.ReturnUnboxing{},
+		&models.DownloadTask{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
