@@ -7,7 +7,7 @@ import {
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
     ShoppingOutlined, BarChartOutlined, NodeIndexOutlined, ProjectOutlined,
-    VideoCameraOutlined, DownloadOutlined,
+    VideoCameraOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -43,7 +43,6 @@ import OrderPerBrandPage from '../pages/OrderPerBrandPage';
 import WorkflowPage from '../pages/WorkflowPage';
 import InventoryProjectPage from '../pages/InventoryProjectPage';
 import UnboxingPage from '../pages/UnboxingPage';
-import DownloadCenterPage from '../pages/DownloadCenterPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -64,7 +63,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { key: '/monthly-report', icon: <BarChartOutlined />, label: 'Monthly Report' },
-    { key: '/download-center', icon: <DownloadOutlined />, label: 'Download Center' },
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/return-receive', icon: <InboxOutlined />, label: 'Return Receive', group: 'return_order' },
     { key: '/return-transaction', icon: <SwapOutlined />, label: 'Return Transaction', group: 'return_order' },
@@ -98,7 +96,6 @@ const NAV_ITEMS: NavItem[] = [
 const PAGE_ID_MAP: Record<string, string> = {
     '/': 'dashboard',
     '/monthly-report': 'monthly-report',
-    '/download-center': 'download-center',
     '/return-receive': 'return-receive',
     '/return-transaction': 'return-transaction',
     '/reject-return': 'reject-return',
@@ -132,7 +129,6 @@ const PAGE_ID_MAP: Record<string, string> = {
 const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/': <DashboardPage />,
     '/monthly-report': <MonthlyReportPage />,
-    '/download-center': <DownloadCenterPage />,
     '/return-receive': <ReturnReceivePage />,
     '/return-transaction': <ReturnTransactionPage />,
     '/reject-return': <RejectReturnPage />,
@@ -167,7 +163,6 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
 const ICON_MAP: Record<string, React.ReactNode> = {
     '/': <DashboardOutlined />,
     '/monthly-report': <BarChartOutlined />,
-    '/download-center': <DownloadOutlined />,
     '/return-receive': <InboxOutlined />,
     '/return-transaction': <SwapOutlined />,
     '/reject-return': <WarningOutlined />,

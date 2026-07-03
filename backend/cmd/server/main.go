@@ -174,9 +174,6 @@ func main() {
 	unboxingHandler := handlers.NewUnboxingHandler()
 	unboxingHandler.RegisterRoutes(protected.Group("/unboxings"))
 
-	downloadTasks := handlers.NewResource[models.DownloadTask]("download-tasks")
-	downloadTasks.RegisterRoutes(protected.Group("/download-tasks"))
-
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
