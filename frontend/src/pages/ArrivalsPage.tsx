@@ -4,7 +4,7 @@ import {
     PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
     DownloadOutlined, UploadOutlined, ClearOutlined, MinusCircleOutlined,
 } from '@ant-design/icons';
-import { arrivalsApi, transactionsApi, employeesApi } from '../api/client';
+import { arrivalsApi, transactionsApi, employeesApi, downloadTasksApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -421,26 +421,30 @@ export default function ArrivalsPage() {
         });
     };
 
-    // CSV Export — includes all columns including auto-calculated ones
-    // Uses filteredData so export matches what's shown on screen (respects date range & search filters)
-    const handleExport = () => {
+    // CSV Export via Download Center
+    const handleExport = async () => {
         const headers = ['date', 'scheduled_arrival_time', 'arrival_time', 'finish_unloading_time', 'brand', 'item_type', 'receipt_no', 'po_no', 'supplier', 'plan_qty', 'po_qty', 'receive_qty', 'putaway_qty', 'pending_qty', 'first_receive', 'last_putaway', 'kingdee_status', 'date_publish_do', 'remarks_publish_do', 'inbound_paperwork_sla_day', 'urgensi', 'operator', 'note', 'status'];
-        const csv = '\uFEFF' + headers.join(',') + '\n' +
-            filteredData.map((r: any) => {
-                const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
-                    ? dayjs(r.date_publish_do).diff(dayjs(r.date), 'day')
-                    : '';
-                const row: any = { ...r, inbound_paperwork_sla_day: sla, item_type: r.item_type || 'Barang Jual' };
-                return headers.map(h => `"${row[h] ?? ''}"`).join(',');
-            }).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `inbound_arrival_${dayjs().format('YYYY-MM-DD')}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        message.success('Export berhasil');
+        
+        const rows = filteredData.map((r: any) => {
+            const sla = r.date && r.date_publish_do && r.date_publish_do !== '-'
+                ? dayjs(r.date_publish_do).diff(dayjs(r.date), 'day')
+                : '';
+            const row: any = { ...r, inbound_paperwork_sla_day: sla, item_type: r.item_type || 'Barang Jual' };
+            return headers.map(h => String(row[h] ?? ''));
+        });
+
+        try {
+            message.loading({ content: 'Memproses export...', key: 'export' });
+            await downloadTasksApi.generateCsv({
+                report_name: 'Inbound Arrival',
+                filename: `inbound_arrival_${dayjs().format('YYYY-MM-DD_HHmmss')}.csv`,
+                headers,
+                rows,
+            });
+            message.success({ content: 'Export berhasil ditambahkan ke antrean! Silakan cek Download Center.', key: 'export', duration: 4 });
+        } catch {
+            message.error({ content: 'Gagal memproses export', key: 'export' });
+        }
     };
 
     // CSV Import — reads by header name, not column position
