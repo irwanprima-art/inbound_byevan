@@ -12,10 +12,10 @@ import (
 // Arrival represents inbound arrival data
 type Arrival struct {
 	ID                   uint           `gorm:"primaryKey" json:"id"`
-	Date                 FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	ScheduledArrivalTime FlexDate       `gorm:"column:scheduled_arrival_time;type:text" json:"scheduled_arrival_time"`
-	ArrivalTime          FlexDate       `gorm:"column:arrival_time;type:text" json:"arrival_time"`
-	FinishUnloadingTime  FlexDate       `gorm:"column:finish_unloading_time;type:text" json:"finish_unloading_time"`
+	Date                 FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	ScheduledArrivalTime FlexDate       `gorm:"column:scheduled_arrival_time;type:text;index" json:"scheduled_arrival_time"`
+	ArrivalTime          FlexDate       `gorm:"column:arrival_time;type:text;index" json:"arrival_time"`
+	FinishUnloadingTime  FlexDate       `gorm:"column:finish_unloading_time;type:text;index" json:"finish_unloading_time"`
 	ReceiptNo            string         `gorm:"column:receipt_no" json:"receipt_no"`
 	PoNo                 string         `gorm:"column:po_no" json:"po_no"`
 	Supplier             string         `gorm:"column:supplier" json:"supplier"`
@@ -26,7 +26,7 @@ type Arrival struct {
 	Note                 string         `gorm:"column:note" json:"note"`
 	ItemType             string         `gorm:"column:item_type;default:Barang Jual" json:"item_type"`
 	KingdeeStatus        string         `gorm:"column:kingdee_status" json:"kingdee_status"`
-	DatePublishDO        FlexDate       `gorm:"column:date_publish_do;type:text" json:"date_publish_do"`
+	DatePublishDO        FlexDate       `gorm:"column:date_publish_do;type:text;index" json:"date_publish_do"`
 	RemarksPublishDO     string         `gorm:"column:remarks_publish_do" json:"remarks_publish_do"`
 	Urgensi              string         `gorm:"column:urgensi" json:"urgensi"`
 	UpdatedBy            string         `gorm:"column:updated_by" json:"updated_by"`
@@ -38,8 +38,8 @@ type Arrival struct {
 // Transaction represents inbound transaction data
 type Transaction struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
-	Date            FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	TimeTransaction FlexDate       `gorm:"column:time_transaction;type:text" json:"time_transaction"`
+	Date            FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	TimeTransaction FlexDate       `gorm:"column:time_transaction;type:text;index" json:"time_transaction"`
 	ReceiptNo       string         `gorm:"column:receipt_no" json:"receipt_no"`
 	Sku             string         `gorm:"column:sku" json:"sku" binding:"required"`
 	OperateType     string         `gorm:"column:operate_type" json:"operate_type"`
@@ -54,8 +54,8 @@ type Transaction struct {
 // ReturnTransaction represents return transaction data (same structure as Transaction)
 type ReturnTransaction struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
-	Date            FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	TimeTransaction FlexDate       `gorm:"column:time_transaction;type:text" json:"time_transaction"`
+	Date            FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	TimeTransaction FlexDate       `gorm:"column:time_transaction;type:text;index" json:"time_transaction"`
 	ReceiptNo       string         `gorm:"column:receipt_no" json:"receipt_no"`
 	Sku             string         `gorm:"column:sku" json:"sku" binding:"required"`
 	OperateType     string         `gorm:"column:operate_type" json:"operate_type"`
@@ -70,13 +70,13 @@ type ReturnTransaction struct {
 // ReturnReceive represents return receive data
 type ReturnReceive struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
-	ReturnDate   FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
-	ReceiveDate  FlexDate       `gorm:"column:receive_date;type:text" json:"receive_date"`
+	ReturnDate   FlexDate       `gorm:"column:return_date;type:text;index" json:"return_date"`
+	ReceiveDate  FlexDate       `gorm:"column:receive_date;type:text;index" json:"receive_date"`
 	Brand        string         `gorm:"column:brand" json:"brand"`
 	ReceiptNo    string         `gorm:"column:receipt_no" json:"receipt_no"`
 	RefNo        string         `gorm:"column:ref_no" json:"ref_no"`
 	Owner        string         `gorm:"column:owner" json:"owner"`
-	ArrivalDate  FlexDate       `gorm:"column:arrival_date;type:text" json:"arrival_date"`
+	ArrivalDate  FlexDate       `gorm:"column:arrival_date;type:text;index" json:"arrival_date"`
 	TrackingNo   string         `gorm:"column:tracking_no" json:"tracking_no"`
 	Sku          string         `gorm:"column:sku" json:"sku"`
 	StockStatus  string         `gorm:"column:stock_status" json:"stock_status"`
@@ -93,8 +93,8 @@ type ReturnReceive struct {
 // RejectReturn represents reject return data
 type RejectReturn struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	InputDate FlexDate       `gorm:"column:input_date;type:text" json:"input_date"`
-	OrderDate FlexDate       `gorm:"column:order_date;type:text" json:"order_date"`
+	InputDate FlexDate       `gorm:"column:input_date;type:text;index" json:"input_date"`
+	OrderDate FlexDate       `gorm:"column:order_date;type:text;index" json:"order_date"`
 	Brand     string         `gorm:"column:brand" json:"brand"`
 	Platform  string         `gorm:"column:platform" json:"platform"`
 	OrderID   string         `gorm:"column:order_id" json:"order_id"`
@@ -112,7 +112,7 @@ type RejectReturn struct {
 // OrderPerBrand represents order per brand data (return order)
 type OrderPerBrand struct {
 	ID         uint           `gorm:"primaryKey" json:"id"`
-	Month      string         `gorm:"column:month" json:"month"`
+	Month      string         `gorm:"column:month;index" json:"month"`
 	Brand      string         `gorm:"column:brand" json:"brand"`
 	OrderCount int            `gorm:"column:order_count" json:"order_count"`
 	Qty        int            `gorm:"column:qty" json:"qty"`
@@ -125,9 +125,9 @@ type OrderPerBrand struct {
 // Vas represents VAS (Value Added Service) data
 type Vas struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
-	StartTime FlexDate       `gorm:"column:start_time;type:text" json:"start_time"`
-	EndTime   FlexDate       `gorm:"column:end_time;type:text" json:"end_time"`
+	Date      FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	StartTime FlexDate       `gorm:"column:start_time;type:text;index" json:"start_time"`
+	EndTime   FlexDate       `gorm:"column:end_time;type:text;index" json:"end_time"`
 	Brand     string         `gorm:"column:brand" json:"brand" binding:"required"`
 	Sku       string         `gorm:"column:sku" json:"sku" binding:"required"`
 	VasType   string         `gorm:"column:vas_type" json:"vas_type" binding:"required"`
@@ -144,7 +144,7 @@ type Vas struct {
 // Dcc represents Daily Cycle Count data
 type Dcc struct {
 	ID                uint           `gorm:"primaryKey" json:"id"`
-	Date              FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date              FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	PhyInv            string         `gorm:"column:phy_inv" json:"phy_inv"`
 	Zone              string         `gorm:"column:zone" json:"zone"`
 	Location          string         `gorm:"column:location" json:"location" binding:"required"`
@@ -168,7 +168,7 @@ type Dcc struct {
 // Damage represents project damage data
 type Damage struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
-	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date         FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Brand        string         `gorm:"column:brand" json:"brand"`
 	Sku          string         `gorm:"column:sku" json:"sku" binding:"required"`
 	Description  string         `gorm:"column:description" json:"description"`
@@ -197,13 +197,13 @@ type Soh struct {
 	Owner            string         `gorm:"column:owner" json:"owner"`
 	Status           string         `gorm:"column:status" json:"status"`
 	Qty              int            `gorm:"column:qty" json:"qty"`
-	WhArrivalDate    FlexDate       `gorm:"column:wh_arrival_date;type:text" json:"wh_arrival_date"`
+	WhArrivalDate    FlexDate       `gorm:"column:wh_arrival_date;type:text;index" json:"wh_arrival_date"`
 	ReceiptNo        string         `gorm:"column:receipt_no" json:"receipt_no"`
-	MfgDate          FlexDate       `gorm:"column:mfg_date;type:text" json:"mfg_date"`
-	ExpDate          FlexDate       `gorm:"column:exp_date;type:text" json:"exp_date"`
+	MfgDate          FlexDate       `gorm:"column:mfg_date;type:text;index" json:"mfg_date"`
+	ExpDate          FlexDate       `gorm:"column:exp_date;type:text;index" json:"exp_date"`
 	BatchNo          string         `gorm:"column:batch_no" json:"batch_no"`
 	DamageType       string         `gorm:"column:damage_type" json:"damage_type"`
-	UpdateDate       FlexDate       `gorm:"column:update_date;type:text" json:"update_date"`
+	UpdateDate       FlexDate       `gorm:"column:update_date;type:text;index" json:"update_date"`
 	UpdatedBy        string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
@@ -213,9 +213,9 @@ type Soh struct {
 // QcReturn represents QC return data
 type QcReturn struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
-	QcDate      FlexDate       `gorm:"column:qc_date;type:text" json:"qc_date" binding:"required"`
+	QcDate      FlexDate       `gorm:"column:qc_date;type:text;index" json:"qc_date" binding:"required"`
 	Receipt     string         `gorm:"column:receipt" json:"receipt"`
-	ReturnDate  FlexDate       `gorm:"column:return_date;type:text" json:"return_date"`
+	ReturnDate  FlexDate       `gorm:"column:return_date;type:text;index" json:"return_date"`
 	Owner       string         `gorm:"column:owner" json:"owner"`
 	Brand       string         `gorm:"column:brand" json:"brand"`
 	Sku         string         `gorm:"column:sku" json:"sku" binding:"required"`
@@ -263,7 +263,7 @@ type MasterItem struct {
 // Attendance represents manpower attendance data
 type Attendance struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
-	Date           FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date           FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Nik            string         `gorm:"column:nik" json:"nik" binding:"required"`
 	Name           string         `gorm:"column:name" json:"name" binding:"required"`
 	Jobdesc        string         `gorm:"column:jobdesc" json:"jobdesc"`
@@ -294,7 +294,7 @@ type Employee struct {
 // ProjectProductivity represents project productivity data
 type ProjectProductivity struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date      FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Project   string         `gorm:"column:project" json:"project" binding:"required"`
 	Activity  string         `gorm:"column:activity" json:"activity"`
 	Operator  string         `gorm:"column:operator" json:"operator"`
@@ -310,7 +310,7 @@ type ProjectProductivity struct {
 // Unloading represents inbound unloading data
 type Unloading struct {
 	ID            uint           `gorm:"primaryKey" json:"id"`
-	Date          FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date          FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Brand         string         `gorm:"column:brand" json:"brand" binding:"required"`
 	VehicleType   string         `gorm:"column:vehicle_type" json:"vehicle_type"`
 	TotalVehicles int            `gorm:"column:total_vehicles" json:"total_vehicles" binding:"min=0"`
@@ -331,7 +331,7 @@ type User struct {
 // Schedule represents manpower weekly schedule
 type Schedule struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date      FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Nik       string         `gorm:"column:nik" json:"nik" binding:"required"`
 	Name      string         `gorm:"column:name" json:"name"`
 	Jobdesc   string         `gorm:"column:jobdesc" json:"jobdesc"`
@@ -348,7 +348,7 @@ type BeritaAcara struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	DocType   string         `gorm:"column:doc_type" json:"doc_type" binding:"required"`
 	DocNumber string         `gorm:"column:doc_number;index" json:"doc_number"`
-	Date      FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date      FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Checker   string         `gorm:"column:checker" json:"checker"`
 	Kepada    string         `gorm:"column:kepada" json:"kepada"`
 	Dari      string         `gorm:"column:dari" json:"dari"`
@@ -365,7 +365,7 @@ type BeritaAcara struct {
 // StockOpname represents stock opname records (same structure as Dcc)
 type StockOpname struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
-	Date        FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date        FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	PhyInv      string         `gorm:"column:phy_inv" json:"phy_inv"`
 	Zone        string         `gorm:"column:zone" json:"zone"`
 	Location    string         `gorm:"column:location" json:"location" binding:"required"`
@@ -386,7 +386,7 @@ type StockOpname struct {
 // AdditionalMp represents additional manpower entries per date
 type AdditionalMp struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
-	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date         FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	AdditionalMp int            `gorm:"column:additional_mp" json:"additional_mp"`
 	Tasks        string         `gorm:"column:tasks;type:text" json:"tasks"`
 	UpdatedBy    string         `gorm:"column:updated_by" json:"updated_by"`
@@ -398,7 +398,7 @@ type AdditionalMp struct {
 // InboundRejection represents tolakan (rejected goods) in inbound
 type InboundRejection struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
-	Date         FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date         FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	Brand        string         `gorm:"column:brand" json:"brand"`
 	Sku          string         `gorm:"column:sku" json:"sku"`
 	SerialNumber string         `gorm:"column:serial_number" json:"serial_number"`
@@ -414,7 +414,7 @@ type InboundRejection struct {
 // InboundCase represents inbound case tracking data
 type InboundCase struct {
 	ID         uint           `gorm:"primaryKey" json:"id"`
-	Date       FlexDate       `gorm:"column:date;type:text" json:"date" binding:"required"`
+	Date       FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	ReceiptNo  string         `gorm:"column:receipt_no" json:"receipt_no"`
 	Brand      string         `gorm:"column:brand" json:"brand"`
 	Case       string         `gorm:"column:case" json:"case"`
@@ -440,10 +440,10 @@ type Workflow struct {
 // InventoryProject represents inventory project tracking
 type InventoryProject struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
-	StartDate   FlexDate       `gorm:"column:start_date;type:text" json:"start_date" binding:"required"`
+	StartDate   FlexDate       `gorm:"column:start_date;type:text;index" json:"start_date" binding:"required"`
 	ProjectName string         `gorm:"column:project_name" json:"project_name" binding:"required"`
 	Task        string         `gorm:"column:task" json:"task"`
-	TargetDate  FlexDate       `gorm:"column:target_date;type:text" json:"target_date"`
+	TargetDate  FlexDate       `gorm:"column:target_date;type:text;index" json:"target_date"`
 	Status      string         `gorm:"column:status;default:Open" json:"status"`
 	UpdatedBy   string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -465,7 +465,7 @@ type HeatmapOverride struct {
 // ReturnUnboxing represents a return order unboxing session with video recording
 type ReturnUnboxing struct {
 	ID         uint           `gorm:"primaryKey" json:"id"`
-	Date       FlexDate       `gorm:"column:date;type:text" json:"date"`
+	Date       FlexDate       `gorm:"column:date;type:text;index" json:"date"`
 	OrderNo    string         `gorm:"column:order_no" json:"order_no" binding:"required"`
 	TrackingNo string         `gorm:"column:tracking_no" json:"tracking_no"`
 	Brand      string         `gorm:"column:brand" json:"brand"`
