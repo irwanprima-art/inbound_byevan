@@ -95,44 +95,6 @@ func DeleteVideo(objectKey string) error {
 	return Client.RemoveObject(ctx, BucketName, objectKey, minio.RemoveObjectOptions{})
 }
 
-// UploadFile uploads a generic file to MinIO and returns the object key
-func UploadFile(objectKey string, reader io.Reader, size int64, contentType string) error {
-	ctx := context.Background()
-	_, err := Client.PutObject(ctx, BucketName, objectKey, reader, size, minio.PutObjectOptions{
-		ContentType: contentType,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to upload file to MinIO: %w", err)
-	}
-	return nil
-}
-
-// GetFileURL generates a presigned URL with custom expiry
-func GetFileURL(objectKey string, contentDisposition string, expiry time.Duration) (string, error) {
-	ctx := context.Background()
-	reqParams := make(url.Values)
-	if contentDisposition != "" {
-		reqParams.Set("response-content-disposition", contentDisposition)
-	}
-	presignedURL, err := Client.PresignedGetObject(ctx, BucketName, objectKey, expiry, reqParams)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
-	}
-
-	// If a public endpoint is defined, replace the internal docker host with the public one
-	if PublicEndpoint != "" {
-		presignedURL.Host = PublicEndpoint
-		publicUseSSL := os.Getenv("MINIO_PUBLIC_USE_SSL") == "true"
-		if publicUseSSL {
-			presignedURL.Scheme = "https"
-		} else {
-			presignedURL.Scheme = "http"
-		}
-	}
-
-	return presignedURL.String(), nil
-}
-
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v

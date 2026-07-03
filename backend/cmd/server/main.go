@@ -177,9 +177,6 @@ func main() {
 	downloadTasks := handlers.NewResource[models.DownloadTask]("download-tasks")
 	downloadTasks.RegisterRoutes(protected.Group("/download-tasks"))
 
-	// Generic export route
-	protected.POST("/export/generate-csv", handlers.GenerateCSV)
-
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
 	r.StaticFile("/favicon.svg", "./static/favicon.svg")
