@@ -318,17 +318,23 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
 
             {/* Cycle Count Coverage */}
             {show('cycle_count') && (() => {
+                const isPickingArea = (type: string) => (type || '').toLowerCase().includes('pick');
+                const pickingLocs = new Set<string>();
+                
                 const zoneTotalMap: Record<string, number> = {};
                 locations.forEach((l: any) => {
+                    if (!isPickingArea(l.location_type)) return;
                     const zone = (l.zone || '').trim();
                     if (!zone) return;
+                    pickingLocs.add((l.location || '').trim());
                     zoneTotalMap[zone] = (zoneTotalMap[zone] || 0) + 1;
                 });
                 const zoneCountedMap: Record<string, Set<string>> = {};
                 fDccList.forEach((d: any) => {
-                    const zone = (d.zone || '').trim();
                     const loc = (d.location || '').trim();
-                    if (!zone || !loc) return;
+                    if (!loc || !pickingLocs.has(loc)) return;
+                    const zone = (d.zone || '').trim();
+                    if (!zone) return;
                     if (!zoneCountedMap[zone]) zoneCountedMap[zone] = new Set();
                     zoneCountedMap[zone].add(loc);
                 });
