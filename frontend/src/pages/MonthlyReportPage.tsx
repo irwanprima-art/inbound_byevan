@@ -45,8 +45,7 @@ const SLIDES = [
     { key: 'return_4', label: '🔄 Return — % Return per Brand', icon: <UndoOutlined />, color: '#0e7490', sections: ['return_pct'] },
     { key: 'return_5', label: '🔄 Return — Reject & AWB per Brand', icon: <UndoOutlined />, color: '#155e75', sections: ['reject_logistics'] },
     // Inventory sub-slides
-    { key: 'inventory_1', label: '📋 Inventory — Accuracy', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy'] },
-    { key: 'inventory_2', label: '📋 Inventory — Cycle Count', icon: <DatabaseOutlined />, color: '#06b6d4', sections: ['cycle_count'] },
+    { key: 'inventory_1', label: '📋 Inventory — Accuracy & Cycle Count', icon: <DatabaseOutlined />, color: '#10b981', sections: ['accuracy', 'cycle_count'] },
     { key: 'inventory_3', label: '📋 Inventory — Damage & QC', icon: <DatabaseOutlined />, color: '#f87171', sections: ['damage_qc'] },
     { key: 'inventory_4', label: '📦 Inventory — Variances', icon: <DatabaseOutlined />, color: '#a78bfa', sections: ['variances'] },
     { key: 'inventory_5', label: '📈 Inventory — Inventory Rate', icon: <DatabaseOutlined />, color: '#f59e0b', sections: ['inventory_rate'] },
@@ -252,6 +251,7 @@ export default function MonthlyReportPage() {
                     locations={locations}
                     matchesDateRange={matchesDateRange}
                     sections={slide.sections}
+                    isMonthlyReport={true}
                 />
             );
         }

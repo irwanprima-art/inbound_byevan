@@ -15,9 +15,10 @@ interface Props {
     locations: any[];
     matchesDateRange: (d: string) => boolean;
     sections?: string[];
+    isMonthlyReport?: boolean;
 }
 
-export default function DashboardInventoryTab({ dateRange, setDateRange, dccList, sohList, damages, qcReturns, locations, matchesDateRange, sections }: Props) {
+export default function DashboardInventoryTab({ dateRange, setDateRange, dccList, sohList, damages, qcReturns, locations, matchesDateRange, sections, isMonthlyReport }: Props) {
     const show = (key: string) => !sections || sections.includes(key);
     const navigate = useNavigate();
 
@@ -174,7 +175,7 @@ export default function DashboardInventoryTab({ dateRange, setDateRange, dccList
             </Row>
 
                 {/* Shortage & Gain — net per SKU using reconcile-aware values */}
-                {(() => {
+                {!isMonthlyReport && (() => {
                     const skuBrandMap: Record<string, string> = {};
                     fSohList.forEach((s: any) => { if (s.sku && s.brand) skuBrandMap[s.sku] = s.brand; });
                     fDccList.forEach((d: any) => { if (d.sku && d.brand) skuBrandMap[d.sku] = d.brand; });
