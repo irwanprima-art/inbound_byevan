@@ -7,8 +7,7 @@ import {
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
     ShoppingOutlined, BarChartOutlined, NodeIndexOutlined, ProjectOutlined,
-    VideoCameraOutlined,
-} from '@ant-design/icons';
+    } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
 
@@ -42,7 +41,6 @@ import RejectReturnPage from '../pages/RejectReturnPage';
 import OrderPerBrandPage from '../pages/OrderPerBrandPage';
 import WorkflowPage from '../pages/WorkflowPage';
 import InventoryProjectPage from '../pages/InventoryProjectPage';
-import UnboxingPage from '../pages/UnboxingPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -68,7 +66,6 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/return-transaction', icon: <SwapOutlined />, label: 'Return Transaction', group: 'return_order' },
     { key: '/reject-return', icon: <WarningOutlined />, label: 'Reject Return', group: 'return_order' },
     { key: '/order-per-brand', icon: <BarChartOutlined />, label: 'Order per Brand', group: 'return_order' },
-    { key: '/unboxing-return', icon: <VideoCameraOutlined />, label: 'Unboxing', group: 'return_order' },
     { key: '/arrivals', icon: <InboxOutlined />, label: 'Inbound Arrival', group: 'inbound' },
     { key: '/transactions', icon: <SwapOutlined />, label: 'Inbound Transaction', group: 'inbound' },
     { key: '/unloading', icon: <CarOutlined />, label: 'Inbound Unloading', group: 'inbound' },
@@ -100,7 +97,6 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/return-transaction': 'return-transaction',
     '/reject-return': 'reject-return',
     '/order-per-brand': 'order-per-brand',
-    '/unboxing-return': 'unboxing-return',
     '/arrivals': 'inbound-arrival',
     '/transactions': 'inbound-transaction',
     '/unloading': 'inbound-unloading',
@@ -133,7 +129,6 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/return-transaction': <ReturnTransactionPage />,
     '/reject-return': <RejectReturnPage />,
     '/order-per-brand': <OrderPerBrandPage />,
-    '/unboxing-return': <UnboxingPage />,
     '/arrivals': <ArrivalsPage />,
     '/transactions': <TransactionsPage />,
     '/unloading': <UnloadingPage />,
@@ -167,7 +162,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/return-transaction': <SwapOutlined />,
     '/reject-return': <WarningOutlined />,
     '/order-per-brand': <BarChartOutlined />,
-    '/unboxing-return': <VideoCameraOutlined />,
     '/arrivals': <InboxOutlined />,
     '/transactions': <SwapOutlined />,
     '/unloading': <CarOutlined />,

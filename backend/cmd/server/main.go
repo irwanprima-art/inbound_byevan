@@ -171,8 +171,9 @@ func main() {
 	heatmapOverrides := handlers.NewResource[models.HeatmapOverride]("heatmap-overrides")
 	heatmapOverrides.RegisterRoutes(protected.Group("/heatmap-overrides"))
 
-	unboxingHandler := handlers.NewUnboxingHandler()
-	unboxingHandler.RegisterRoutes(protected.Group("/unboxings"))
+	// Unboxing feature disabled per user request
+	// unboxingHandler := handlers.NewUnboxingHandler()
+	// unboxingHandler.RegisterRoutes(protected.Group("/unboxings"))
 
 	// Serve React static files (production build in ./static)
 	r.Static("/assets", "./static/assets")
