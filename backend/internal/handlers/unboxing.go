@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
 	"time"
 
 	"warehouse-report-monitoring/internal/database"
@@ -22,12 +24,53 @@ func NewUnboxingHandler() *UnboxingHandler {
 
 // List returns all unboxing records
 func (h *UnboxingHandler) List(c *gin.Context) {
+	pageStr := c.Query("page")
+	if pageStr == "" {
+		var items []models.ReturnUnboxing
+		if err := database.DB.Order("created_at DESC").Find(&items).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, items)
+		return
+	}
+
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 { page = 1 }
+	pageSize, _ := strconv.Atoi(c.Query("pageSize"))
+	if pageSize < 1 { pageSize = 50 }
+
+	query := database.DB.Model(&models.ReturnUnboxing{})
+
+	search := c.Query("search")
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		query = query.Where("order_no LIKE ? OR tracking_no LIKE ? OR brand LIKE ?", searchTerm, searchTerm, searchTerm)
+	}
+
+	dateField := c.Query("dateField")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if dateField != "" && startDate != "" && endDate != "" {
+		if regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(dateField) {
+			query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", dateField, dateField), startDate+" 00:00:00", endDate+" 23:59:59")
+		}
+	}
+
+	var total int64
+	query.Count(&total)
+
+	offset := (page - 1) * pageSize
 	var items []models.ReturnUnboxing
-	if err := database.DB.Order("created_at DESC").Find(&items).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&items).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, items)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  items,
+		"total": total,
+	})
 }
 
 // Upload handles multipart form: video file + metadata fields

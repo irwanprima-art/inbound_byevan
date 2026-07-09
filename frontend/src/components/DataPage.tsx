@@ -44,7 +44,7 @@ const ResizableTitle = (props: any) => {
 interface DataPageProps<T> {
     title: string;
     api: {
-        list: () => Promise<{ data: T[] }>;
+        list: (params?: any) => Promise<{ data: any }>;
         create: (data: Record<string, unknown>) => Promise<any>;
         update: (id: number, data: Record<string, unknown>) => Promise<any>;
         remove: (id: number) => Promise<any>;
@@ -81,7 +81,7 @@ interface DataPageProps<T> {
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, computeSearchText, dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper, hideEdit,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, /* computeSearchText removed */ dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper, hideEdit,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -93,6 +93,21 @@ export default function DataPage<T extends { id: number }>({
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [form] = Form.useForm();
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
+    const [total, setTotal] = useState(0);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [search]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, dateRange]);
 
     const canDelete = user?.role === 'supervisor' || user?.role === 'leader';
     const isSupervisor = user?.role === 'supervisor';
@@ -100,18 +115,40 @@ export default function DataPage<T extends { id: number }>({
     const fetchData = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const res = await api.list();
-            let items = res.data || [];
-            // Sort by id descending so newest data appears first
-            items.sort((a: T, b: T) => b.id - a.id);
+            const params: Record<string, any> = {
+                page,
+                pageSize,
+                search: debouncedSearch || undefined,
+            };
+            if (dateField && dateRange) {
+                params.dateField = dateField;
+                params.startDate = dateRange[0].format('YYYY-MM-DD');
+                params.endDate = dateRange[1].format('YYYY-MM-DD');
+            }
+
+            const res = await api.list(params);
+            
+            let items = [];
+            let totalCount = 0;
+            
+            if (res.data && typeof res.data === 'object' && !Array.isArray(res.data) && 'total' in res.data) {
+                items = res.data.data || [];
+                totalCount = res.data.total || 0;
+            } else {
+                items = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                totalCount = items.length;
+                items.sort((a: any, b: any) => b.id - a.id);
+            }
+
             if (enrichData) items = await enrichData(items);
             setData(items);
+            setTotal(totalCount);
         } catch (err) {
             if (!silent) message.error('Gagal memuat data');
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [api, enrichData]);
+    }, [api, enrichData, page, pageSize, debouncedSearch, dateRange, dateField]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -303,47 +340,66 @@ export default function DataPage<T extends { id: number }>({
 
     // Filter data by date range and search (moved up so handleExport can use it)
     const filtered = data.filter(item => {
-        if (dateField && dateRange) {
-            const val = (item as any)[dateField];
-            if (val) {
-                const d = dayjs(val);
-                if (d.isBefore(dateRange[0], 'day') || d.isAfter(dateRange[1], 'day')) return false;
-            }
-        }
-        if (search === '') {
-            if (extraFilterFn) return extraFilterFn(item);
-            return true;
-        }
-        const q = search.toLowerCase();
-        const base = JSON.stringify(item).toLowerCase().includes(q);
-        if (base) return extraFilterFn ? extraFilterFn(item) : true;
-        const computed = computeSearchText ? computeSearchText(item).toLowerCase().includes(q) : false;
-        return computed && (extraFilterFn ? extraFilterFn(item) : true);
+        if (extraFilterFn) return extraFilterFn(item);
+        return true;
     });
 
-    const handleExport = () => {
+    const handleExport = async () => {
         const headers = exportHeaders || csvHeaders;
         if (!headers) return;
-        const headerLine = headers.join(',');
-        const rows = filtered.map(item => {
-            const mapped = exportRowMapper ? { ...(item as any), ...exportRowMapper(item) } : item;
-            return headers.map(h => {
-                const key = h.replace(/\s+/g, '_').toLowerCase();
-                const val = mapped[key] ?? '';
-                // Wrap in quotes if value contains comma, newline, or quote
-                const s = String(val);
-                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-            }).join(',');
-        });
-        const csv = '\uFEFF' + [headerLine, ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_export.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        message.success('Export berhasil');
+
+        const msgKey = 'exporting';
+        message.loading({ content: 'Menyiapkan export...', key: msgKey, duration: 0 });
+        
+        try {
+            const params: Record<string, any> = {
+                page: 1,
+                pageSize: 999999, // fetch all for export
+                search: debouncedSearch || undefined,
+            };
+            if (dateField && dateRange) {
+                params.dateField = dateField;
+                params.startDate = dateRange[0].format('YYYY-MM-DD');
+                params.endDate = dateRange[1].format('YYYY-MM-DD');
+            }
+
+            const res = await api.list(params);
+            let itemsToExport = [];
+            
+            if (res.data && typeof res.data === 'object' && !Array.isArray(res.data) && 'total' in res.data) {
+                itemsToExport = res.data.data || [];
+            } else {
+                itemsToExport = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+            }
+            if (enrichData) itemsToExport = await enrichData(itemsToExport);
+
+            const finalExportData = itemsToExport.filter((item: any) => {
+                if (extraFilterFn) return extraFilterFn(item);
+                return true;
+            });
+
+            const headerLine = headers.join(',');
+            const rows = finalExportData.map((item: any) => {
+                const mapped = exportRowMapper ? { ...item, ...exportRowMapper(item) } : item;
+                return headers.map(h => {
+                    const key = h.replace(/\s+/g, '_').toLowerCase();
+                    const val = mapped[key] ?? '';
+                    const s = String(val);
+                    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+                }).join(',');
+            });
+            const csv = '\uFEFF' + [headerLine, ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_export.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            message.success({ content: 'Export berhasil', key: msgKey });
+        } catch (err) {
+            message.error({ content: 'Gagal export data', key: msgKey });
+        }
     };
 
     // Column widths state for resizable columns
@@ -480,7 +536,17 @@ export default function DataPage<T extends { id: number }>({
                 dataSource={filtered}
                 loading={loading}
                 scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
-                pagination={{ defaultPageSize: 50, showSizeChanger: true, showTotal: (t) => `Total: ${t}` }}
+                pagination={{
+                    current: page,
+                    pageSize: pageSize,
+                    total: total,
+                    showSizeChanger: true,
+                    showTotal: (t) => `Total: ${t}`,
+                    onChange: (p, s) => {
+                        setPage(p);
+                        setPageSize(s || 50);
+                    }
+                }}
                 rowSelection={canDelete ? {
                     selectedRowKeys: selectedKeys,
                     onChange: setSelectedKeys,

@@ -2,9 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"warehouse-report-monitoring/internal/database"
 
@@ -45,14 +50,95 @@ func injectUpdatedBy[T any](c *gin.Context, item *T) error {
 	return json.Unmarshal(enriched, item)
 }
 
-// List returns all records
+// getSearchColumns returns json tags for string fields in a struct
+func getSearchColumns(t interface{}) []string {
+	var cols []string
+	val := reflect.TypeOf(t).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		// We only search string fields generically
+		if field.Type.Kind() == reflect.String {
+			jsonTag := field.Tag.Get("json")
+			if jsonTag != "" && jsonTag != "-" {
+				cols = append(cols, strings.Split(jsonTag, ",")[0])
+			}
+		}
+	}
+	return cols
+}
+
+// List returns all records, with optional server-side pagination
 func (h *ResourceHandler[T]) List(c *gin.Context) {
+	pageStr := c.Query("page")
+	
+	// Legacy mode: if no page parameter, return everything as a flat array
+	if pageStr == "" {
+		var items []T
+		if err := database.DB.Find(&items).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, items)
+		return
+	}
+
+	// Paginated mode
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.Query("pageSize"))
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	if pageSize > 100000 {
+		pageSize = 100000
+	}
+
+	query := database.DB.Model(new(T))
+
+	// Date filtering
+	dateField := c.Query("dateField")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if dateField != "" && startDate != "" && endDate != "" {
+		if regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(dateField) {
+			query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", dateField, dateField), startDate+" 00:00:00", endDate+" 23:59:59")
+		}
+	}
+
+	// Searching
+	search := c.Query("search")
+	if search != "" {
+		cols := getSearchColumns(new(T))
+		if len(cols) > 0 {
+			var orConditions []string
+			var args []interface{}
+			searchTerm := "%" + search + "%"
+			for _, col := range cols {
+				orConditions = append(orConditions, fmt.Sprintf("%s LIKE ?", col))
+				args = append(args, searchTerm)
+			}
+			query = query.Where(strings.Join(orConditions, " OR "), args...)
+		}
+	}
+
+	// Count total before limit/offset
+	var total int64
+	query.Count(&total)
+
+	// Apply limit, offset, and order
+	offset := (page - 1) * pageSize
 	var items []T
-	if err := database.DB.Find(&items).Error; err != nil {
+	if err := query.Order("id DESC").Offset(offset).Limit(pageSize).Find(&items).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, items)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  items,
+		"total": total,
+	})
 }
 
 // Get returns a single record by ID

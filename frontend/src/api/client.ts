@@ -39,7 +39,7 @@ export const authApi = {
 // Generic CRUD for any resource
 export function createResourceApi(resource: string) {
     return {
-        list: () => api.get(`/${resource}`),
+        list: (params?: Record<string, any>) => api.get(`/${resource}`, { params }),
         get: (id: number) => api.get(`/${resource}/${id}`),
         create: (data: Record<string, unknown>) => api.post(`/${resource}`, data),
         update: (id: number, data: Record<string, unknown>) => api.put(`/${resource}/${id}`, data),
@@ -80,7 +80,7 @@ export const heatmapOverridesApi = createResourceApi('heatmap-overrides');
 
 // Unboxing API (custom endpoints for video upload)
 export const unboxingApi = {
-    list: () => api.get('/unboxings'),
+    list: (params?: Record<string, any>) => api.get('/unboxings', { params }),
     upload: (formData: FormData) => api.post('/unboxings/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 120000, // 2 min timeout for video upload
