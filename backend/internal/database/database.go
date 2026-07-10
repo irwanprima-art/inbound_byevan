@@ -51,6 +51,18 @@ func Connect() {
 }
 
 func AutoMigrate() {
+	// Deduplicate locations before auto-migrating to prevent unique constraint violation
+	if err := DB.Exec(`
+		DELETE FROM locations 
+		WHERE id NOT IN (
+			SELECT MIN(id) 
+			FROM locations 
+			GROUP BY location
+		)
+	`).Error; err != nil {
+		log.Printf("[DB] Warning: could not deduplicate locations: %v", err)
+	}
+
 	err := DB.AutoMigrate(
 		&models.Arrival{},
 		&models.Transaction{},
