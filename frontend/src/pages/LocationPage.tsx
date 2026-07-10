@@ -15,6 +15,7 @@ interface LocationRecord {
     location_category: string;
     zone: string;
     location_type: string;
+    location_group: string;
     damage_type: string;
 }
 
@@ -155,6 +156,8 @@ export default function LocationPage() {
         'location_category': 'location_category',
         'Location Type': 'location_type',
         'location_type': 'location_type',
+        'Location Group': 'location_group',
+        'location_group': 'location_group',
         'Damage Type': 'damage_type',
         'damage_type': 'damage_type',
     };
@@ -200,12 +203,12 @@ export default function LocationPage() {
     };
 
     const handleExport = () => {
-        const csvHeaders = ['location', 'location_category', 'zone', 'location_type', 'damage_type', 'stock_level', 'occupancy', 'brand_on_location'];
+        const csvHeaders = ['location', 'location_category', 'zone', 'location_type', 'location_group', 'damage_type', 'stock_level', 'occupancy', 'brand_on_location'];
         const headerLine = csvHeaders.join(',');
         const rows = filteredData.map(r => {
             const info = sohMap[r.location];
             return [
-                r.location, r.location_category, r.zone, r.location_type, r.damage_type || '',
+                r.location, r.location_category, r.zone, r.location_type, r.location_group || '', r.damage_type || '',
                 info?.totalQty ?? 0,
                 (info?.totalQty ?? 0) > 0 ? 'Occupied' : 'Empty',
                 info ? getDominantBrand(info.brands) : '',
@@ -228,6 +231,7 @@ export default function LocationPage() {
         { title: 'Location Category', dataIndex: 'location_category', key: 'location_category', width: 140 },
         { title: 'Zone', dataIndex: 'zone', key: 'zone', width: 80 },
         { title: 'Location Type', dataIndex: 'location_type', key: 'location_type', width: 120 },
+        { title: 'Location Group', dataIndex: 'location_group', key: 'location_group', width: 130 },
         {
             title: 'Damage Type', dataIndex: 'damage_type', key: 'damage_type', width: 120,
             render: (v: string) => {
@@ -286,7 +290,7 @@ export default function LocationPage() {
                             <Button icon={<UploadOutlined />}>Import</Button>
                         </Upload>
                     )}
-                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['location', 'location_category', 'zone', 'location_type', 'damage_type'], 'Location_template')}>Template</Button>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['location', 'location_category', 'zone', 'location_type', 'location_group', 'damage_type'], 'Location_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
@@ -319,6 +323,7 @@ export default function LocationPage() {
                     <Form.Item name="location_category" label="Location Category"><Input /></Form.Item>
                     <Form.Item name="zone" label="Zone"><Input /></Form.Item>
                     <Form.Item name="location_type" label="Location Type"><Input /></Form.Item>
+                    <Form.Item name="location_group" label="Location Group"><Input /></Form.Item>
                     <Form.Item name="damage_type" label="Damage Type"><Input /></Form.Item>
                 </Form>
             </Modal>

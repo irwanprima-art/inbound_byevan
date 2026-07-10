@@ -238,6 +238,7 @@ type Location struct {
 	LocationCategory string         `gorm:"column:location_category" json:"location_category"`
 	Zone             string         `gorm:"column:zone" json:"zone"`
 	LocationType     string         `gorm:"column:location_type" json:"location_type"`
+	LocationGroup    string         `gorm:"column:location_group" json:"location_group"`
 	DamageType       string         `gorm:"column:damage_type" json:"damage_type"`
 	UpdatedBy        string         `gorm:"column:updated_by" json:"updated_by"`
 	CreatedAt        time.Time      `json:"created_at"`
