@@ -307,7 +307,7 @@ func (h *ResourceHandler[T]) BatchImport(c *gin.Context) {
 			}
 			batch := req.Data[i:end]
 			
-			if h.ResourceName == "locations" {
+			if h.Name == "locations" {
 				if err := tx.Clauses(clause.OnConflict{
 					Columns:   []clause.Column{{Name: "location"}},
 					UpdateAll: true,
