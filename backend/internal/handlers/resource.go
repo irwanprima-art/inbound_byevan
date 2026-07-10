@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ResourceHandler provides generic CRUD operations for any GORM model
@@ -305,9 +306,20 @@ func (h *ResourceHandler[T]) BatchImport(c *gin.Context) {
 				end = len(req.Data)
 			}
 			batch := req.Data[i:end]
-			if err := tx.Create(&batch).Error; err != nil {
-				return err
+			
+			if h.ResourceName == "locations" {
+				if err := tx.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "location"}},
+					UpdateAll: true,
+				}).Create(&batch).Error; err != nil {
+					return err
+				}
+			} else {
+				if err := tx.Create(&batch).Error; err != nil {
+					return err
+				}
 			}
+			
 			total += len(batch)
 		}
 		return nil

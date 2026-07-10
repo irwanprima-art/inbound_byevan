@@ -234,7 +234,7 @@ type QcReturn struct {
 // Location represents master location data
 type Location struct {
 	ID               uint           `gorm:"primaryKey" json:"id"`
-	Location         string         `gorm:"column:location" json:"location" binding:"required"`
+	Location         string         `gorm:"column:location;uniqueIndex" json:"location" binding:"required"`
 	LocationCategory string         `gorm:"column:location_category" json:"location_category"`
 	Zone             string         `gorm:"column:zone" json:"zone"`
 	LocationType     string         `gorm:"column:location_type" json:"location_type"`
