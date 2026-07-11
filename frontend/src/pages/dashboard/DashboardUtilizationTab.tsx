@@ -250,7 +250,7 @@ export default function DashboardUtilizationTab({ sohList, locations }: Props) {
     return (
         <>
             <Card
-                title="📊 WH Utilization Perbulan"
+                title="📊 Monthly WH Utilization"
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 24 }}
                 styles={{ header: { color: '#fff' } }}
             >
