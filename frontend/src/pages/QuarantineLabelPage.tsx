@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select, Table, Space } from 'antd';
+import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select, Table } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import Barcode from 'react-barcode';
 import dayjs from 'dayjs';
