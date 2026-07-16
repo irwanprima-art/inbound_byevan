@@ -126,7 +126,7 @@ export default function QuarantineLabelPage() {
                         </style>
                     </head>
                     <body>
-                        \${printContent.innerHTML}
+                        ${printContent.innerHTML}
                         <script>
                             window.onload = function() {
                                 window.print();
