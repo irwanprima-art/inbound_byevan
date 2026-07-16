@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import Barcode from 'react-barcode';
@@ -24,6 +24,12 @@ export default function QuarantineLabelPage() {
     const [form] = Form.useForm();
     const [labelData, setLabelData] = useState<QuarantineData | null>(null);
 
+    useEffect(() => {
+        // Auto-generate LPN Code on mount
+        const generatedLpn = `QRN-${dayjs().format('YYYYMMDDHHmmss')}`;
+        form.setFieldsValue({ lpn: generatedLpn });
+    }, [form]);
+
     const onFinish = (values: any) => {
         setLabelData({
             ...values,
@@ -34,6 +40,8 @@ export default function QuarantineLabelPage() {
         
         setTimeout(() => {
             printLabel();
+            // Generate a new LPN for the next label after printing
+            form.setFieldsValue({ lpn: `QRN-${dayjs().format('YYYYMMDDHHmmss')}` });
         }, 100);
     };
 
@@ -156,7 +164,7 @@ export default function QuarantineLabelPage() {
                     <Row gutter={16}>
                         <Col span={8}>
                             <Form.Item name="lpn" label="LPN Code (Unique ID)" rules={[{ required: true }]}>
-                                <Input placeholder="e.g. QRN-20260716-001" />
+                                <Input readOnly style={{ backgroundColor: '#f5f5f5' }} />
                             </Form.Item>
                         </Col>
                         <Col span={8}>
