@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select } from 'antd';
+import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select, Table, Space } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import Barcode from 'react-barcode';
 import dayjs from 'dayjs';
@@ -18,11 +18,30 @@ interface QuarantineData {
     status: string;
     startDate: dayjs.Dayjs | null;
     reason: string;
+    createdAt?: string;
 }
 
 export default function QuarantineLabelPage() {
     const [form] = Form.useForm();
     const [labelData, setLabelData] = useState<QuarantineData | null>(null);
+    const [history, setHistory] = useState<QuarantineData[]>(() => {
+        const saved = localStorage.getItem('quarantine_label_history');
+        if (saved) {
+            try {
+                // Parse and convert string dates back to dayjs objects
+                const parsed = JSON.parse(saved);
+                return parsed.map((item: any) => ({
+                    ...item,
+                    mfg: item.mfg ? dayjs(item.mfg) : null,
+                    exp: item.exp ? dayjs(item.exp) : null,
+                    startDate: item.startDate ? dayjs(item.startDate) : null,
+                }));
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    });
 
     useEffect(() => {
         // Auto-generate LPN Code on mount
@@ -31,11 +50,21 @@ export default function QuarantineLabelPage() {
     }, [form]);
 
     const onFinish = (values: any) => {
-        setLabelData({
+        const newData: QuarantineData = {
             ...values,
             mfg: values.mfg ? values.mfg : null,
             exp: values.exp ? values.exp : null,
             startDate: values.startDate ? values.startDate : null,
+            createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        };
+
+        setLabelData(newData);
+        
+        // Save to history
+        setHistory(prev => {
+            const newHistory = [newData, ...prev].slice(0, 50); // Keep last 50
+            localStorage.setItem('quarantine_label_history', JSON.stringify(newHistory));
+            return newHistory;
         });
         
         setTimeout(() => {
@@ -44,6 +73,30 @@ export default function QuarantineLabelPage() {
             form.setFieldsValue({ lpn: `QRN-${dayjs().format('YYYYMMDDHHmmss')}` });
         }, 100);
     };
+
+    const handleReprint = (record: QuarantineData) => {
+        setLabelData(record);
+        setTimeout(() => {
+            printLabel();
+        }, 100);
+    };
+
+    const columns = [
+        { title: 'LPN Code', dataIndex: 'lpn', key: 'lpn' },
+        { title: 'SKU', dataIndex: 'sku', key: 'sku' },
+        { title: 'Qty', dataIndex: 'qty', key: 'qty' },
+        { title: 'Status', dataIndex: 'status', key: 'status' },
+        { title: 'Created At', dataIndex: 'createdAt', key: 'createdAt' },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_: any, record: QuarantineData) => (
+                <Button type="link" icon={<PrinterOutlined />} onClick={() => handleReprint(record)}>
+                    Reprint
+                </Button>
+            ),
+        },
+    ];
 
     const printLabel = () => {
         const printContent = document.getElementById('quarantine-label-print');
@@ -229,6 +282,15 @@ export default function QuarantineLabelPage() {
                         </Button>
                     </Form.Item>
                 </Form>
+            </Card>
+
+            <Card style={{ marginTop: '24px' }} title="Print History (Local)">
+                <Table 
+                    dataSource={history} 
+                    columns={columns} 
+                    rowKey="lpn"
+                    pagination={{ pageSize: 5 }}
+                />
             </Card>
 
             {/* Hidden Print Section */}
