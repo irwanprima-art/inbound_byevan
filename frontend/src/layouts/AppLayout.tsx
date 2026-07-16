@@ -6,7 +6,7 @@ import {
     EnvironmentOutlined, IdcardOutlined, ClockCircleOutlined,
     LineChartOutlined, LogoutOutlined, UserOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
     CloseOutlined, CarOutlined, CalendarOutlined, FileTextOutlined, TeamOutlined,
-    ShoppingOutlined, BarChartOutlined, NodeIndexOutlined, ProjectOutlined,
+    ShoppingOutlined, BarChartOutlined, NodeIndexOutlined, ProjectOutlined, PrinterOutlined
     } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, hasPageAccess } from '../contexts/AuthContext';
@@ -41,6 +41,7 @@ import RejectReturnPage from '../pages/RejectReturnPage';
 import OrderPerBrandPage from '../pages/OrderPerBrandPage';
 import WorkflowPage from '../pages/WorkflowPage';
 import InventoryProjectPage from '../pages/InventoryProjectPage';
+import QuarantineLabelPage from '../pages/QuarantineLabelPage';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -82,6 +83,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/qc-returns', icon: <RollbackOutlined />, label: 'QC Return', group: 'inventory' },
     { key: '/berita-acara-inventory', icon: <FileTextOutlined />, label: 'Berita Acara', group: 'inventory' },
     { key: '/inventory-project', icon: <ProjectOutlined />, label: 'Inventory Project', group: 'inventory' },
+    { key: '/quarantine-label', icon: <PrinterOutlined />, label: 'Quarantine Label', group: 'inventory' },
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', group: 'manpower' },
     { key: '/employees', icon: <IdcardOutlined />, label: 'Employees', group: 'manpower' },
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
@@ -119,6 +121,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/inbound-case': 'inbound-case',
     '/workflow': 'workflow',
     '/inventory-project': 'inventory-project',
+    '/quarantine-label': 'quarantine-label',
 };
 
 // Map route key → component
@@ -151,6 +154,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/inbound-case': <InboundCasePage />,
     '/workflow': <WorkflowPage />,
     '/inventory-project': <InventoryProjectPage />,
+    '/quarantine-label': <QuarantineLabelPage />,
     '/settings': <SettingsPage />,
 };
 
@@ -181,6 +185,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/berita-acara': <FileTextOutlined />,
     '/berita-acara-inventory': <FileTextOutlined />,
     '/inventory-project': <ProjectOutlined />,
+    '/quarantine-label': <PrinterOutlined />,
     '/workflow': <NodeIndexOutlined />,
 };
 
