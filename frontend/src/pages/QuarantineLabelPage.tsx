@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, Form, Input, Button, DatePicker, Row, Col, Typography, Select } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import Barcode from 'react-barcode';
