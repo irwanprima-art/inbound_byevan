@@ -354,7 +354,13 @@ export default function InboundCasePage() {
                     onChange={e => handleItemChange(i, 'do_number', e.target.value)} />
             ),
         },
-        { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 160 },
+        {
+            title: 'SKU', dataIndex: 'sku', key: 'sku', width: 160,
+            render: (v: string, _: any, i: number) => (
+                <Input value={v} size="small" placeholder="SKU"
+                    onChange={e => handleItemChange(i, 'sku', e.target.value)} />
+            ),
+        },
         {
             title: 'Deskripsi', dataIndex: 'deskripsi', key: 'deskripsi', width: 200,
             render: (v: string, _: any, i: number) => (

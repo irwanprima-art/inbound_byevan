@@ -417,6 +417,7 @@ type InboundCase struct {
 	ID         uint           `gorm:"primaryKey" json:"id"`
 	Date       FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
 	ReceiptNo  string         `gorm:"column:receipt_no" json:"receipt_no"`
+	Sku        string         `gorm:"column:sku" json:"sku"`
 	Brand      string         `gorm:"column:brand" json:"brand"`
 	Case       string         `gorm:"column:case" json:"case"`
 	Operator   string         `gorm:"column:operator" json:"operator"`
