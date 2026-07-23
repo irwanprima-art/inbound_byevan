@@ -31,18 +31,21 @@ func InitMinio() {
 		Secure: useSSL,
 	})
 	if err != nil {
-		log.Fatalf("[MinIO] Failed to create client: %v", err)
+		log.Printf("[MinIO] Failed to create client: %v", err)
+		return
 	}
 
 	// Auto-create bucket if not exists
 	ctx := context.Background()
 	exists, err := Client.BucketExists(ctx, BucketName)
 	if err != nil {
-		log.Fatalf("[MinIO] Failed to check bucket: %v", err)
+		log.Printf("[MinIO] Failed to check bucket: %v", err)
+		return
 	}
 	if !exists {
 		if err := Client.MakeBucket(ctx, BucketName, minio.MakeBucketOptions{}); err != nil {
-			log.Fatalf("[MinIO] Failed to create bucket: %v", err)
+			log.Printf("[MinIO] Failed to create bucket: %v", err)
+			return
 		}
 		log.Printf("[MinIO] Created bucket: %s", BucketName)
 	}
