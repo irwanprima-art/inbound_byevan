@@ -84,6 +84,7 @@ interface BaItem {
     qty_process: number;
     case_type: string;
     operator: string;
+    _existing_case_id?: number;
 }
 
 // Generate doc number for BA Case Inbound: MMYY-XXXX/WH-JC/YYYY
@@ -145,11 +146,33 @@ export default function InboundCasePage() {
     useEffect(() => { fetchBaDocs(); }, [fetchBaDocs]);
 
     // Open BA modal
-    const handleOpenBaModal = () => {
+    const handleOpenBaModal = (selectedRows?: any[]) => {
         baForm.resetFields();
         baForm.setFieldsValue({ date: dayjs() });
-        setBaItems([]);
         setSkuInput('');
+
+        if (selectedRows && selectedRows.length > 0) {
+            const firstRow = selectedRows[0];
+            baForm.setFieldsValue({ 
+                receipt_no: firstRow.receipt_no || '', 
+                brand: firstRow.brand || '' 
+            });
+
+            const newItems = selectedRows.map(row => ({
+                do_number: '',
+                sku: row.sku,
+                deskripsi: row.keterangan || '',
+                qty_actual: row.qty || 0,
+                qty_process: 0,
+                case_type: row.case || '',
+                operator: row.operator || '',
+                _existing_case_id: row.id,
+            }));
+            setBaItems(newItems);
+        } else {
+            setBaItems([]);
+        }
+
         setBaModalOpen(true);
         fetchBaDocs();
     };
@@ -237,10 +260,12 @@ export default function InboundCasePage() {
             // 1. Save Berita Acara
             await beritaAcaraApi.create(payload);
 
-            // 2. Auto-insert each item to Case Inbound
+            // 2. Auto-insert or update each item to Case Inbound
             for (const item of baItems) {
                 const discrepancy = (item.qty_actual || 0) - (item.qty_process || 0);
-                await inboundCasesApi.create({
+                const updatedKeterangan = `[BA ${docNumber}] ${item.deskripsi || ''} | Qty Actual: ${item.qty_actual}, Qty Process: ${item.qty_process}, Discrepancy: ${discrepancy}`;
+                
+                const caseData = {
                     date: dateStr,
                     receipt_no: vals.receipt_no || '',
                     brand: vals.brand || '',
@@ -248,8 +273,14 @@ export default function InboundCasePage() {
                     case: item.case_type,
                     operator: item.operator,
                     qty: Math.abs(discrepancy),
-                    keterangan: `[BA ${docNumber}] ${item.deskripsi || ''} | Qty Actual: ${item.qty_actual}, Qty Process: ${item.qty_process}, Discrepancy: ${discrepancy}`,
-                });
+                    keterangan: updatedKeterangan,
+                };
+
+                if (item._existing_case_id) {
+                    await inboundCasesApi.update(item._existing_case_id, caseData);
+                } else {
+                    await inboundCasesApi.create(caseData);
+                }
             }
 
             message.success('Berita Acara tersimpan & data masuk ke Case Inbound!');
@@ -385,10 +416,10 @@ export default function InboundCasePage() {
     ];
 
     // ---- Extra button for DataPage toolbar ----
-    const extraButtons = (
+    const extraButtons = (selectedKeys: React.Key[], selectedRows: any[]) => (
         <Button
             icon={<FileTextOutlined />}
-            onClick={handleOpenBaModal}
+            onClick={() => handleOpenBaModal(selectedRows)}
             style={{
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                 border: 'none',
@@ -396,7 +427,7 @@ export default function InboundCasePage() {
                 fontWeight: 600,
             }}
         >
-            📄 Buat Berita Acara
+            📄 Buat Berita Acara {selectedRows.length > 0 ? `(${selectedRows.length})` : ''}
         </Button>
     );
 

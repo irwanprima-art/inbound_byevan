@@ -69,7 +69,7 @@ interface DataPageProps<T> {
     /** Extra filter function applied per row (after date+search filters) */
     extraFilterFn?: (item: T) => boolean;
     /** Extra buttons rendered after the Export CSV button in the toolbar */
-    extraButtons?: React.ReactNode;
+    extraButtons?: React.ReactNode | ((selectedKeys: React.Key[], selectedRows: T[]) => React.ReactNode);
     /** Async callback to enrich/transform data after fetching (e.g. join from another API) */
     enrichData?: (items: T[]) => Promise<T[]>;
     /** Override headers used for Export CSV (when different from import csvHeaders) */
@@ -514,7 +514,7 @@ export default function DataPage<T extends { id: number }>({
                             <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                         </>
                     )}
-                    {extraButtons}
+                    {typeof extraButtons === 'function' ? extraButtons(selectedKeys, data.filter(d => selectedKeys.includes(d.id as any))) : extraButtons}
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>
