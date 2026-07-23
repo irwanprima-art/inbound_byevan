@@ -262,7 +262,7 @@ export default function InboundCasePage() {
 
             // 2. Auto-insert or update each item to Case Inbound
             for (const item of baItems) {
-                const discrepancy = (item.qty_actual || 0) - (item.qty_process || 0);
+                const discrepancy = (item.qty_process || 0) - (item.qty_actual || 0);
                 const updatedKeterangan = `[BA ${docNumber}] ${item.deskripsi || ''} | Qty Actual: ${item.qty_actual}, Qty Process: ${item.qty_process}, Discrepancy: ${discrepancy}`;
                 
                 const caseData = {
@@ -385,7 +385,7 @@ export default function InboundCasePage() {
         {
             title: 'Discrepancy', key: 'discrepancy', width: 110,
             render: (_: any, record: BaItem) => {
-                const diff = (record.qty_actual || 0) - (record.qty_process || 0);
+                const diff = (record.qty_process || 0) - (record.qty_actual || 0);
                 return <span style={{
                     color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a',
                     fontWeight: 600,
@@ -598,7 +598,7 @@ export default function InboundCasePage() {
                                 </thead>
                                 <tbody>
                                     {(previewDoc.items || []).map((item: BaItem, i: number) => {
-                                        const diff = (item.qty_actual || 0) - (item.qty_process || 0);
+                                        const diff = (item.qty_process || 0) - (item.qty_actual || 0);
                                         return (
                                             <tr key={i}>
                                                 <td style={printTd}>{i + 1}</td>
