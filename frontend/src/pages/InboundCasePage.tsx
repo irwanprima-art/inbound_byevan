@@ -314,7 +314,7 @@ export default function InboundCasePage() {
         if (!win) return;
         win.document.write(`<!DOCTYPE html><html><head><title>Berita Acara Case Inbound</title>
 <style>
-    @page { size: A4 landscape; margin: 10mm 12mm; }
+    @page { size: A4 portrait; margin: 10mm 12mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
