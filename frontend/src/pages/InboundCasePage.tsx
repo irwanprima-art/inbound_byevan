@@ -415,8 +415,7 @@ export default function InboundCasePage() {
         },
     ];
 
-    // ---- Extra button for DataPage toolbar ----
-    const extraButtons = (selectedKeys: React.Key[], selectedRows: any[]) => (
+    const extraButtons = (_selectedKeys: React.Key[], selectedRows: any[]) => (
         <Button
             icon={<FileTextOutlined />}
             onClick={() => handleOpenBaModal(selectedRows)}
