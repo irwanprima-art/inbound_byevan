@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import {
     Table, Button, Space, Input, Modal, Form, Upload, message, Popconfirm,
@@ -338,11 +338,12 @@ export default function DataPage<T extends { id: number }>({
         return false;
     };
 
-    // Filter data by date range and search (moved up so handleExport can use it)
-    const filtered = data.filter(item => {
-        if (extraFilterFn) return extraFilterFn(item);
-        return true;
-    });
+    // Filter data by extra filters (memoized so typing in search / resizing columns
+    // doesn't re-run the full per-row filter on every render)
+    const filtered = useMemo(() => {
+        if (!extraFilterFn) return data;
+        return data.filter(item => extraFilterFn(item));
+    }, [data, extraFilterFn]);
 
     const handleExport = async () => {
         const headers = exportHeaders || csvHeaders;

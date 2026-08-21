@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Form, Input, InputNumber, Tag, Select, Modal, Button, Upload, message, Progress, Space } from 'antd';
 import { SyncOutlined, DownloadOutlined } from '@ant-design/icons';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
+import { normalizeDate } from '../utils/csvTemplate';
 
 const columns = [
     { title: 'Date', dataIndex: 'date', key: 'date', width: 110, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
@@ -165,19 +166,71 @@ export default function DccPage() {
     const [reconcileLoading, setReconcileLoading] = useState(false);
     const [reconcileResult, setReconcileResult] = useState<{ matched: number; unmatched: number; updated: number } | null>(null);
 
-    // Derive unique options from loaded data
-    const brandOptions = [...new Set(allData.map((r: any) => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
-    const zoneOptions = [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v }));
+    // ── Full-dataset cache (loaded once, refreshed every ~60s) ────────────────
+    // This is what makes filtering fast: search/date/page changes are applied
+    // in-memory instead of re-fetching the whole table from the server.
+    const dataCache = useRef<{ data: any[]; fetchedAt: number } | null>(null);
 
-    // Wrap dccApi to intercept list() and capture data for filter options + reconcile lookup
+    const loadAllData = useCallback(async (force = false) => {
+        const now = Date.now();
+        const cached = dataCache.current;
+        if (!force && cached && now - cached.fetchedAt < 60_000 && cached.data.length > 0) {
+            return cached.data;
+        }
+        try {
+            const res = await dccApi.list();
+            const rows = res.data || [];
+            dataCache.current = { data: rows, fetchedAt: Date.now() };
+            setAllData(rows);
+            return rows;
+        } catch {
+            return dataCache.current?.data || [];
+        }
+    }, []);
+
+    // Client-side search + date-range filtering. This page bypasses server-side
+    // pagination/search because the Reconcile feature needs the full dataset anyway,
+    // so we filter in-memory for instant responses.
+    const filterBySearchAndDate = useCallback((rows: any[], params?: any) => {
+        const q = (params?.search || '').toLowerCase().trim();
+        const start = params?.startDate || '';
+        const end = params?.endDate || '';
+        if (!q && !start && !end) return rows;
+        return rows.filter(item => {
+            if (q) {
+                const haystack = [
+                    item.date, item.phy_inv, item.zone, item.location, item.owner,
+                    item.sku, item.brand, item.description, item.operator, getRemarks(item),
+                ].map((v: any) => (v || '').toString().toLowerCase()).join(' ');
+                if (!haystack.includes(q)) return false;
+            }
+            if (start && end && item.date) {
+                const d = normalizeDate(String(item.date).split(/[\sT]/)[0]);
+                if (d && (d < start || d > end)) return false;
+            }
+            return true;
+        });
+    }, []);
+
+    // Derive unique options from loaded data (memoized — only recomputed when data changes)
+    const brandOptions = useMemo(
+        () => [...new Set(allData.map((r: any) => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v })),
+        [allData]
+    );
+    const zoneOptions = useMemo(
+        () => [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v })),
+        [allData]
+    );
+
+    // Wrap dccApi so DataPage gets server-shaped responses, but filtering happens
+    // in-memory over the cached dataset (no repeated full-table fetches).
     const wrappedApi = useMemo(() => ({
         ...dccApi,
-        list: async () => {
-            const res = await dccApi.list();
-            setAllData(res.data || []);
-            return res;
+        list: async (params?: any) => {
+            const rows = await loadAllData();
+            return { data: filterBySearchAndDate(rows, params) };
         },
-    }), []);
+    }), [loadAllData, filterBySearchAndDate]);
 
     // ── Reconcile Import ──────────────────────────────────────────────────────
     const handleReconcileFile = (file: File) => {
@@ -221,11 +274,8 @@ export default function DccPage() {
             // Ensure we have latest data — re-fetch if empty
             let currentData = allData;
             if (currentData.length === 0) {
-                try {
-                    const res = await dccApi.list();
-                    currentData = res.data || [];
-                    setAllData(currentData);
-                } catch { message.error('Gagal memuat data DCC'); return; }
+                currentData = await loadAllData(true);
+                if (currentData.length === 0) { message.error('Gagal memuat data DCC'); return; }
             }
 
             // Build TWO lookup maps:
@@ -270,11 +320,8 @@ export default function DccPage() {
             setReconcileLoading(false);
             setReconcileResult({ matched, unmatched, updated });
 
-            // Refresh table data
-            try {
-                const res = await dccApi.list();
-                setAllData(res.data || []);
-            } catch { /* ignore */ }
+            // Refresh table data (updates cache + state so the table shows reconciled values)
+            await loadAllData(true);
         };
         reader.readAsText(file);
         return false; // prevent antd default upload
@@ -343,12 +390,12 @@ export default function DccPage() {
         </>
     );
 
-    const extraFilterFn = (item: any) => {
+    const extraFilterFn = useCallback((item: any) => {
         if (filterBrand.length > 0 && !filterBrand.includes(item.brand)) return false;
         if (filterZone.length > 0 && !filterZone.includes(item.zone)) return false;
         if (filterRemarks.length > 0 && !filterRemarks.includes(getRemarks(item))) return false;
         return true;
-    };
+    }, [filterBrand, filterZone, filterRemarks]);
 
     return (
         <>
