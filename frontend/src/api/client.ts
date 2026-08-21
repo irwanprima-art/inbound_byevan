@@ -54,7 +54,11 @@ export function createResourceApi(resource: string) {
 export const arrivalsApi = createResourceApi('arrivals');
 export const transactionsApi = createResourceApi('transactions');
 export const vasApi = createResourceApi('vas');
-export const dccApi = createResourceApi('dcc');
+// DCC: light endpoint for distinct filter dropdown values (brand/zone)
+export const dccApi = {
+    ...createResourceApi('dcc'),
+    listOptions: () => api.get('/dcc/options', { params: { fields: 'brand,zone' } }),
+};
 export const damagesApi = createResourceApi('damages');
 export const sohApi = createResourceApi('soh');
 export const qcReturnsApi = createResourceApi('qc-returns');

@@ -1,9 +1,8 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Form, Input, InputNumber, Tag, Select, Modal, Button, Upload, message, Progress, Space } from 'antd';
 import { SyncOutlined, DownloadOutlined } from '@ant-design/icons';
 import DataPage from '../components/DataPage';
 import { dccApi } from '../api/client';
-import { normalizeDate } from '../utils/csvTemplate';
 
 const columns = [
     { title: 'Date', dataIndex: 'date', key: 'date', width: 110, sorter: (a: any, b: any) => a.date?.localeCompare(b.date) },
@@ -166,9 +165,26 @@ export default function DccPage() {
     const [reconcileLoading, setReconcileLoading] = useState(false);
     const [reconcileResult, setReconcileResult] = useState<{ matched: number; unmatched: number; updated: number } | null>(null);
 
-    // ── Full-dataset cache (loaded once, refreshed every ~60s) ────────────────
-    // This is what makes filtering fast: search/date/page changes are applied
-    // in-memory instead of re-fetching the whole table from the server.
+    // Filter dropdown options (distinct brand/zone) — fetched once from a light
+    // endpoint so we don't need to load the whole table just for the dropdowns.
+    const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
+    const [zoneOptions, setZoneOptions] = useState<{ label: string; value: string }[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        dccApi.listOptions()
+            .then((res: any) => {
+                if (!active) return;
+                const d = res.data || {};
+                setBrandOptions((d.brand || []).map((v: string) => ({ label: v, value: v })));
+                setZoneOptions((d.zone || []).map((v: string) => ({ label: v, value: v })));
+            })
+            .catch(() => { /* options are non-critical */ });
+        return () => { active = false; };
+    }, []);
+
+    // Full-dataset cache — used ONLY by the Reconcile feature (which must match
+    // against every row). The table itself is server-paginated for speed.
     const dataCache = useRef<{ data: any[]; fetchedAt: number } | null>(null);
 
     const loadAllData = useCallback(async (force = false) => {
@@ -188,49 +204,20 @@ export default function DccPage() {
         }
     }, []);
 
-    // Client-side search + date-range filtering. This page bypasses server-side
-    // pagination/search because the Reconcile feature needs the full dataset anyway,
-    // so we filter in-memory for instant responses.
-    const filterBySearchAndDate = useCallback((rows: any[], params?: any) => {
-        const q = (params?.search || '').toLowerCase().trim();
-        const start = params?.startDate || '';
-        const end = params?.endDate || '';
-        if (!q && !start && !end) return rows;
-        return rows.filter(item => {
-            if (q) {
-                const haystack = [
-                    item.date, item.phy_inv, item.zone, item.location, item.owner,
-                    item.sku, item.brand, item.description, item.operator, getRemarks(item),
-                ].map((v: any) => (v || '').toString().toLowerCase()).join(' ');
-                if (!haystack.includes(q)) return false;
-            }
-            if (start && end && item.date) {
-                const d = normalizeDate(String(item.date).split(/[\sT]/)[0]);
-                if (d && (d < start || d > end)) return false;
-            }
-            return true;
-        });
-    }, []);
-
-    // Derive unique options from loaded data (memoized — only recomputed when data changes)
-    const brandOptions = useMemo(
-        () => [...new Set(allData.map((r: any) => r.brand).filter(Boolean))].sort().map(v => ({ label: v, value: v })),
-        [allData]
-    );
-    const zoneOptions = useMemo(
-        () => [...new Set(allData.map((r: any) => r.zone).filter(Boolean))].sort().map(v => ({ label: v, value: v })),
-        [allData]
-    );
-
-    // Wrap dccApi so DataPage gets server-shaped responses, but filtering happens
-    // in-memory over the cached dataset (no repeated full-table fetches).
+    // Wrap dccApi so DataPage gets server-paginated results AND the Brand/Zone/
+    // Remarks filters are applied server-side (fast, with a correct total).
     const wrappedApi = useMemo(() => ({
         ...dccApi,
         list: async (params?: any) => {
-            const rows = await loadAllData();
-            return { data: filterBySearchAndDate(rows, params) };
+            const res = await dccApi.list({
+                ...params,
+                brand: filterBrand.length ? filterBrand.join(',') : undefined,
+                zone: filterZone.length ? filterZone.join(',') : undefined,
+                remarks: filterRemarks.length ? filterRemarks.join(',') : undefined,
+            });
+            return res;
         },
-    }), [loadAllData, filterBySearchAndDate]);
+    }), [filterBrand, filterZone, filterRemarks]);
 
     // ── Reconcile Import ──────────────────────────────────────────────────────
     const handleReconcileFile = (file: File) => {
@@ -390,13 +377,6 @@ export default function DccPage() {
         </>
     );
 
-    const extraFilterFn = useCallback((item: any) => {
-        if (filterBrand.length > 0 && !filterBrand.includes(item.brand)) return false;
-        if (filterZone.length > 0 && !filterZone.includes(item.zone)) return false;
-        if (filterRemarks.length > 0 && !filterRemarks.includes(getRemarks(item))) return false;
-        return true;
-    }, [filterBrand, filterZone, filterRemarks]);
-
     return (
         <>
             <DataPage
@@ -409,9 +389,7 @@ export default function DccPage() {
                 numberFields={numberFields}
                 parseCSVRow={parseCSVRow as any}
                 dateField="date"
-                computeSearchText={getRemarks}
                 extraFilterUi={extraFilterUi}
-                extraFilterFn={extraFilterFn}
                 extraButtons={extraButtons}
                 exportHeaders={exportCsvHeaders}
                 exportRowMapper={(item: any) => {

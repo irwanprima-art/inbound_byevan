@@ -68,10 +68,22 @@ func getSearchColumns(t interface{}) []string {
 	return cols
 }
 
+// hasJSONField returns true if the struct has a field with the given JSON tag name
+func hasJSONField(t interface{}, jsonName string) bool {
+	val := reflect.TypeOf(t).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		jsonTag := val.Field(i).Tag.Get("json")
+		if jsonTag != "" && strings.Split(jsonTag, ",")[0] == jsonName {
+			return true
+		}
+	}
+	return false
+}
+
 // List returns all records, with optional server-side pagination
 func (h *ResourceHandler[T]) List(c *gin.Context) {
 	pageStr := c.Query("page")
-	
+
 	// Legacy mode: if no page parameter, return everything as a flat array
 	if pageStr == "" {
 		var items []T
@@ -120,7 +132,54 @@ func (h *ResourceHandler[T]) List(c *gin.Context) {
 				orConditions = append(orConditions, fmt.Sprintf("%s LIKE ?", col))
 				args = append(args, searchTerm)
 			}
+			// Allow searching by computed remarks keyword ("Shortage"/"Gain"/"Match")
+			// for models that have a variance field.
+			if hasJSONField(new(T), "variance") {
+				lower := strings.ToLower(search)
+				if strings.Contains(lower, "shortage") {
+					orConditions = append(orConditions, "variance < 0")
+				}
+				if strings.Contains(lower, "gain") {
+					orConditions = append(orConditions, "variance > 0")
+				}
+				if strings.Contains(lower, "match") {
+					orConditions = append(orConditions, "variance = 0")
+				}
+			}
 			query = query.Where(strings.Join(orConditions, " OR "), args...)
+		}
+	}
+
+	// Column filters (comma-separated IN lists), e.g. ?brand=A,B&zone=Z1
+	// Only string columns are filterable, so only params matching a column name apply.
+	for _, col := range getSearchColumns(new(T)) {
+		if v := c.Query(col); v != "" {
+			parts := strings.Split(v, ",")
+			if len(parts) == 1 {
+				query = query.Where(fmt.Sprintf("%s = ?", col), parts[0])
+			} else {
+				query = query.Where(fmt.Sprintf("%s IN ?", col), parts)
+			}
+		}
+	}
+
+	// Remarks filter (computed from variance) — only for models that have a variance field
+	if hasJSONField(new(T), "variance") {
+		if v := c.Query("remarks"); v != "" {
+			var conds []string
+			for _, r := range strings.Split(v, ",") {
+				switch r {
+				case "Shortage":
+					conds = append(conds, "variance < 0")
+				case "Gain":
+					conds = append(conds, "variance > 0")
+				case "Match":
+					conds = append(conds, "variance = 0")
+				}
+			}
+			if len(conds) > 0 {
+				query = query.Where(strings.Join(conds, " OR "))
+			}
 		}
 	}
 
@@ -306,7 +365,7 @@ func (h *ResourceHandler[T]) BatchImport(c *gin.Context) {
 				end = len(req.Data)
 			}
 			batch := req.Data[i:end]
-			
+
 			if h.Name == "locations" {
 				if err := tx.Clauses(clause.OnConflict{
 					Columns:   []clause.Column{{Name: "location"}},
@@ -319,7 +378,7 @@ func (h *ResourceHandler[T]) BatchImport(c *gin.Context) {
 					return err
 				}
 			}
-			
+
 			total += len(batch)
 		}
 		return nil
@@ -333,9 +392,37 @@ func (h *ResourceHandler[T]) BatchImport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"imported": total})
 }
 
+// Options returns distinct values for the requested string columns.
+// Usage: GET /:resource/options?fields=brand,zone  →  { "brand": [...], "zone": [...] }
+// This is a lightweight endpoint for building filter dropdowns without loading
+// the whole table into the client.
+func (h *ResourceHandler[T]) Options(c *gin.Context) {
+	fieldsParam := c.Query("fields")
+	if fieldsParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "fields parameter required"})
+		return
+	}
+	result := gin.H{}
+	for _, f := range strings.Split(fieldsParam, ",") {
+		f = strings.TrimSpace(f)
+		if !regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(f) {
+			continue
+		}
+		var values []string
+		database.DB.Model(new(T)).
+			Distinct(f).
+			Where(fmt.Sprintf("%s <> ''", f)).
+			Order(f).
+			Pluck(f, &values)
+		result[f] = values
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // RegisterRoutes registers all CRUD routes for this resource
 func (h *ResourceHandler[T]) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("", h.List)
+	rg.GET("/options", h.Options)
 	rg.GET("/:id", h.Get)
 	rg.POST("", h.Create)
 	rg.PUT("/:id", h.Update)
