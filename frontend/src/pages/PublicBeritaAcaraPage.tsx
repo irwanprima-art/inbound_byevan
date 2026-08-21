@@ -20,6 +20,7 @@ const DOC_TYPES = [
     { label: 'Pemberitahuan Barang Lebih', value: 'Pemberitahuan Barang Lebih' },
     { label: 'Pengembalian Barang', value: 'Pengembalian Barang' },
     { label: 'Pemberitahuan Barang Tidak Sesuai', value: 'Pemberitahuan Barang Tidak Sesuai' },
+    { label: 'Barang Defect/Cacat', value: 'Barang Defect/Cacat' },
 ];
 const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
 const WAREHOUSE_OPTIONS = [
@@ -28,7 +29,7 @@ const WAREHOUSE_OPTIONS = [
     { label: 'HUB-BKI', value: 'HUB-BKI' },
 ];
 
-interface SkuItem { do_number?: string; sku: string; description?: string; serial_number: string; qty: number; qty_po: number; qty_actual: number; note: string; }
+interface SkuItem { do_number?: string; no_po?: string; sku: string; description?: string; serial_number: string; qty: number; qty_po: number; qty_actual: number; note: string; }
 
 function generateDocNumber(existingDocs: any[], docType: string, warehouse: string): string {
     const now = dayjs(); const prefix = now.format('MMYY'); const year = now.format('YYYY');
@@ -71,6 +72,7 @@ export default function PublicBeritaAcaraPage() {
     const isBarangTidakSesuai = docType === 'Pemberitahuan Barang Tidak Sesuai';
     const isBarangKurangLebih = isBarangKurang || isBarangLebih || isBarangTidakSesuai;
     const isPenolakanBarang = docType === 'Penolakan Barang';
+    const isBarangDefect = docType === 'Barang Defect/Cacat';
     const isRequiresPic = warehouse === 'WH-JC-02' || warehouse === 'HUB-BKI';
     const [previewDoc, setPreviewDoc] = useState<any>(null);
     const [previewOpen, setPreviewOpen] = useState(false);
@@ -92,7 +94,7 @@ export default function PublicBeritaAcaraPage() {
         const sku = skuInput.trim(); if (!sku) return;
         const existing = items.find(i => i.sku.toLowerCase() === sku.toLowerCase());
         if (existing) { setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i)); }
-        else { setItems([...items, { do_number: '', sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]); }
+        else { setItems([...items, { do_number: '', no_po: '', sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]); }
         setSkuInput(''); setTimeout(() => skuRef.current?.focus(), 50);
     };
     const handleRemoveSku = (index: number) => setItems(items.filter((_, i) => i !== index));
@@ -199,7 +201,7 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                     {items.length > 0 && (
                                         <Table dataSource={items.map((item, i) => ({ ...item, key: i }))} pagination={false} size="small" style={{ marginBottom: 16 }} columns={[
                                             { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
-                                            { title: 'No DO', dataIndex: 'do_number', key: 'do_number', width: 100, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="No DO" onChange={e => handleItemChange(i, 'do_number', e.target.value)} /> },
+                                            { title: isBarangDefect ? 'No PO' : 'No DO', dataIndex: isBarangDefect ? 'no_po' : 'do_number', key: isBarangDefect ? 'no_po' : 'do_number', width: 100, render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder={isBarangDefect ? 'No PO' : 'No DO'} onChange={e => handleItemChange(i, isBarangDefect ? 'no_po' : 'do_number', e.target.value)} /> },
                                             { title: 'SKU', dataIndex: 'sku', key: 'sku' },
                                             ...(isBarangTidakSesuai ? [{ title: 'Description', dataIndex: 'description', key: 'description', render: (v: string, _: any, i: number) => <Input value={v} size="small" placeholder="Deskripsi" onChange={e => handleItemChange(i, 'description', e.target.value)} /> }] : []),
                                             ...(isBarangKurangLebih ? [
@@ -259,7 +261,7 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                             </div>
                             <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
                                 <thead><tr>
-                                    <th style={printTh}>No</th><th style={printTh}>No DO</th><th style={printTh}>SKU</th>
+                                    <th style={printTh}>No</th><th style={printTh}>{docForPreview.doc_type === 'Barang Defect/Cacat' ? 'No PO' : 'No DO'}</th><th style={printTh}>SKU</th>
                                     {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && <th style={printTh}>Description</th>}
                                     {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih' || docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai') ? <><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Qty DO' : 'Qty PO'}</th><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Qty Fisik' : 'Qty Actual'}</th><th style={printTh}>{docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' ? 'Selisih' : 'Qty Diff'}</th></> : <th style={printTh}>Qty</th>}
                                     <th style={printTh}>Serial Number</th><th style={printTh}>Catatan</th>
@@ -268,7 +270,7 @@ th{background:#eee;font-weight:700;font-size:11px;text-transform:uppercase}</sty
                                     const diff = (item.qty_actual || 0) - (item.qty_po || 0);
                                     return (
                                     <tr key={i}>
-                                        <td style={printTd}>{i + 1}</td><td style={printTd}>{item.do_number || '-'}</td><td style={printTd}>{item.sku}</td>
+                                        <td style={printTd}>{i + 1}</td><td style={printTd}>{docForPreview.doc_type === 'Barang Defect/Cacat' ? (item.no_po || '-') : (item.do_number || '-')}</td><td style={printTd}>{item.sku}</td>
                                         {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && <td style={printTd}>{item.description || '-'}</td>}
                                         {(docForPreview.doc_type === 'Pemberitahuan Barang Kurang' || docForPreview.doc_type === 'Pemberitahuan Barang Lebih' || docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai') ? <><td style={printTd}>{item.qty_po ?? '-'}</td><td style={printTd}>{item.qty_actual ?? '-'}</td><td style={{ ...printTd, color: diff === 0 ? '#888' : diff < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{diff}</td></> : <td style={printTd}>{item.qty}</td>}
                                         <td style={printTd}>{item.serial_number || '-'}</td><td style={printTd}>{item.note || '-'}</td>

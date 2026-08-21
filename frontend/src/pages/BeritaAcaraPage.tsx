@@ -20,12 +20,14 @@ const DOC_TYPES = [
     { label: 'Pemberitahuan Barang Lebih', value: 'Pemberitahuan Barang Lebih' },
     { label: 'Pengembalian Barang', value: 'Pengembalian Barang' },
     { label: 'Pemberitahuan Barang Tidak Sesuai', value: 'Pemberitahuan Barang Tidak Sesuai' },
+    { label: 'Barang Defect/Cacat', value: 'Barang Defect/Cacat' },
 ];
 
 const INBOUND_TYPE_SET = new Set(DOC_TYPES.map(d => d.value));
 
 interface SkuItem {
     do_number?: string;
+    no_po?: string;    // used for Barang Defect/Cacat
     sku: string;
     description?: string;
     serial_number: string;
@@ -88,6 +90,7 @@ export default function BeritaAcaraPage() {
     const isBarangTidakSesuai = docType === 'Pemberitahuan Barang Tidak Sesuai';
     const isBarangKurangLebih = isBarangKurang || isBarangLebih || isBarangTidakSesuai;
     const isPenolakanBarang = docType === 'Penolakan Barang';
+    const isBarangDefect = docType === 'Barang Defect/Cacat';
     const isWHJC02 = warehouse === 'WH-JC-02';
 
     // Preview
@@ -116,7 +119,7 @@ export default function BeritaAcaraPage() {
         if (existing) {
             setItems(items.map(i => i.sku.toLowerCase() === sku.toLowerCase() ? { ...i, qty: i.qty + 1 } : i));
         } else {
-            setItems([...items, { do_number: '', sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]);
+            setItems([...items, { do_number: '', no_po: '', sku, description: '', serial_number: '', qty: 1, qty_po: 0, qty_actual: 0, note: '' }]);
         }
         setSkuInput('');
         setTimeout(() => skuRef.current?.focus(), 50);
@@ -345,10 +348,12 @@ export default function BeritaAcaraPage() {
                                         columns={[
                                             { title: 'No', key: 'no', width: 50, render: (_: any, __: any, i: number) => i + 1 },
                                             {
-                                                title: 'No DO', dataIndex: 'do_number', key: 'do_number',
+                                                title: isBarangDefect ? 'No PO' : 'No DO',
+                                                dataIndex: isBarangDefect ? 'no_po' : 'do_number',
+                                                key: isBarangDefect ? 'no_po' : 'do_number',
                                                 render: (v: string, _: any, i: number) => (
-                                                    <Input value={v} size="small" placeholder="No DO"
-                                                        onChange={e => handleItemChange(i, 'do_number', e.target.value)} />
+                                                    <Input value={v} size="small" placeholder={isBarangDefect ? 'No PO' : 'No DO'}
+                                                        onChange={e => handleItemChange(i, isBarangDefect ? 'no_po' : 'do_number', e.target.value)} />
                                                 ),
                                             },
                                             { title: 'SKU', dataIndex: 'sku', key: 'sku' },
@@ -507,7 +512,7 @@ export default function BeritaAcaraPage() {
                                 <thead>
                                     <tr>
                                         <th style={printTh}>No</th>
-                                        <th style={printTh}>No DO</th>
+                                        <th style={printTh}>{docForPreview.doc_type === 'Barang Defect/Cacat' ? 'No PO' : 'No DO'}</th>
                                         <th style={printTh}>SKU</th>
                                         {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && (
                                             <th style={printTh}>Description</th>
@@ -531,7 +536,7 @@ export default function BeritaAcaraPage() {
                                         return (
                                         <tr key={i}>
                                             <td style={printTd}>{i + 1}</td>
-                                            <td style={printTd}>{item.do_number || '-'}</td>
+                                            <td style={printTd}>{docForPreview.doc_type === 'Barang Defect/Cacat' ? (item.no_po || '-') : (item.do_number || '-')}</td>
                                             <td style={printTd}>{item.sku}</td>
                                             {docForPreview.doc_type === 'Pemberitahuan Barang Tidak Sesuai' && (
                                                 <td style={printTd}>{item.description || '-'}</td>
