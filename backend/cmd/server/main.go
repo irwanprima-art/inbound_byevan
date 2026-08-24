@@ -65,11 +65,11 @@ func main() {
 	// NOTE: IP restriction temporarily disabled — re-enable clockGuard when ready
 	// clockGuard := middleware.IPWhitelist()
 	clockEmployees := handlers.NewResource[models.Employee]("employees")
-	clockAttendances := handlers.NewResource[models.Attendance]("attendances")
+	clockAttendances := &handlers.ClockAttendanceHandler{}
 	api.GET("/clock/employees", clockEmployees.List)
 	api.GET("/clock/attendances", clockAttendances.List)
-	api.POST("/clock/attendances", clockAttendances.Create)
-	api.PUT("/clock/attendances/:id", clockAttendances.Update)
+	api.POST("/clock/attendances", clockAttendances.ClockIn)
+	api.PUT("/clock/attendances/:id", clockAttendances.ClockOut)
 
 	// Public read-only routes for Key Account pages (no auth needed)
 	publicSoh := handlers.NewResource[models.Soh]("soh")

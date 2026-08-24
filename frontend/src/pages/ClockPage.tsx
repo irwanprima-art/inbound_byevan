@@ -54,14 +54,11 @@ export default function ClockPage() {
     const findEmployee = (nikVal: string) =>
         employees.find(e => e.nik?.toLowerCase() === nikVal?.toLowerCase());
 
-    const findActiveRecord = (nikVal: string) => {
-        const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
-        return attendances.find(r =>
+    const findActiveRecord = (nikVal: string) =>
+        attendances.find(r =>
             r.nik?.toLowerCase() === nikVal?.toLowerCase() &&
-            (r.date === today || r.date === yesterday) &&
             r.clock_in && !r.clock_out
         );
-    };
 
     const calcWorkhourMin = (clockIn: string, clockOut: string): number => {
         if (!clockIn || !clockOut) return 0;
@@ -89,7 +86,7 @@ export default function ClockPage() {
         if (!emp) { message.error(`NIK "${nik}" tidak ditemukan di data Employee!`); return; }
         if (emp.is_active === 'Inactive') { message.error(`${emp.name} berstatus Inactive dan tidak dapat clock in!`); return; }
         const active = findActiveRecord(nik);
-        if (active) { message.error(`${emp.name} sudah clock in hari ini dan belum clock out!`); return; }
+        if (active) { message.error(`${emp.name} masih memiliki catatan clock in (${active.date || '-'}) yang belum clock out, tidak bisa clock in!`); return; }
 
         setLoading(true);
         const now = dayjs().format('HH:mm:ss');
