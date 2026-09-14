@@ -19,6 +19,10 @@ const jobdescOptions = [
     'Receive', 'STO',
 ].map(v => ({ label: v, value: v }));
 
+// Company options — filled in manually by Leader/Supervisor (not at clock in/out)
+const companyOptions = ['GTI', 'JC', 'ACI'];
+const companySelectOptions = companyOptions.map(v => ({ label: v, value: v }));
+
 // Jobdesc → Divisi mapping
 const divisiMap: Record<string, string> = {
     'Troubleshoot': 'Inventory', 'Project Inventory': 'Inventory',
@@ -61,7 +65,7 @@ const calcRemarks = (clockIn: string, clockOut: string): string => {
     return 'Anomaly';                          // above 12:00
 };
 
-interface AttRecord { id: number; date: string; nik: string; name: string; jobdesc: string; clock_in: string; clock_out: string; status: string; approval_status: string; approval_note: string; }
+interface AttRecord { id: number; date: string; nik: string; name: string; jobdesc: string; company: string; clock_in: string; clock_out: string; status: string; approval_status: string; approval_note: string; }
 interface EmpRecord { nik: string; name: string; status: string; }
 
 export default function AttendancePage() {
@@ -81,6 +85,8 @@ export default function AttendancePage() {
 
     const canDelete = user?.role === 'admin' || user?.role === 'supervisor';
     const isSupervisor = user?.role === 'supervisor';
+    // Company is filled in manually by Leader (Supervisor as superuser)
+    const canEditCompany = user?.role === 'leader' || user?.role === 'supervisor';
 
     const empMap: Record<string, EmpRecord> = {};
     employees.forEach(e => { if (e.nik) empMap[e.nik.toLowerCase()] = e; });
@@ -104,6 +110,18 @@ export default function AttendancePage() {
         const vals = await editForm.validateFields();
         try { if (editRecord) { await attendancesApi.update(editRecord.id, vals); message.success('Data diupdate'); } setEditModalOpen(false); fetchData(); }
         catch { message.error('Gagal menyimpan'); }
+    };
+
+    // Inline company edit (Leader/Supervisor only) — applied from the table dropdown
+    const handleCompanyChange = async (r: AttRecord, company: string) => {
+        setData(prev => prev.map(x => (x.id === r.id ? { ...x, company } : x)));
+        try {
+            await attendancesApi.update(r.id, { ...r, company, updated_by: user?.username || '' });
+            message.success(`Company ${r.name}: ${company || '-'}`);
+        } catch {
+            message.error('Gagal menyimpan company');
+            fetchData();
+        }
     };
     const handleDelete = async (id: number) => {
         try { await attendancesApi.remove(id); message.success('Dihapus'); fetchData(); } catch { message.error('Gagal menghapus'); }
@@ -248,11 +266,11 @@ export default function AttendancePage() {
 
     // Export
     const handleExport = () => {
-        const hdr = ['date', 'nik', 'name', 'status_employee', 'jobdesc', 'divisi', 'clock_in', 'clock_out', 'shift', 'workhour', 'overtime', 'remarks'];
+        const hdr = ['date', 'nik', 'name', 'company', 'status_employee', 'jobdesc', 'divisi', 'clock_in', 'clock_out', 'shift', 'workhour', 'overtime', 'remarks'];
         const rows = filteredData.map(r => {
             const totalMin = calcWorkhourMin(r.clock_in, r.clock_out);
             const emp = empMap[r.nik?.toLowerCase()];
-            return [r.date, r.nik, r.name, emp?.status || '', r.jobdesc, divisiMap[r.jobdesc] || '', r.clock_in, r.clock_out,
+            return [r.date, r.nik, r.name, r.company, emp?.status || '', r.jobdesc, divisiMap[r.jobdesc] || '', r.clock_in, r.clock_out,
             r.clock_in && parseInt(r.clock_in) < 12 ? 'Shift 1' : 'Shift 2', formatMinutes(totalMin), calcOvertime(totalMin), calcRemarks(r.clock_in, r.clock_out),
             ].map(v => `"${v || ''}"`).join(',');
         });
@@ -332,6 +350,32 @@ export default function AttendancePage() {
                 const emp = empMap[r.nik?.toLowerCase()];
                 const st = emp?.status || '-';
                 return st === 'Reguler' ? <Tag color="blue">Reguler</Tag> : st === 'Tambahan' ? <Tag color="orange">Tambahan</Tag> : st;
+            },
+        },
+        {
+            title: 'Company', dataIndex: 'company', key: 'company', width: 110,
+            filters: companyOptions.map(c => ({ text: c, value: c })),
+            onFilter: (value: any, r: AttRecord) => r.company === value,
+            render: (_: any, r: AttRecord) => {
+                // Leader/Supervisor can set the company straight from the table
+                if (canEditCompany) {
+                    return (
+                        <Select
+                            size="small"
+                            value={r.company || undefined}
+                            placeholder="-"
+                            options={companySelectOptions}
+                            allowClear
+                            onChange={(v) => handleCompanyChange(r, v || '')}
+                            style={{ width: 88 }}
+                            popupMatchSelectWidth={false}
+                        />
+                    );
+                }
+                const c = r.company;
+                if (!c) return <span style={{ color: 'rgba(255,255,255,0.3)' }}>-</span>;
+                const color = c === 'GTI' ? 'geekblue' : c === 'JC' ? 'purple' : c === 'ACI' ? 'cyan' : 'default';
+                return <Tag color={color}>{c}</Tag>;
             },
         },
         {
@@ -478,7 +522,7 @@ export default function AttendancePage() {
                     <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={search} onChange={e => setSearch(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchTerms.length > 0 ? `${searchTerms.length} keyword aktif` : 'Tidak ada filter'}</span>{search && <Button size="small" danger onClick={() => setSearch('')}>Clear</Button>}</div></div>}><Badge count={searchTerms.length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchTerms.length > 0 ? `Search (${searchTerms.length})` : 'Search'}</Button></Badge></Popover>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
-                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'nik', 'name', 'jobdesc', 'clock_in', 'clock_out', 'status'], 'Attendance_template')}>Template</Button>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'nik', 'name', 'company', 'jobdesc', 'clock_in', 'clock_out', 'status'], 'Attendance_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
@@ -499,7 +543,7 @@ export default function AttendancePage() {
 
             <Table
                 rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
-                scroll={{ x: 1300, y: 'calc(100vh - 280px)' }}
+                scroll={{ x: 1420, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={canDelete ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
                 sortDirections={['descend', 'ascend']}
@@ -511,6 +555,7 @@ export default function AttendancePage() {
                     <Form.Item name="nik" label="NIK"><Input /></Form.Item>
                     <Form.Item name="name" label="Name"><Input /></Form.Item>
                     <Form.Item name="jobdesc" label="Jobdesc"><Select options={jobdescOptions} /></Form.Item>
+                    <Form.Item name="company" label="Company"><Select options={companySelectOptions} allowClear placeholder="Pilih Company" disabled={!canEditCompany} /></Form.Item>
                     <Form.Item name="clock_in" label="Clock In"><Input /></Form.Item>
                     <Form.Item name="clock_out" label="Clock Out"><Input /></Form.Item>
                     <Form.Item name="status" label="Status"><Input /></Form.Item>

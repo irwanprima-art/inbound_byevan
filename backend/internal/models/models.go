@@ -261,7 +261,9 @@ type MasterItem struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-// Attendance represents manpower attendance data
+// Attendance represents manpower attendance data.
+// Company (GTI / JC / ACI) is not set during clock in/out — it is filled in
+// manually by a Leader/Supervisor from the Manpower → Attendance page.
 type Attendance struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
 	Date           FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
@@ -271,6 +273,7 @@ type Attendance struct {
 	ClockIn        string         `gorm:"column:clock_in" json:"clock_in"`
 	ClockOut       string         `gorm:"column:clock_out" json:"clock_out"`
 	Status         string         `gorm:"column:status" json:"status"`
+	Company        string         `gorm:"column:company;default:''" json:"company"`
 	ApprovalStatus string         `gorm:"column:approval_status;default:''" json:"approval_status"`
 	ApprovalNote   string         `gorm:"column:approval_note" json:"approval_note"`
 	UpdatedBy      string         `gorm:"column:updated_by" json:"updated_by"`
