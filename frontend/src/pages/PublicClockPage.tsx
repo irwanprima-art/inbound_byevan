@@ -15,7 +15,8 @@ const jobdescOptions = [
 ].map(v => ({ label: v, value: v }));
 
 export default function PublicClockPage() {
-    // ── Supervisor gate ──
+    // ── Supervisor / Leader gate ──
+    const ALLOWED_ROLES = ['supervisor', 'leader'];
     const [authenticated, setAuthenticated] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
     const [loginError, setLoginError] = useState('');
@@ -28,9 +29,9 @@ export default function PublicClockPage() {
                 username: values.username.trim().toLowerCase(),
                 password: values.password,
             });
-            const role = res.data?.user?.role || res.data?.role || '';
-            if (role !== 'supervisor') {
-                setLoginError('Hanya akun Supervisor yang dapat mengakses Clock In/Out.');
+            const role = (res.data?.user?.role || res.data?.role || '').toLowerCase();
+            if (!ALLOWED_ROLES.includes(role)) {
+                setLoginError('Hanya akun Supervisor atau Leader yang dapat mengakses Clock In/Out.');
                 setLoginLoading(false);
                 return;
             }
@@ -165,7 +166,7 @@ export default function PublicClockPage() {
                             <ClockCircleOutlined style={{ fontSize: 40, color: '#6366f1' }} />
                             <Title level={3} style={{ color: '#fff', margin: '8px 0 0' }}>Clock In / Out</Title>
                             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-                                Login Supervisor untuk melanjutkan
+                                Login Supervisor / Leader untuk melanjutkan
                             </Text>
                         </div>
 
@@ -181,7 +182,7 @@ export default function PublicClockPage() {
                             <Form.Item>
                                 <Button type="primary" htmlType="submit" block loading={loginLoading}
                                     style={{ height: 44, borderRadius: 8, fontWeight: 600 }}>
-                                    Login Supervisor
+                                    Login
                                 </Button>
                             </Form.Item>
                         </Form>
@@ -259,7 +260,7 @@ export default function PublicClockPage() {
 
                     <Button type="text" danger onClick={() => setAuthenticated(false)}
                         style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                        Logout Supervisor
+                        Logout
                     </Button>
                 </Space>
             </Card>
