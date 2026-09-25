@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Select, message, Typography, Space, Popconfirm, Tooltip } from 'antd';
+import { Button, Select, message, Typography, Space, Popconfirm, Tooltip, Upload } from 'antd';
 import {
     LeftOutlined, RightOutlined,
-    CopyOutlined, ReloadOutlined, DeleteOutlined,
+    CopyOutlined, ReloadOutlined, DeleteOutlined, UploadOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import { schedulesApi, employeesApi } from '../api/client';
+import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 
@@ -26,6 +27,48 @@ const CLOCK_IN_OPTIONS = Array.from({ length: 16 }, (_, i) => {
 
 // Add "Off" option
 const CLOCK_IN_WITH_OFF = [{ label: 'Off', value: 'Off' }, ...CLOCK_IN_OPTIONS];
+
+const CSV_HEADERS = ['date', 'nik', 'name', 'jobdesc', 'clock_in', 'clock_out'];
+
+function parseCsvLine(line: string): string[] {
+    const cells: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (const char of line) {
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            cells.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    cells.push(current.trim());
+    return cells;
+}
+
+function normalizeCsvHeader(header: string): string {
+    return header.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function normalizeTime(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'off') return '';
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return trimmed;
+    return `${match[1].padStart(2, '0')}:${match[2]}:${match[3] || '00'}`;
+}
+
+function isValidTime(value: string): boolean {
+    return !value || /^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(value);
+}
+
+function csvCell(value: unknown): string {
+    const text = String(value ?? '');
+    return text.includes(',') || text.includes('"') || text.includes('\n')
+        ? `"${text.replace(/"/g, '""')}"` : text;
+}
 
 // Calculate clock-out = clock_in + 9 hours
 function calcClockOut(clockIn: string): string {
@@ -210,6 +253,93 @@ export default function SchedulePage() {
         setSaving(false);
     };
 
+    const handleImport = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = String(event.target?.result || '').replace(/^\uFEFF/, '');
+            const lines = text.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length < 2) {
+                message.warning('File CSV kosong atau hanya berisi header');
+                return;
+            }
+
+            const headers = parseCsvLine(lines[0]).map(normalizeCsvHeader);
+            const aliases: Record<string, string> = {
+                tanggal: 'date', nik_karyawan: 'nik', nama: 'name', divisi: 'jobdesc',
+                jam_masuk: 'clock_in', jam_keluar: 'clock_out',
+            };
+            const fieldIndexes = new Map<string, number>();
+            headers.forEach((header, index) => {
+                const field = aliases[header] || header;
+                if (CSV_HEADERS.includes(field)) fieldIndexes.set(field, index);
+            });
+
+            if (!fieldIndexes.has('date') || !fieldIndexes.has('nik')) {
+                message.error('Header wajib: date dan nik');
+                return;
+            }
+
+            const invalidRows: number[] = [];
+            const importedRows = lines.slice(1).map((line, index) => {
+                const cells = parseCsvLine(line);
+                const get = (field: string) => cells[fieldIndexes.get(field) ?? -1]?.trim() || '';
+                const date = normalizeDate(get('date'));
+                const nik = get('nik');
+                const clockIn = normalizeTime(get('clock_in'));
+                const clockOut = normalizeTime(get('clock_out'));
+                const validDate = dayjs(date).isValid() && dayjs(date).format('YYYY-MM-DD') === date;
+                if (!nik || !validDate || !isValidTime(clockIn) || !isValidTime(clockOut)) invalidRows.push(index + 2);
+
+                const employee = employees.find(item => (item.nik || '').toLowerCase() === nik.toLowerCase());
+                return {
+                    date,
+                    nik,
+                    name: get('name') || employee?.name || '',
+                    jobdesc: get('jobdesc'),
+                    clock_in: clockIn,
+                    clock_out: clockIn ? (clockOut || calcClockOut(clockIn)) : '',
+                };
+            }).filter(row => row.nik || row.date);
+
+            if (invalidRows.length > 0) {
+                message.error(`Baris tidak valid: ${invalidRows.slice(0, 5).join(', ')}${invalidRows.length > 5 ? ', ...' : ''}`);
+                return;
+            }
+            if (importedRows.length === 0) {
+                message.warning('Tidak ada data jadwal yang dapat diimport');
+                return;
+            }
+
+            setSaving(true);
+            try {
+                await schedulesApi.batchImport(importedRows);
+                const firstDate = importedRows.map(row => row.date).sort()[0];
+                setWeekStart(dayjs(firstDate).isoWeekday(1).format('YYYY-MM-DD'));
+                message.success(`${importedRows.length} jadwal berhasil diimport`);
+                await fetchData();
+            } catch {
+                message.error('Gagal import jadwal');
+            } finally {
+                setSaving(false);
+            }
+        };
+        reader.readAsText(file);
+        return false;
+    };
+
+    const handleExport = () => {
+        const rows = schedules.map(schedule => CSV_HEADERS.map(header => csvCell(schedule[header])).join(','));
+        const csv = '\uFEFF' + [CSV_HEADERS.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'manpower_schedule_export.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        message.success(`${rows.length} jadwal berhasil diexport`);
+    };
+
     const weekEndStr = dayjs(weekStart).add(6, 'day').format('DD MMM YYYY');
     const weekStartStr = dayjs(weekStart).format('DD MMM YYYY');
 
@@ -225,6 +355,15 @@ export default function SchedulePage() {
                     <Popconfirm title="Copy jadwal minggu lalu ke minggu ini?" onConfirm={handleCopyPrevWeek} okText="Ya" cancelText="Batal">
                         <Button icon={<CopyOutlined />} loading={saving}>Copy Minggu Lalu</Button>
                     </Popconfirm>
+                    <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}>
+                        <Button icon={<UploadOutlined />} loading={saving}>Import</Button>
+                    </Upload>
+                    <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(CSV_HEADERS, 'manpower_schedule_template')}>
+                        Template
+                    </Button>
+                    <Button icon={<DownloadOutlined />} onClick={handleExport} disabled={schedules.length === 0}>
+                        Export
+                    </Button>
                 </Space>
             </div>
 
