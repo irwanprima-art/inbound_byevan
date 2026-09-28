@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, DatePicker, Empty, message, Space, Table, Tag, Typography } from 'antd';
+import { Button, Col, DatePicker, Empty, message, Row, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -299,59 +299,69 @@ export default function DashboardBriefingTab() {
                     <Text strong>Team Leader / PIC: {briefing?.pic || '-'}</Text>
                 </header>
 
-                <section className="briefing-report-section">
-                    <Title level={4}>Ringkasan Daftar Hadir ({attendanceSummary.reduce((total, row) => total + row.total, 0)})</Title>
-                    <Table
-                        rowKey="key"
-                        size="small"
-                        columns={attendanceColumns}
-                        dataSource={attendanceSummary}
-                        loading={loading}
-                        pagination={false}
-                        locale={{ emptyText: <Empty description="Tidak ada data attendance pada tanggal ini" /> }}
-                    />
-                </section>
+                <Row gutter={[16, 0]} className="briefing-report-grid">
+                    <Col xs={24} md={12}>
+                        <section className="briefing-report-section">
+                            <Title level={4}>Ringkasan Daftar Hadir ({attendanceSummary.reduce((total, row) => total + row.total, 0)})</Title>
+                            <Table
+                                rowKey="key"
+                                size="small"
+                                columns={attendanceColumns}
+                                dataSource={attendanceSummary}
+                                loading={loading}
+                                pagination={false}
+                                locale={{ emptyText: <Empty description="Tidak ada data attendance pada tanggal ini" /> }}
+                            />
+                        </section>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <section className="briefing-report-section">
+                            <Title level={4}>Pending Project ({openProjects.length})</Title>
+                            <Table
+                                rowKey="id"
+                                size="small"
+                                columns={projectColumns}
+                                dataSource={openProjects}
+                                loading={loading}
+                                pagination={false}
+                                scroll={{ x: 'max-content' }}
+                                locale={{ emptyText: <Empty description="Tidak ada pending project" /> }}
+                            />
+                        </section>
+                    </Col>
+                </Row>
 
-                <div className="briefing-pending-grid">
-                    <section className="briefing-report-section">
-                        <Title level={4}>Pending Inbound ({pendingArrivals.length})</Title>
-                        <Table
-                            rowKey="id"
-                            size="small"
-                            columns={arrivalColumns}
-                            dataSource={pendingArrivals}
-                            loading={loading}
-                            pagination={false}
-                            scroll={{ x: 'max-content' }}
-                            locale={{ emptyText: <Empty description="Tidak ada pending inbound" /> }}
-                        />
-                    </section>
-                    <section className="briefing-report-section">
-                        <Title level={4}>Schedule Inbound ({scheduleInbound.length})</Title>
-                        <Table
-                            rowKey="key"
-                            size="small"
-                            columns={scheduleInboundColumns}
-                            dataSource={scheduleInbound}
-                            loading={loading}
-                            pagination={false}
-                            locale={{ emptyText: <Empty description="Belum ada schedule inbound" /> }}
-                        />
-                    </section>
-                    <section className="briefing-report-section briefing-project-section">
-                        <Title level={4}>Pending Project ({openProjects.length})</Title>
-                        <Table
-                            rowKey="id"
-                            size="small"
-                            columns={projectColumns}
-                            dataSource={openProjects}
-                            loading={loading}
-                            pagination={false}
-                            scroll={{ x: 'max-content' }}
-                            locale={{ emptyText: <Empty description="Tidak ada pending project" /> }}
-                        />
-                    </section>
-                </div>
+                <Row gutter={[16, 0]} className="briefing-report-grid">
+                    <Col xs={24} md={12}>
+                        <section className="briefing-report-section">
+                            <Title level={4}>Pending Inbound ({pendingArrivals.length})</Title>
+                            <Table
+                                rowKey="id"
+                                size="small"
+                                columns={arrivalColumns}
+                                dataSource={pendingArrivals}
+                                loading={loading}
+                                pagination={false}
+                                scroll={{ x: 'max-content' }}
+                                locale={{ emptyText: <Empty description="Tidak ada pending inbound" /> }}
+                            />
+                        </section>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <section className="briefing-report-section">
+                            <Title level={4}>Schedule Inbound ({scheduleInbound.length})</Title>
+                            <Table
+                                rowKey="key"
+                                size="small"
+                                columns={scheduleInboundColumns}
+                                dataSource={scheduleInbound}
+                                loading={loading}
+                                pagination={false}
+                                locale={{ emptyText: <Empty description="Belum ada schedule inbound" /> }}
+                            />
+                        </section>
+                    </Col>
+                </Row>
 
                 <section className="briefing-report-section briefing-notes">
                     <Title level={4}>Catatan / Arahan Briefing</Title>
