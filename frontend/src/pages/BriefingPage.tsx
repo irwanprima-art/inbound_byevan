@@ -16,6 +16,18 @@ import {
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+const JOBDESC_ORDER = [
+    'Admin',
+    'Inspect',
+    'Putaway',
+    'VAS',
+    'Damage Project',
+    'Troubleshoot',
+    'Cycle Count',
+    'Project Inventory',
+    'Bongkaran',
+];
+
 interface AttendanceRecord {
     id: number;
     date: string;
@@ -125,7 +137,15 @@ export default function BriefingPage() {
         const date = selectedDate.format('YYYY-MM-DD');
         return attendance
             .filter(record => record.date?.slice(0, 10) === date)
-            .sort((a, b) => (a.company || '').localeCompare(b.company || '') || a.name.localeCompare(b.name));
+            .sort((a, b) => {
+                const aRank = JOBDESC_ORDER.indexOf(a.jobdesc || '');
+                const bRank = JOBDESC_ORDER.indexOf(b.jobdesc || '');
+                const orderedA = aRank === -1 ? JOBDESC_ORDER.length : aRank;
+                const orderedB = bRank === -1 ? JOBDESC_ORDER.length : bRank;
+                return orderedA - orderedB
+                    || (a.company || '').localeCompare(b.company || '')
+                    || a.name.localeCompare(b.name);
+            });
     }, [attendance, selectedDate]);
 
     const transactionTotals = useMemo(() => {
@@ -217,12 +237,14 @@ export default function BriefingPage() {
     };
 
     const attendanceColumns: ColumnsType<AttendanceRecord> = [
-        { title: 'Nama', dataIndex: 'name', key: 'name' },
+        {
+            title: 'Nama', dataIndex: 'name', key: 'name', width: 180, ellipsis: true,
+            render: value => <span title={value}>{value}</span>,
+        },
         { title: 'NIK', dataIndex: 'nik', key: 'nik', width: 120 },
         { title: 'Company', dataIndex: 'company', key: 'company', width: 100, render: value => value || '-' },
         { title: 'Divisi / Jobdesc', dataIndex: 'jobdesc', key: 'jobdesc', width: 180, render: value => value || '-' },
         { title: 'Clock In', dataIndex: 'clock_in', key: 'clock_in', width: 90, render: displayTime },
-        { title: 'Clock Out', dataIndex: 'clock_out', key: 'clock_out', width: 90, render: displayTime },
     ];
 
     const pendingArrivalColumns: ColumnsType<PendingArrival> = [

@@ -57,3 +57,150 @@ body {
 .ant-card .ant-statistic-title {
   margin-bottom: 4px;
 }
+
+.dashboard-briefing-tab {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.briefing-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.briefing-report-print {
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #1a1f3a;
+}
+
+.briefing-report-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.briefing-report-heading .ant-typography {
+  margin: 0;
+  color: #fff;
+}
+
+.briefing-report-section {
+  margin-bottom: 18px;
+  break-inside: avoid;
+}
+
+.briefing-report-section > .ant-typography {
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.briefing-pending-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 16px;
+}
+
+.briefing-notes-content {
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.briefing-updated-by {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .briefing-pending-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .briefing-report-print,
+  .briefing-report-print * {
+    visibility: visible !important;
+    color: #111 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .briefing-report-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+  }
+
+  .briefing-report-heading {
+    padding-bottom: 10px;
+    border-bottom: 2px solid #222;
+  }
+
+  .briefing-report-heading .ant-typography,
+  .briefing-report-section > .ant-typography {
+    color: #111 !important;
+  }
+
+  .briefing-report-section {
+    margin-bottom: 12px;
+    break-inside: avoid;
+  }
+
+  .briefing-pending-grid {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 10px;
+  }
+
+  .briefing-notes-content {
+    min-height: 70px;
+    border-color: #999;
+  }
+
+  .briefing-updated-by {
+    color: #444 !important;
+  }
+
+  .briefing-report-print .ant-table,
+  .briefing-report-print .ant-table-container,
+  .briefing-report-print .ant-table-content,
+  .briefing-report-print table {
+    width: 100% !important;
+    background: #fff !important;
+  }
+
+  .briefing-report-print .ant-table-content {
+    overflow: visible !important;
+  }
+
+  .briefing-report-print .ant-table-cell {
+    padding: 4px 6px !important;
+    border-color: #bbb !important;
+    color: #111 !important;
+    font-size: 9pt;
+  }
+
+  .briefing-report-print .ant-tag {
+    border-color: #777 !important;
+  }
+}

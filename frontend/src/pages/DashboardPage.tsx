@@ -12,6 +12,7 @@ import DashboardAgingTab from './dashboard/DashboardAgingTab';
 import DashboardReturnTab from './dashboard/DashboardReturnTab';
 import DashboardManpowerTab from './dashboard/DashboardManpowerTab';
 import DashboardHeatmapTab from './dashboard/DashboardHeatmapTab';
+import DashboardBriefingTab from './dashboard/DashboardBriefingTab';
 
 const { Title } = Typography;
 
@@ -254,6 +255,11 @@ export default function DashboardPage() {
                                 addMpData={addMpData}
                             />
                         ),
+                    },
+                    {
+                        key: 'briefing',
+                        label: '📝 Briefing',
+                        children: <DashboardBriefingTab />,
                     },
                 ].filter(item => !isKeyAccount || item.key === 'aging_stock')}
             />
