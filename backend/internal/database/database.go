@@ -78,6 +78,7 @@ func AutoMigrate() {
 		&models.Unloading{},
 		&models.User{},
 		&models.Schedule{},
+		&models.Briefing{},
 		&models.BeritaAcara{},
 		&models.StockOpname{},
 		&models.AdditionalMp{},

@@ -26,6 +26,7 @@ import EmployeesPage from '../pages/EmployeesPage';
 import ProductivityPage from '../pages/ProductivityPage';
 import UnloadingPage from '../pages/UnloadingPage';
 import SchedulePage from '../pages/SchedulePage';
+import BriefingPage from '../pages/BriefingPage';
 import AdditionalMpPage from '../pages/AdditionalMpPage';
 import BeritaAcaraPage from '../pages/BeritaAcaraPage';
 import StockOpnamePage from '../pages/StockOpnamePage';
@@ -88,6 +89,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: '/employees', icon: <IdcardOutlined />, label: 'Employees', group: 'manpower' },
     { key: '/productivity', icon: <LineChartOutlined />, label: 'Productivity', group: 'manpower' },
     { key: '/schedule', icon: <CalendarOutlined />, label: 'Schedule', group: 'manpower' },
+    { key: '/briefing', icon: <FileTextOutlined />, label: 'Briefing', group: 'manpower' },
     { key: '/additional-mp', icon: <TeamOutlined />, label: 'Additional MP', group: 'manpower' },
     { key: '/workflow', icon: <NodeIndexOutlined />, label: 'Workflow', group: 'workflow' },
 ];
@@ -114,6 +116,7 @@ const PAGE_ID_MAP: Record<string, string> = {
     '/employees': 'employees',
     '/productivity': 'productivity',
     '/schedule': 'schedule',
+    '/briefing': 'briefing',
     '/additional-mp': 'additional-mp',
     '/berita-acara': 'berita-acara',
     '/berita-acara-inventory': 'berita-acara-inventory',
@@ -147,6 +150,7 @@ const PAGE_COMPONENTS: Record<string, React.ReactNode> = {
     '/employees': <EmployeesPage />,
     '/productivity': <ProductivityPage />,
     '/schedule': <SchedulePage />,
+    '/briefing': <BriefingPage />,
     '/additional-mp': <AdditionalMpPage />,
     '/berita-acara': <BeritaAcaraPage />,
     '/berita-acara-inventory': <BeritaAcaraInventoryPage />,
@@ -181,6 +185,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     '/employees': <IdcardOutlined />,
     '/productivity': <LineChartOutlined />,
     '/schedule': <CalendarOutlined />,
+    '/briefing': <FileTextOutlined />,
     '/additional-mp': <TeamOutlined />,
     '/berita-acara': <FileTextOutlined />,
     '/berita-acara-inventory': <FileTextOutlined />,

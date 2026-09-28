@@ -132,6 +132,9 @@ func main() {
 	schedules := handlers.NewResource[models.Schedule]("schedules")
 	schedules.RegisterRoutes(protected.Group("/schedules"))
 
+	briefings := handlers.NewResource[models.Briefing]("briefings")
+	briefings.RegisterRoutes(protected.Group("/briefings"))
+
 	beritaAcara := handlers.NewResource[models.BeritaAcara]("berita-acara")
 	beritaAcara.RegisterRoutes(protected.Group("/berita-acara"))
 

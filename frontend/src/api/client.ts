@@ -68,6 +68,7 @@ export const employeesApi = createResourceApi('employees');
 export const productivityApi = createResourceApi('project-productivities');
 export const unloadingsApi = createResourceApi('unloadings');
 export const schedulesApi = createResourceApi('schedules');
+export const briefingsApi = createResourceApi('briefings');
 export const beritaAcaraApi = createResourceApi('berita-acara');
 export const stockOpnamesApi = createResourceApi('stock-opnames');
 export const additionalMpApi = createResourceApi('additional-mp');
