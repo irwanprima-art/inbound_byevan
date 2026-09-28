@@ -14,7 +14,6 @@ import {
 } from '../api/client';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 
 const JOBDESC_ORDER = [
     'Admin',
@@ -136,7 +135,7 @@ export default function BriefingPage() {
     const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
     const [projects, setProjects] = useState<InventoryProjectRecord[]>([]);
     const [pic, setPic] = useState(user?.username || '');
-    const [notes, setNotes] = useState('');
+    const [notes, setNotes] = useState<string[]>(['']);
     const [scheduleInbound, setScheduleInbound] = useState<ScheduleInboundEntry[]>([]);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
@@ -223,7 +222,7 @@ export default function BriefingPage() {
         } else {
             setEditingId(null);
             setPic(user?.username || '');
-            setNotes('');
+            setNotes(['']);
             setScheduleInbound([]);
         }
     };
@@ -232,7 +231,7 @@ export default function BriefingPage() {
         setEditingId(briefing.id);
         setSelectedDate(dayjs(briefing.date));
         setPic(briefing.pic || '');
-        setNotes(briefing.notes || '');
+        setNotes(briefing.notes ? briefing.notes.split(/\r?\n/) : ['']);
         setScheduleInbound(parseScheduleInbound(briefing.schedule_inbound));
     };
 
@@ -247,7 +246,7 @@ export default function BriefingPage() {
         } else {
             setEditingId(null);
             setPic(user?.username || '');
-            setNotes('');
+            setNotes(['']);
             setScheduleInbound([]);
         }
     };
@@ -266,7 +265,7 @@ export default function BriefingPage() {
             const payload = {
                 date: selectedDate.format('YYYY-MM-DD'),
                 pic: pic.trim(),
-                notes: notes.trim(),
+                notes: notes.map(note => note.trim()).filter(Boolean).join('\n'),
                 schedule_inbound: JSON.stringify(scheduleInbound.filter(entry =>
                     entry.brand.trim() || entry.total_qty != null || entry.estimated_arrival,
                 ).map(({ brand, total_qty, estimated_arrival }) => ({
@@ -300,7 +299,7 @@ export default function BriefingPage() {
             if (editingId === id) {
                 setEditingId(null);
                 setPic(user?.username || '');
-                setNotes('');
+                setNotes(['']);
                 setScheduleInbound([]);
             }
             message.success('Briefing berhasil dihapus');
@@ -529,12 +528,33 @@ export default function BriefingPage() {
                         style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
                         styles={{ header: { color: '#fff' } }}
                     >
-                        <TextArea
-                            value={notes}
-                            onChange={event => setNotes(event.target.value)}
-                            rows={5}
-                            placeholder="Tulis catatan atau arahan briefing..."
-                        />
+                        <div className="briefing-note-list">
+                            {notes.map((note, index) => (
+                                <div className="briefing-note-editor-row" key={index}>
+                                    <Text strong className="briefing-note-number">{index + 1}.</Text>
+                                    <Input
+                                        value={note}
+                                        placeholder={`Catatan atau arahan ke-${index + 1}`}
+                                        onChange={event => setNotes(current => current.map((item, itemIndex) =>
+                                            itemIndex === index ? event.target.value : item,
+                                        ))}
+                                    />
+                                    <Button
+                                        type="text"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        aria-label={`Hapus catatan ${index + 1}`}
+                                        onClick={() => setNotes(current => current.filter((_, itemIndex) => itemIndex !== index))}
+                                    />
+                                </div>
+                            ))}
+                            <Button
+                                icon={<PlusOutlined />}
+                                onClick={() => setNotes(current => [...current, ''])}
+                            >
+                                Tambah Catatan
+                            </Button>
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
                             <Space>
                                 {editingId && <Button onClick={startNewBriefing}>Batal Edit</Button>}

@@ -188,6 +188,11 @@ export default function DashboardBriefingTab() {
         .filter(item => item.date?.slice(0, 10) === date)
         .sort((a, b) => b.id - a.id)[0], [briefings, date]);
 
+    const briefingNotes = useMemo(
+        () => (briefing?.notes || '').split(/\r?\n/).map(note => note.trim()).filter(Boolean),
+        [briefing],
+    );
+
     const scheduleInbound = useMemo((): ScheduleInboundEntry[] => {
         if (!briefing?.schedule_inbound) return [];
         try {
@@ -365,7 +370,15 @@ export default function DashboardBriefingTab() {
 
                 <section className="briefing-report-section briefing-notes">
                     <Title level={4}>Catatan / Arahan Briefing</Title>
-                    <div className="briefing-notes-content">{briefing?.notes?.trim() || 'Belum ada catatan briefing untuk tanggal ini.'}</div>
+                    {briefingNotes.length > 0 ? (
+                        <ol className="briefing-notes-list">
+                            {briefingNotes.map((note, index) => (
+                                <li key={`${index}-${note}`}>{note}</li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <div className="briefing-notes-content">Belum ada catatan briefing untuk tanggal ini.</div>
+                    )}
                     <Text className="briefing-updated-by">Dicatat oleh: {briefing?.pic || '-'}</Text>
                 </section>
             </section>
