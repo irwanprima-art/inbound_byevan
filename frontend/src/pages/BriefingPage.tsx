@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    Button, Card, Col, DatePicker, Empty, Input, message, Popconfirm, Row,
+    Button, Card, Col, DatePicker, Empty, Input, InputNumber, message, Popconfirm, Row,
     Space, Table, Tag, Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -69,7 +69,15 @@ interface BriefingRecord {
     date: string;
     pic?: string;
     notes?: string;
+    schedule_inbound?: string;
     updated_by?: string;
+}
+
+interface ScheduleInboundEntry {
+    key: string;
+    brand: string;
+    total_qty?: number;
+    estimated_arrival: string;
 }
 
 interface PendingArrival extends ArrivalRecord {
@@ -95,6 +103,30 @@ function displayTime(value?: string): string {
     return value ? value.substring(0, 5) : '-';
 }
 
+function parseScheduleInbound(value?: string): ScheduleInboundEntry[] {
+    if (!value) return [];
+    try {
+        const entries: unknown = JSON.parse(value);
+        if (!Array.isArray(entries)) throw new Error('Schedule inbound format is invalid');
+        return entries.map((entry, index) => {
+            const row = entry as Partial<ScheduleInboundEntry>;
+            return {
+                key: row.key || `schedule-${index}`,
+                brand: row.brand || '',
+                total_qty: row.total_qty,
+                estimated_arrival: row.estimated_arrival || '',
+            };
+        });
+    } catch {
+        message.error('Data Schedule Inbound tidak dapat dibaca');
+        return [];
+    }
+}
+
+function newScheduleInboundEntry(): ScheduleInboundEntry {
+    return { key: `${Date.now()}-${Math.random()}`, brand: '', total_qty: undefined, estimated_arrival: '' };
+}
+
 export default function BriefingPage() {
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState(dayjs());
@@ -105,6 +137,7 @@ export default function BriefingPage() {
     const [projects, setProjects] = useState<InventoryProjectRecord[]>([]);
     const [pic, setPic] = useState(user?.username || '');
     const [notes, setNotes] = useState('');
+    const [scheduleInbound, setScheduleInbound] = useState<ScheduleInboundEntry[]>([]);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -180,10 +213,19 @@ export default function BriefingPage() {
     );
 
     const startNewBriefing = () => {
-        setEditingId(null);
-        setSelectedDate(dayjs());
-        setPic(user?.username || '');
-        setNotes('');
+        const date = dayjs();
+        const existing = briefings
+            .filter(item => item.date?.slice(0, 10) === date.format('YYYY-MM-DD'))
+            .sort((a, b) => b.id - a.id)[0];
+        setSelectedDate(date);
+        if (existing) {
+            editBriefing(existing);
+        } else {
+            setEditingId(null);
+            setPic(user?.username || '');
+            setNotes('');
+            setScheduleInbound([]);
+        }
     };
 
     const editBriefing = (briefing: BriefingRecord) => {
@@ -191,6 +233,23 @@ export default function BriefingPage() {
         setSelectedDate(dayjs(briefing.date));
         setPic(briefing.pic || '');
         setNotes(briefing.notes || '');
+        setScheduleInbound(parseScheduleInbound(briefing.schedule_inbound));
+    };
+
+    const handleDateChange = (date: dayjs.Dayjs | null) => {
+        if (!date) return;
+        const existing = briefings
+            .filter(item => item.date?.slice(0, 10) === date.format('YYYY-MM-DD'))
+            .sort((a, b) => b.id - a.id)[0];
+        setSelectedDate(date);
+        if (existing) {
+            editBriefing(existing);
+        } else {
+            setEditingId(null);
+            setPic(user?.username || '');
+            setNotes('');
+            setScheduleInbound([]);
+        }
     };
 
     const saveBriefing = async () => {
@@ -208,15 +267,25 @@ export default function BriefingPage() {
                 date: selectedDate.format('YYYY-MM-DD'),
                 pic: pic.trim(),
                 notes: notes.trim(),
+                schedule_inbound: JSON.stringify(scheduleInbound.filter(entry =>
+                    entry.brand.trim() || entry.total_qty != null || entry.estimated_arrival,
+                ).map(({ brand, total_qty, estimated_arrival }) => ({
+                    brand: brand.trim(),
+                    total_qty: total_qty ?? 0,
+                    estimated_arrival,
+                }))),
             };
-            if (editingId) {
-                await briefingsApi.update(editingId, payload);
+            const existing = briefings
+                .filter(item => item.date?.slice(0, 10) === payload.date)
+                .sort((a, b) => b.id - a.id)[0];
+            const briefingId = editingId || existing?.id;
+            if (briefingId) {
+                await briefingsApi.update(briefingId, payload);
                 message.success('Catatan briefing berhasil diperbarui');
             } else {
                 await briefingsApi.create(payload);
                 message.success('Briefing berhasil disimpan');
             }
-            startNewBriefing();
             await fetchData();
         } catch {
             message.error('Gagal menyimpan briefing');
@@ -228,7 +297,12 @@ export default function BriefingPage() {
     const deleteBriefing = async (id: number) => {
         try {
             await briefingsApi.remove(id);
-            if (editingId === id) startNewBriefing();
+            if (editingId === id) {
+                setEditingId(null);
+                setPic(user?.username || '');
+                setNotes('');
+                setScheduleInbound([]);
+            }
             message.success('Briefing berhasil dihapus');
             await fetchData();
         } catch {
@@ -267,6 +341,59 @@ export default function BriefingPage() {
         { title: 'Task', dataIndex: 'task', key: 'task', render: value => value || '-' },
         { title: 'Target Selesai', dataIndex: 'target_date', key: 'target_date', width: 140, render: value => value || '-' },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 100, render: value => <Tag color="blue">{value || 'Open'}</Tag> },
+    ];
+
+    const scheduleInboundColumns: ColumnsType<ScheduleInboundEntry> = [
+        {
+            title: 'Brand', dataIndex: 'brand', key: 'brand',
+            render: (value, entry) => (
+                <Input
+                    value={value}
+                    placeholder="Nama brand"
+                    onChange={event => setScheduleInbound(current => current.map(row =>
+                        row.key === entry.key ? { ...row, brand: event.target.value } : row,
+                    ))}
+                />
+            ),
+        },
+        {
+            title: 'Total Qty', dataIndex: 'total_qty', key: 'total_qty', width: 130,
+            render: (value, entry) => (
+                <InputNumber
+                    min={0}
+                    precision={0}
+                    value={value}
+                    style={{ width: '100%' }}
+                    onChange={qty => setScheduleInbound(current => current.map(row =>
+                        row.key === entry.key ? { ...row, total_qty: qty ?? undefined } : row,
+                    ))}
+                />
+            ),
+        },
+        {
+            title: 'Estimasi Kedatangan', dataIndex: 'estimated_arrival', key: 'estimated_arrival', width: 170,
+            render: (value, entry) => (
+                <Input
+                    type="time"
+                    value={value}
+                    onChange={event => setScheduleInbound(current => current.map(row =>
+                        row.key === entry.key ? { ...row, estimated_arrival: event.target.value } : row,
+                    ))}
+                />
+            ),
+        },
+        {
+            title: 'Aksi', key: 'action', width: 70,
+            render: (_, entry) => (
+                <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    aria-label="Hapus schedule inbound"
+                    onClick={() => setScheduleInbound(current => current.filter(row => row.key !== entry.key))}
+                />
+            ),
+        },
     ];
 
     const historyColumns: ColumnsType<BriefingRecord> = [
@@ -312,7 +439,7 @@ export default function BriefingPage() {
                         <Text strong style={{ display: 'block', color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Tanggal Briefing</Text>
                         <DatePicker
                             value={selectedDate}
-                            onChange={value => value && setSelectedDate(value)}
+                            onChange={handleDateChange}
                             format="DD/MM/YYYY"
                             style={{ width: '100%' }}
                         />
@@ -343,7 +470,7 @@ export default function BriefingPage() {
                         />
                     </Card>
                 </Col>
-                <Col xs={24} xl={14}>
+                <Col xs={24} xl={12}>
                     <Card
                         title={`Pending Inbound (${pendingArrivals.length})`}
                         style={{ height: '100%', background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
@@ -361,7 +488,24 @@ export default function BriefingPage() {
                         />
                     </Card>
                 </Col>
-                <Col xs={24} xl={10}>
+                <Col xs={24} xl={12}>
+                    <Card
+                        title={`Schedule Inbound (${scheduleInbound.length})`}
+                        extra={<Button size="small" icon={<PlusOutlined />} onClick={() => setScheduleInbound(current => [...current, newScheduleInboundEntry()])}>Tambah</Button>}
+                        style={{ height: '100%', background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
+                        styles={{ header: { color: '#fff' } }}
+                    >
+                        <Table
+                            rowKey="key"
+                            size="small"
+                            columns={scheduleInboundColumns}
+                            dataSource={scheduleInbound}
+                            pagination={false}
+                            locale={{ emptyText: <Empty description="Belum ada schedule inbound" /> }}
+                        />
+                    </Card>
+                </Col>
+                <Col span={24}>
                     <Card
                         title={`Pending Project (${openProjects.length})`}
                         style={{ height: '100%', background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}

@@ -401,14 +401,15 @@ type AdditionalMp struct {
 
 // Briefing represents a manpower briefing note for a specific date.
 type Briefing struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Date      FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
-	Pic       string         `gorm:"column:pic" json:"pic"`
-	Notes     string         `gorm:"column:notes;type:text" json:"notes"`
-	UpdatedBy string         `gorm:"column:updated_by" json:"updated_by"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	Date            FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	Pic             string         `gorm:"column:pic" json:"pic"`
+	Notes           string         `gorm:"column:notes;type:text" json:"notes"`
+	ScheduleInbound string         `gorm:"column:schedule_inbound;type:text" json:"schedule_inbound"`
+	UpdatedBy       string         `gorm:"column:updated_by" json:"updated_by"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // InboundRejection represents tolakan (rejected goods) in inbound
