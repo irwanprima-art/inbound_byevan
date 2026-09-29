@@ -10,7 +10,7 @@ import {
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import {
-    arrivalsApi, attendancesApi, briefingsApi, inventoryProjectsApi, transactionsApi,
+    arrivalsApi, attendancesApi, briefingsApi, dailyInboundSchedulesApi, inventoryProjectsApi, transactionsApi,
 } from '../api/client';
 
 const { Title, Text } = Typography;
@@ -73,6 +73,12 @@ interface BriefingRecord {
     updated_by?: string;
 }
 
+interface DailyInboundScheduleRecord {
+    id: number;
+    date: string;
+    entries: string;
+}
+
 interface ScheduleInboundEntry {
     key: string;
     brand: string;
@@ -131,6 +137,7 @@ export default function BriefingPage() {
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState(dayjs());
     const [briefings, setBriefings] = useState<BriefingRecord[]>([]);
+    const [dailyInboundSchedules, setDailyInboundSchedules] = useState<DailyInboundScheduleRecord[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [arrivals, setArrivals] = useState<ArrivalRecord[]>([]);
     const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -146,14 +153,16 @@ export default function BriefingPage() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [briefingRes, attendanceRes, arrivalRes, transactionRes, projectRes] = await Promise.all([
+            const [briefingRes, dailyScheduleRes, attendanceRes, arrivalRes, transactionRes, projectRes] = await Promise.all([
                 briefingsApi.list(),
+                dailyInboundSchedulesApi.list(),
                 attendancesApi.list(),
                 arrivalsApi.list(),
                 transactionsApi.list(),
                 inventoryProjectsApi.list(),
             ]);
             setBriefings(readList<BriefingRecord>(briefingRes.data));
+            setDailyInboundSchedules(readList<DailyInboundScheduleRecord>(dailyScheduleRes.data));
             setAttendance(readList<AttendanceRecord>(attendanceRes.data));
             setArrivals(readList<ArrivalRecord>(arrivalRes.data));
             setTransactions(readList<TransactionRecord>(transactionRes.data));
@@ -166,6 +175,21 @@ export default function BriefingPage() {
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    const savedScheduleInboundForDate = useMemo(() => {
+        const date = selectedDate.format('YYYY-MM-DD');
+        const dailySchedule = dailyInboundSchedules.find(record => record.date?.slice(0, 10) === date);
+        if (dailySchedule) return parseScheduleInbound(dailySchedule.entries);
+
+        const legacySchedule = [...briefings]
+            .filter(record => record.date?.slice(0, 10) === date && record.schedule_inbound)
+            .sort((a, b) => b.id - a.id)[0];
+        return parseScheduleInbound(legacySchedule?.schedule_inbound);
+    }, [briefings, dailyInboundSchedules, selectedDate]);
+
+    useEffect(() => {
+        setScheduleInbound(savedScheduleInboundForDate);
+    }, [savedScheduleInboundForDate]);
 
     const attendanceForDate = useMemo(() => {
         const date = selectedDate.format('YYYY-MM-DD');
@@ -219,7 +243,6 @@ export default function BriefingPage() {
         setShift('Shift 1');
         setPic(user?.username || '');
         setNotes(['']);
-        setScheduleInbound([]);
     };
 
     const editBriefing = (briefing: BriefingRecord) => {
@@ -228,7 +251,6 @@ export default function BriefingPage() {
         setShift(briefing.shift || 'Shift 1');
         setPic(briefing.pic || '');
         setNotes(briefing.notes ? briefing.notes.split(/\r?\n/) : ['']);
-        setScheduleInbound(parseScheduleInbound(briefing.schedule_inbound));
     };
 
     const handleDateChange = (date: dayjs.Dayjs | null) => {
@@ -252,13 +274,6 @@ export default function BriefingPage() {
                 shift,
                 pic: pic.trim(),
                 notes: notes.map(note => note.trim()).filter(Boolean).join('\n'),
-                schedule_inbound: JSON.stringify(scheduleInbound.filter(entry =>
-                    entry.brand.trim() || entry.total_qty != null || entry.estimated_arrival,
-                ).map(({ brand, total_qty, estimated_arrival }) => ({
-                    brand: brand.trim(),
-                    total_qty: total_qty ?? 0,
-                    estimated_arrival,
-                }))),
             };
             if (editingId) {
                 await briefingsApi.update(editingId, payload);
@@ -275,6 +290,37 @@ export default function BriefingPage() {
         }
     };
 
+    const saveDailyScheduleInbound = async () => {
+        const date = selectedDate.format('YYYY-MM-DD');
+        const payload = {
+            date,
+            entries: JSON.stringify(scheduleInbound.filter(entry =>
+                entry.brand.trim() || entry.total_qty != null || entry.estimated_arrival,
+            ).map(({ brand, total_qty, estimated_arrival }) => ({
+                brand: brand.trim(),
+                total_qty: total_qty ?? 0,
+                estimated_arrival,
+            }))),
+        };
+        setSaving(true);
+        try {
+            const existing = dailyInboundSchedules.find(record => record.date?.slice(0, 10) === date);
+            const response = existing
+                ? await dailyInboundSchedulesApi.update(existing.id, payload)
+                : await dailyInboundSchedulesApi.create(payload);
+            const savedRecord = response.data as DailyInboundScheduleRecord;
+            setDailyInboundSchedules(current => [
+                ...current.filter(record => record.date?.slice(0, 10) !== date),
+                savedRecord,
+            ]);
+            message.success('Schedule inbound harian berhasil disimpan');
+        } catch {
+            message.error('Gagal menyimpan schedule inbound harian');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const deleteBriefing = async (id: number) => {
         try {
             await briefingsApi.remove(id);
@@ -283,7 +329,6 @@ export default function BriefingPage() {
                 setPic(user?.username || '');
                 setShift('Shift 1');
                 setNotes(['']);
-                setScheduleInbound([]);
             }
             message.success('Briefing berhasil dihapus');
             await fetchData();
@@ -482,8 +527,13 @@ export default function BriefingPage() {
                 </Col>
                 <Col xs={24} xl={12}>
                     <Card
-                        title={`Schedule Inbound (${scheduleInbound.length})`}
-                        extra={<Button size="small" icon={<PlusOutlined />} onClick={() => setScheduleInbound(current => [...current, newScheduleInboundEntry()])}>Tambah</Button>}
+                        title={`Schedule Inbound — ${selectedDate.format('DD/MM/YYYY')} (${scheduleInbound.length})`}
+                        extra={(
+                            <Space>
+                                <Button size="small" icon={<PlusOutlined />} onClick={() => setScheduleInbound(current => [...current, newScheduleInboundEntry()])}>Tambah</Button>
+                                <Button size="small" type="primary" icon={<SaveOutlined />} onClick={saveDailyScheduleInbound} loading={saving}>Simpan Harian</Button>
+                            </Space>
+                        )}
                         style={{ height: '100%', background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)' }}
                         styles={{ header: { color: '#fff' } }}
                     >

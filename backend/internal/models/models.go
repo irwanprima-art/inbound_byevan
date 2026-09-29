@@ -413,6 +413,16 @@ type Briefing struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// DailyInboundSchedule stores the manually entered inbound schedule independently of briefing shifts.
+type DailyInboundSchedule struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Date      FlexDate       `gorm:"column:date;type:text;uniqueIndex:idx_daily_inbound_schedules_date" json:"date" binding:"required"`
+	Entries   string         `gorm:"column:entries;type:text" json:"entries"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
 // InboundRejection represents tolakan (rejected goods) in inbound
 type InboundRejection struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`

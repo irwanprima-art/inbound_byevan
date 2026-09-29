@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
-    arrivalsApi, attendancesApi, briefingsApi, employeesApi, inventoryProjectsApi, transactionsApi,
+    arrivalsApi, attendancesApi, briefingsApi, dailyInboundSchedulesApi, employeesApi, inventoryProjectsApi, transactionsApi,
 } from '../../api/client';
 
 const { Text, Title } = Typography;
@@ -70,6 +70,12 @@ interface BriefingRecord {
     schedule_inbound?: string;
 }
 
+interface DailyInboundScheduleRecord {
+    id: number;
+    date: string;
+    entries: string;
+}
+
 interface ScheduleInboundEntry {
     key: string;
     brand: string;
@@ -115,18 +121,20 @@ export default function DashboardBriefingTab() {
     const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
     const [projects, setProjects] = useState<InventoryProjectRecord[]>([]);
     const [briefings, setBriefings] = useState<BriefingRecord[]>([]);
+    const [dailyInboundSchedules, setDailyInboundSchedules] = useState<DailyInboundScheduleRecord[]>([]);
     const [loading, setLoading] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [attendanceRes, employeeRes, arrivalRes, transactionRes, projectRes, briefingRes] = await Promise.all([
+            const [attendanceRes, employeeRes, arrivalRes, transactionRes, projectRes, briefingRes, dailyScheduleRes] = await Promise.all([
                 attendancesApi.list(),
                 employeesApi.list(),
                 arrivalsApi.list(),
                 transactionsApi.list(),
                 inventoryProjectsApi.list(),
                 briefingsApi.list(),
+                dailyInboundSchedulesApi.list(),
             ]);
             setAttendance(readList<AttendanceRecord>(attendanceRes.data));
             setEmployees(readList<EmployeeRecord>(employeeRes.data));
@@ -134,6 +142,7 @@ export default function DashboardBriefingTab() {
             setTransactions(readList<TransactionRecord>(transactionRes.data));
             setProjects(readList<InventoryProjectRecord>(projectRes.data));
             setBriefings(readList<BriefingRecord>(briefingRes.data));
+            setDailyInboundSchedules(readList<DailyInboundScheduleRecord>(dailyScheduleRes.data));
         } catch {
             message.error('Gagal memuat laporan briefing');
         } finally {
@@ -197,9 +206,14 @@ export default function DashboardBriefingTab() {
     );
 
     const scheduleInbound = useMemo((): ScheduleInboundEntry[] => {
-        if (!briefing?.schedule_inbound) return [];
+        const dailySchedule = dailyInboundSchedules.find(item => item.date?.slice(0, 10) === date);
+        const legacySchedule = [...briefings]
+            .filter(item => item.date?.slice(0, 10) === date && item.schedule_inbound)
+            .sort((a, b) => b.id - a.id)[0];
+        const savedEntries = dailySchedule?.entries || legacySchedule?.schedule_inbound;
+        if (!savedEntries) return [];
         try {
-            const entries: unknown = JSON.parse(briefing.schedule_inbound);
+            const entries: unknown = JSON.parse(savedEntries);
             if (!Array.isArray(entries)) throw new Error('Schedule inbound format is invalid');
             return entries.map((entry, index) => {
                 const row = entry as Partial<ScheduleInboundEntry>;
@@ -214,7 +228,7 @@ export default function DashboardBriefingTab() {
             message.error('Data Schedule Inbound tidak dapat dibaca');
             return [];
         }
-    }, [briefing]);
+    }, [briefings, dailyInboundSchedules, date]);
 
     const transactionTotals = useMemo(() => {
         const totals: Record<string, { receive: number; putaway: number }> = {};
