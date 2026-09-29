@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Col, DatePicker, Empty, message, Row, Space, Table, Tag, Typography } from 'antd';
+import { Button, Col, DatePicker, Empty, message, Row, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -8,6 +8,7 @@ import {
 } from '../../api/client';
 
 const { Text, Title } = Typography;
+const SHIFT_OPTIONS = ['Shift 1', 'Shift 2', 'Shift 3'].map(value => ({ label: value, value }));
 
 const JOBDESC_ORDER = [
     'Admin',
@@ -63,6 +64,7 @@ interface InventoryProjectRecord {
 interface BriefingRecord {
     id: number;
     date: string;
+    shift?: string;
     pic?: string;
     notes?: string;
     schedule_inbound?: string;
@@ -106,6 +108,7 @@ function toNumber(value: number | string | undefined): number {
 
 export default function DashboardBriefingTab() {
     const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
+    const [selectedShift, setSelectedShift] = useState('Shift 1');
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
     const [arrivals, setArrivals] = useState<ArrivalRecord[]>([]);
@@ -185,8 +188,8 @@ export default function DashboardBriefingTab() {
     }, [attendance, employees, date]);
 
     const briefing = useMemo(() => briefings
-        .filter(item => item.date?.slice(0, 10) === date)
-        .sort((a, b) => b.id - a.id)[0], [briefings, date]);
+        .filter(item => item.date?.slice(0, 10) === date && (item.shift || 'Shift 1') === selectedShift)
+        .sort((a, b) => b.id - a.id)[0], [briefings, date, selectedShift]);
 
     const briefingNotes = useMemo(
         () => (briefing?.notes || '').split(/\r?\n/).map(note => note.trim()).filter(Boolean),
@@ -292,6 +295,7 @@ export default function DashboardBriefingTab() {
                 <Space wrap>
                     <Text strong>Tanggal briefing</Text>
                     <DatePicker value={selectedDate} onChange={value => value && setSelectedDate(value)} format="DD/MM/YYYY" />
+                    <Select value={selectedShift} options={SHIFT_OPTIONS} onChange={setSelectedShift} style={{ width: 130 }} />
                     <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Refresh</Button>
                     <Button type="primary" icon={<PrinterOutlined />} onClick={() => window.print()}>Print / PDF</Button>
                 </Space>
@@ -299,7 +303,7 @@ export default function DashboardBriefingTab() {
 
             <section className="briefing-report-print">
                 <header className="briefing-report-heading">
-                    <Title level={2}>DAILY BRIEFING REPORT</Title>
+                    <Title level={2}>DAILY BRIEFING REPORT — {selectedShift.toUpperCase()}</Title>
                     <Text>{selectedDate.format('dddd, DD MMMM YYYY')}</Text>
                     <Text strong>Team Leader / PIC: {briefing?.pic || '-'}</Text>
                 </header>

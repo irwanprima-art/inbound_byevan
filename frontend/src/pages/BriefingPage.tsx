@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    Button, Card, Col, DatePicker, Empty, Input, InputNumber, message, Popconfirm, Row,
+    Button, Card, Col, DatePicker, Empty, Input, InputNumber, message, Popconfirm, Row, Select,
     Space, Table, Tag, Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -14,7 +14,7 @@ import {
 } from '../api/client';
 
 const { Title, Text } = Typography;
-
+const SHIFT_OPTIONS = ['Shift 1', 'Shift 2', 'Shift 3'].map(value => ({ label: value, value }));
 const JOBDESC_ORDER = [
     'Admin',
     'Inspect',
@@ -66,6 +66,7 @@ interface InventoryProjectRecord {
 interface BriefingRecord {
     id: number;
     date: string;
+    shift?: string;
     pic?: string;
     notes?: string;
     schedule_inbound?: string;
@@ -134,6 +135,7 @@ export default function BriefingPage() {
     const [arrivals, setArrivals] = useState<ArrivalRecord[]>([]);
     const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
     const [projects, setProjects] = useState<InventoryProjectRecord[]>([]);
+    const [shift, setShift] = useState('Shift 1');
     const [pic, setPic] = useState(user?.username || '');
     const [notes, setNotes] = useState<string[]>(['']);
     const [scheduleInbound, setScheduleInbound] = useState<ScheduleInboundEntry[]>([]);
@@ -212,24 +214,18 @@ export default function BriefingPage() {
     );
 
     const startNewBriefing = () => {
-        const date = dayjs();
-        const existing = briefings
-            .filter(item => item.date?.slice(0, 10) === date.format('YYYY-MM-DD'))
-            .sort((a, b) => b.id - a.id)[0];
-        setSelectedDate(date);
-        if (existing) {
-            editBriefing(existing);
-        } else {
-            setEditingId(null);
-            setPic(user?.username || '');
-            setNotes(['']);
-            setScheduleInbound([]);
-        }
+        setEditingId(null);
+        setSelectedDate(dayjs());
+        setShift('Shift 1');
+        setPic(user?.username || '');
+        setNotes(['']);
+        setScheduleInbound([]);
     };
 
     const editBriefing = (briefing: BriefingRecord) => {
         setEditingId(briefing.id);
         setSelectedDate(dayjs(briefing.date));
+        setShift(briefing.shift || 'Shift 1');
         setPic(briefing.pic || '');
         setNotes(briefing.notes ? briefing.notes.split(/\r?\n/) : ['']);
         setScheduleInbound(parseScheduleInbound(briefing.schedule_inbound));
@@ -237,18 +233,7 @@ export default function BriefingPage() {
 
     const handleDateChange = (date: dayjs.Dayjs | null) => {
         if (!date) return;
-        const existing = briefings
-            .filter(item => item.date?.slice(0, 10) === date.format('YYYY-MM-DD'))
-            .sort((a, b) => b.id - a.id)[0];
         setSelectedDate(date);
-        if (existing) {
-            editBriefing(existing);
-        } else {
-            setEditingId(null);
-            setPic(user?.username || '');
-            setNotes(['']);
-            setScheduleInbound([]);
-        }
     };
 
     const saveBriefing = async () => {
@@ -264,6 +249,7 @@ export default function BriefingPage() {
         try {
             const payload = {
                 date: selectedDate.format('YYYY-MM-DD'),
+                shift,
                 pic: pic.trim(),
                 notes: notes.map(note => note.trim()).filter(Boolean).join('\n'),
                 schedule_inbound: JSON.stringify(scheduleInbound.filter(entry =>
@@ -274,12 +260,8 @@ export default function BriefingPage() {
                     estimated_arrival,
                 }))),
             };
-            const existing = briefings
-                .filter(item => item.date?.slice(0, 10) === payload.date)
-                .sort((a, b) => b.id - a.id)[0];
-            const briefingId = editingId || existing?.id;
-            if (briefingId) {
-                await briefingsApi.update(briefingId, payload);
+            if (editingId) {
+                await briefingsApi.update(editingId, payload);
                 message.success('Catatan briefing berhasil diperbarui');
             } else {
                 await briefingsApi.create(payload);
@@ -299,6 +281,7 @@ export default function BriefingPage() {
             if (editingId === id) {
                 setEditingId(null);
                 setPic(user?.username || '');
+                setShift('Shift 1');
                 setNotes(['']);
                 setScheduleInbound([]);
             }
@@ -397,6 +380,7 @@ export default function BriefingPage() {
 
     const historyColumns: ColumnsType<BriefingRecord> = [
         { title: 'Tanggal Briefing', dataIndex: 'date', key: 'date', width: 150 },
+        { title: 'Shift', dataIndex: 'shift', key: 'shift', width: 100, render: value => value || 'Shift 1' },
         { title: 'Team Leader / PIC', dataIndex: 'pic', key: 'pic', width: 190 },
         {
             title: 'Catatan', dataIndex: 'notes', key: 'notes',
@@ -429,7 +413,7 @@ export default function BriefingPage() {
             </div>
 
             <Card
-                title={editingId ? 'Edit Catatan Briefing' : 'Catatan Briefing'}
+                title={editingId ? 'Edit Briefing' : 'Briefing Baru'}
                 style={{ background: '#1a1f3a', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}
                 styles={{ header: { color: '#fff' } }}
             >
@@ -440,6 +424,15 @@ export default function BriefingPage() {
                             value={selectedDate}
                             onChange={handleDateChange}
                             format="DD/MM/YYYY"
+                            style={{ width: '100%' }}
+                        />
+                    </Col>
+                    <Col xs={24} sm={8} md={4}>
+                        <Text strong style={{ display: 'block', color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Shift</Text>
+                        <Select
+                            value={shift}
+                            options={SHIFT_OPTIONS}
+                            onChange={setShift}
                             style={{ width: '100%' }}
                         />
                     </Col>

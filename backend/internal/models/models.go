@@ -403,6 +403,7 @@ type AdditionalMp struct {
 type Briefing struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
 	Date            FlexDate       `gorm:"column:date;type:text;index" json:"date" binding:"required"`
+	Shift           string         `gorm:"column:shift;default:Shift 1" json:"shift"`
 	Pic             string         `gorm:"column:pic" json:"pic"`
 	Notes           string         `gorm:"column:notes;type:text" json:"notes"`
 	ScheduleInbound string         `gorm:"column:schedule_inbound;type:text" json:"schedule_inbound"`
