@@ -22,6 +22,7 @@ const JOBDESC_ORDER = [
     'VAS',
     'Damage Project',
     'Troubleshoot',
+    'Investigation VAR',
     'Cycle Count',
     'Project Inventory',
     'Bongkaran',

@@ -25,7 +25,7 @@ export default function DashboardManpowerTab({ attData, empData, schedData, addM
         'Troubleshoot': 'Inventory', 'Project Inventory': 'Inventory',
         'Admin': 'Inbound', 'VAS': 'Inbound', 'Return': 'Return',
         'Putaway': 'Inbound', 'Inspect': 'Inbound', 'Bongkaran': 'Inbound',
-        'Damage Project': 'Inventory', 'Cycle Count': 'Inventory',
+        'Damage Project': 'Inventory', 'Cycle Count': 'Inventory', 'Investigation VAR': 'Inventory',
         'Receive': 'Inbound', 'STO': 'Inventory',
     };
 

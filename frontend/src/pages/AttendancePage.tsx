@@ -15,7 +15,7 @@ import { attendancesApi, employeesApi } from '../api/client';
 
 const jobdescOptions = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
-    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count',
+    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count', 'Investigation VAR',
     'Receive', 'STO',
 ].map(v => ({ label: v, value: v }));
 
@@ -28,7 +28,7 @@ const divisiMap: Record<string, string> = {
     'Troubleshoot': 'Inventory', 'Project Inventory': 'Inventory',
     'Admin': 'Inbound', 'VAS': 'Inbound', 'Return': 'Return',
     'Putaway': 'Inbound', 'Inspect': 'Inbound', 'Bongkaran': 'Inbound',
-    'Damage Project': 'Inventory', 'Cycle Count': 'Inventory',
+    'Damage Project': 'Inventory', 'Cycle Count': 'Inventory', 'Investigation VAR': 'Inventory',
     'Receive': 'Inbound', 'STO': 'Inventory',
 };
 

@@ -12,7 +12,7 @@ const API = (import.meta as any).env?.VITE_API_URL || '/api';
 
 const jobdescOptions = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
-    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count',
+    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count', 'Investigation VAR',
     'Receive', 'STO',
 ].map(v => ({ label: v, value: v }));
 

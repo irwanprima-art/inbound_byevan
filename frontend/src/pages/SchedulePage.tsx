@@ -15,7 +15,7 @@ const { Title } = Typography;
 
 const JOBDESC_OPTIONS = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
-    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count',
+    'Putaway', 'Inspect', 'Bongkaran', 'Damage Project', 'Cycle Count', 'Investigation VAR',
     'Receive', 'STO',
 ].map(v => ({ label: v, value: v }));
 
