@@ -9,6 +9,8 @@ import {
     EditOutlined, ReloadOutlined, SearchOutlined, ClearOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { FilterValue } from 'antd/es/table/interface';
+import { isAxiosError } from 'axios';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { useSearchParams } from 'react-router-dom';
@@ -49,6 +51,7 @@ interface DataPageProps<T> {
         update: (id: number, data: Record<string, unknown>) => Promise<any>;
         remove: (id: number) => Promise<any>;
         bulkDelete: (ids: number[]) => Promise<any>;
+        bulkDeleteFiltered: (params: Record<string, string>) => Promise<any>;
         sync: (data: Record<string, unknown>[]) => Promise<any>;
         batchImport: (data: Record<string, unknown>[]) => Promise<any>;
     };
@@ -66,6 +69,8 @@ interface DataPageProps<T> {
     dateField?: string;
     /** Extra filter UI nodes rendered before the search bar */
     extraFilterUi?: React.ReactNode;
+    /** Server-side query parameters for extra filters shown in extraFilterUi */
+    filteredDeleteParams?: Record<string, string | string[] | undefined>;
     /** Extra filter function applied per row (after date+search filters) */
     extraFilterFn?: (item: T) => boolean;
     /** Extra buttons rendered after the Export CSV button in the toolbar */
@@ -81,7 +86,7 @@ interface DataPageProps<T> {
 }
 
 export default function DataPage<T extends { id: number }>({
-    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, /* computeSearchText removed */ dateField, extraFilterUi, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper, hideEdit,
+    title, api, columns, formFields, csvHeaders, parseCSVRow, columnMap, numberFields, /* computeSearchText removed */ dateField, extraFilterUi, filteredDeleteParams, extraFilterFn, extraButtons, enrichData, exportHeaders, exportRowMapper, hideEdit,
 }: DataPageProps<T>) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
@@ -91,6 +96,7 @@ export default function DataPage<T extends { id: number }>({
     const [modalOpen, setModalOpen] = useState(false);
     const [editRecord, setEditRecord] = useState<T | null>(null);
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+    const [tableFilters, setTableFilters] = useState<Record<string, FilterValue | null>>({});
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
     const [form] = Form.useForm();
     const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -125,6 +131,9 @@ export default function DataPage<T extends { id: number }>({
                 params.startDate = dateRange[0].format('YYYY-MM-DD');
                 params.endDate = dateRange[1].format('YYYY-MM-DD');
             }
+            Object.entries(tableFilters).forEach(([field, values]) => {
+                if (values?.length) params[field] = values.join(',');
+            });
 
             const res = await api.list(params);
             
@@ -148,7 +157,7 @@ export default function DataPage<T extends { id: number }>({
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [api, enrichData, page, pageSize, debouncedSearch, dateRange, dateField]);
+    }, [api, enrichData, page, pageSize, debouncedSearch, dateRange, dateField, tableFilters]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -216,6 +225,51 @@ export default function DataPage<T extends { id: number }>({
         } catch {
             message.error('Gagal menghapus');
         }
+    };
+
+    const deleteFilterParams = useMemo(() => {
+        const params: Record<string, string> = {};
+        const activeSearch = debouncedSearch.trim();
+        if (activeSearch) params.search = activeSearch;
+        if (dateField && dateRange) {
+            params.dateField = dateField;
+            params.startDate = dateRange[0].format('YYYY-MM-DD');
+            params.endDate = dateRange[1].format('YYYY-MM-DD');
+        }
+        Object.entries(tableFilters).forEach(([field, values]) => {
+            if (values?.length) params[field] = values.map(String).join(',');
+        });
+        Object.entries(filteredDeleteParams || {}).forEach(([field, value]) => {
+            if (value?.length) params[field] = Array.isArray(value) ? value.join(',') : value;
+        });
+        return params;
+    }, [debouncedSearch, dateField, dateRange, tableFilters, filteredDeleteParams]);
+
+    const hasActiveDeleteFilters = Object.keys(deleteFilterParams).length > 0;
+
+    const handleDeleteFiltered = () => {
+        Modal.confirm({
+            title: `⚠️ Hapus ${total} Data Terfilter`,
+            content: `Hapus semua ${total} data ${title} yang sesuai dengan filter aktif? Tindakan ini tidak bisa dibatalkan.`,
+            okText: `Ya, Hapus ${total} Data`,
+            okType: 'danger',
+            cancelText: 'Batal',
+            onOk: async () => {
+                try {
+                    const result = await api.bulkDeleteFiltered(deleteFilterParams);
+                    const deleted = Number(result.data?.deleted || 0);
+                    message.success(`${deleted} data ${title} berhasil dihapus`);
+                    setSelectedKeys([]);
+                    setTableFilters({});
+                    fetchData();
+                } catch (error) {
+                    const serverMessage = isAxiosError<{ error?: string }>(error)
+                        ? error.response?.data?.error
+                        : undefined;
+                    message.error(serverMessage || 'Gagal menghapus data terfilter');
+                }
+            },
+        });
     };
 
     const handleClearAll = () => {
@@ -428,6 +482,7 @@ export default function DataPage<T extends { id: number }>({
             return {
                 ...col,
                 width: colWidths[key] || col.width || 150,
+                ...(col.filters ? { filteredValue: tableFilters[String(key)] || null } : {}),
                 onHeaderCell: (column: any) => ({
                     width: column.width,
                     onResize: handleResize(key),
@@ -523,6 +578,11 @@ export default function DataPage<T extends { id: number }>({
                             </Button>
                         </Popconfirm>
                     )}
+                    {canDelete && hasActiveDeleteFilters && total > 0 && (
+                        <Button danger icon={<DeleteOutlined />} onClick={handleDeleteFiltered}>
+                            Hapus Terfilter ({total})
+                        </Button>
+                    )}
                     {isSupervisor && data.length > 0 && (
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>
                             Clear All
@@ -543,10 +603,11 @@ export default function DataPage<T extends { id: number }>({
                     total: total,
                     showSizeChanger: true,
                     showTotal: (t) => `Total: ${t}`,
-                    onChange: (p, s) => {
-                        setPage(p);
-                        setPageSize(s || 50);
-                    }
+                }}
+                onChange={(pagination, filters) => {
+                    setTableFilters(filters);
+                    setPage(pagination.current || 1);
+                    setPageSize(pagination.pageSize || 50);
                 }}
                 rowSelection={canDelete ? {
                     selectedRowKeys: selectedKeys,

@@ -12,6 +12,9 @@ import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 const VEHICLE_OPTIONS = [
     'Blind Van', 'CDD', 'CDE', 'Fuso',
@@ -257,6 +260,15 @@ export default function UnloadingPage() {
         },
     ];
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(dateRange || searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(unloadingsApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchData();
+    };
+
     const formFields = (
         <>
             <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Pilih tanggal' }]}>
@@ -296,6 +308,12 @@ export default function UnloadingPage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'brand', 'vehicle_type', 'total_vehicles'], 'Unloading_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Inbound Unloading"
+                        count={tableFilteredData.length}
+                        active={isSupervisor && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {isSupervisor && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
@@ -310,12 +328,13 @@ export default function UnloadingPage() {
             <Table
                 rowKey="id"
                 columns={columns}
-                dataSource={filteredData}
+                dataSource={tableFilteredData}
                 loading={loading}
                 size="small"
                 scroll={{ x: 700, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
+                onChange={onTableChange}
             />
 
             {/* Add Modal */}

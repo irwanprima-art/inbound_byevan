@@ -8,6 +8,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
 import { masterItemsApi } from '../api/client';
 import { downloadCsvTemplate } from '../utils/csvTemplate';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 interface MasterItemRecord {
     id: number;
@@ -244,6 +247,14 @@ export default function MasterItemPage() {
     }
 
     const filteredData = getFilteredData();
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(searchText.split('\n').some(term => term.trim()) || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(masterItemsApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        load();
+    };
 
     return (
         <div>
@@ -257,6 +268,12 @@ export default function MasterItemPage() {
                             <Button danger icon={<DeleteOutlined />}>Delete Selected ({selectedKeys.length})</Button>
                         </Popconfirm>
                     )}
+                    <DeleteFilteredButton
+                        title="Master Item"
+                        count={tableFilteredData.length}
+                        active={!readOnly && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                 </Space>
                 <Space wrap>
                     <Popover trigger="click" placement="bottomRight" content={<div style={{ width: 280 }}><div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Masukkan keyword (satu per baris)</div><Input.TextArea value={searchText} onChange={e => setSearchText(e.target.value)} placeholder={"Keyword 1\nKeyword 2\nKeyword 3"} autoSize={{ minRows: 4, maxRows: 10 }} style={{ marginBottom: 8 }} /><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{searchText.split('\n').filter(t => t.trim()).length > 0 ? `${searchText.split('\n').filter(t => t.trim()).length} keyword aktif` : 'Tidak ada filter'}</span>{searchText && <Button size="small" danger onClick={() => setSearchText('')}>Clear</Button>}</div></div>}><Badge count={searchText.split('\n').filter(t => t.trim()).length} size="small" offset={[-4, 4]}><Button icon={<SearchOutlined />}>{searchText.split('\n').filter(t => t.trim()).length > 0 ? `Search (${searchText.split('\n').filter(t => t.trim()).length})` : 'Search'}</Button></Badge></Popover>
@@ -277,7 +294,7 @@ export default function MasterItemPage() {
             </div>
 
             <Table
-                dataSource={filteredData}
+                dataSource={tableFilteredData}
                 columns={columns}
                 rowKey="id"
                 size="small"
@@ -288,6 +305,7 @@ export default function MasterItemPage() {
                     selectedRowKeys: selectedKeys,
                     onChange: (keys) => setSelectedKeys(keys),
                 }}
+                onChange={onTableChange}
             />
 
             <Modal

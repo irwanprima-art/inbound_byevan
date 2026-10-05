@@ -10,6 +10,9 @@ import type { Dayjs } from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import { returnReceivesApi, returnTransactionsApi } from '../api/client';
 import { normalizeDate, downloadCsvTemplate } from '../utils/csvTemplate';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 export default function ReturnReceivePage() {
     const { user } = useAuth();
@@ -297,6 +300,15 @@ export default function ReturnReceivePage() {
     };
 
     // Template: only manual fields (no auto-calculated)
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(dateRange || searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(returnReceivesApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchAll();
+    };
+
     const templateHeaders = ['return_date', 'receive_date', 'brand', 'receipt_no', 'ref_no', 'owner', 'arrival_date', 'tracking_no', 'sku', 'stock_status', 'return_qty', 'operator', 'return_reason', 'reason_group'];
 
     return (
@@ -316,6 +328,12 @@ export default function ReturnReceivePage() {
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(templateHeaders, 'Return_Receive_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Return Receive"
+                        count={tableFilteredData.length}
+                        active={isSupervisor && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {isSupervisor && data.length > 0 && <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>}
                 </Space>
             </div>
@@ -326,9 +344,10 @@ export default function ReturnReceivePage() {
                 </Popconfirm>
             )}
 
-            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 'max-content' }}
+            <Table dataSource={tableFilteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: 'max-content' }}
                 pagination={{ defaultPageSize: 100, showSizeChanger: true, pageSizeOptions: ['50', '100', '200', '500'], showTotal: (t) => `Total ${t} data` }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys) } : undefined}
+                onChange={onTableChange}
             />
 
             <Modal title={editId ? 'Edit Return Receive' : 'Tambah Return Receive'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleSave} width={600}>

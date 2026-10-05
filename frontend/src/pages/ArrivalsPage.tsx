@@ -6,6 +6,9 @@ import {
 } from '@ant-design/icons';
 import { arrivalsApi, transactionsApi, employeesApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/csvTemplate';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -547,6 +550,15 @@ export default function ArrivalsPage() {
         return false;
     };
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(dateRange || searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(arrivalsApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchAll();
+    };
+
     return (
         <div>
             {/* Header */}
@@ -606,6 +618,12 @@ export default function ArrivalsPage() {
                         'Arrivals_template'
                     )}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Inbound Arrival"
+                        count={tableFilteredData.length}
+                        active={isSupervisor && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {isSupervisor && data.length > 0 && (
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
@@ -620,7 +638,7 @@ export default function ArrivalsPage() {
             )}
 
             <Table
-                dataSource={filteredData}
+                dataSource={tableFilteredData}
                 columns={columns}
                 rowKey="id"
                 loading={loading}
@@ -628,6 +646,7 @@ export default function ArrivalsPage() {
                 scroll={{ x: 1400, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 20, showSizeChanger: true, showTotal: (t) => `Total ${t} data` }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: setSelectedKeys } : undefined}
+                onChange={onTableChange}
             />
 
             {/* Add / Edit Modal */}

@@ -12,6 +12,9 @@ import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { attendancesApi, employeesApi } from '../api/client';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 const jobdescOptions = [
     'Troubleshoot', 'Project Inventory', 'Admin', 'VAS', 'Return',
@@ -503,6 +506,15 @@ export default function AttendancePage() {
         },
     ];
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(dateRange || searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(attendancesApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchData();
+    };
+
     return (
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -524,6 +536,12 @@ export default function AttendancePage() {
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport}><Button icon={<UploadOutlined />}>Import</Button></Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'nik', 'name', 'company', 'jobdesc', 'clock_in', 'clock_out', 'status'], 'Attendance_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Attendance"
+                        count={tableFilteredData.length}
+                        active={canDelete && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
@@ -542,10 +560,11 @@ export default function AttendancePage() {
             </div>
 
             <Table
-                rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
+                rowKey="id" columns={columns} dataSource={tableFilteredData} loading={loading} size="small"
                 scroll={{ x: 1420, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={canDelete ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
+                onChange={onTableChange}
                 sortDirections={['descend', 'ascend']}
             />
 

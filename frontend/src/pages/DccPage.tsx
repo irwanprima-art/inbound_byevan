@@ -390,6 +390,11 @@ export default function DccPage() {
                 parseCSVRow={parseCSVRow as any}
                 dateField="date"
                 extraFilterUi={extraFilterUi}
+                filteredDeleteParams={{
+                    brand: filterBrand,
+                    zone: filterZone,
+                    remarks: filterRemarks,
+                }}
                 extraButtons={extraButtons}
                 exportHeaders={exportCsvHeaders}
                 exportRowMapper={(item: any) => {

@@ -80,6 +80,105 @@ func hasJSONField(t interface{}, jsonName string) bool {
 	return false
 }
 
+func applyResourceFilters[T any](c *gin.Context, query *gorm.DB) (*gorm.DB, bool) {
+	hasFilters := false
+	dateField := c.Query("dateField")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if dateField != "" && startDate != "" && endDate != "" &&
+		regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(dateField) {
+		query = query.Where(
+			fmt.Sprintf("%s >= ? AND %s <= ?", dateField, dateField),
+			startDate,
+			endDate+" 23:59:59",
+		)
+		hasFilters = true
+	}
+
+	search := c.Query("search")
+	if search != "" {
+		cols := getSearchColumns(new(T))
+		if len(cols) > 0 {
+			var orConditions []string
+			var args []interface{}
+			searchTerm := "%" + search + "%"
+			for _, col := range cols {
+				orConditions = append(orConditions, fmt.Sprintf("%s LIKE ?", col))
+				args = append(args, searchTerm)
+			}
+			if hasJSONField(new(T), "variance") {
+				lower := strings.ToLower(search)
+				if strings.Contains(lower, "shortage") {
+					orConditions = append(orConditions, "variance < 0")
+				}
+				if strings.Contains(lower, "gain") {
+					orConditions = append(orConditions, "variance > 0")
+				}
+				if strings.Contains(lower, "match") {
+					orConditions = append(orConditions, "variance = 0")
+				}
+			}
+			query = query.Where(strings.Join(orConditions, " OR "), args...)
+			hasFilters = true
+		}
+	}
+
+	for _, col := range getSearchColumns(new(T)) {
+		if value := c.Query(col); value != "" {
+			parts := strings.Split(value, ",")
+			if len(parts) == 1 {
+				query = query.Where(fmt.Sprintf("%s = ?", col), parts[0])
+			} else {
+				query = query.Where(fmt.Sprintf("%s IN ?", col), parts)
+			}
+			hasFilters = true
+		}
+	}
+
+	if hasJSONField(new(T), "variance") {
+		if value := c.Query("remarks"); value != "" {
+			var conditions []string
+			for _, remark := range strings.Split(value, ",") {
+				switch remark {
+				case "Shortage":
+					conditions = append(conditions, "variance < 0")
+				case "Gain":
+					conditions = append(conditions, "variance > 0")
+				case "Match":
+					conditions = append(conditions, "variance = 0")
+				}
+			}
+			if len(conditions) > 0 {
+				query = query.Where(strings.Join(conditions, " OR "))
+				hasFilters = true
+			}
+		}
+	}
+
+	return query, hasFilters
+}
+
+func hasOnlySupportedResourceFilters[T any](c *gin.Context) bool {
+	supported := map[string]bool{
+		"dateField": true,
+		"startDate": true,
+		"endDate":   true,
+		"search":    true,
+	}
+	for _, column := range getSearchColumns(new(T)) {
+		supported[column] = true
+	}
+	if hasJSONField(new(T), "variance") {
+		supported["remarks"] = true
+	}
+	for key := range c.Request.URL.Query() {
+		if !supported[key] {
+			return false
+		}
+	}
+	return true
+}
+
 // List returns all records, with optional server-side pagination
 func (h *ResourceHandler[T]) List(c *gin.Context) {
 	pageStr := c.Query("page")
@@ -108,80 +207,7 @@ func (h *ResourceHandler[T]) List(c *gin.Context) {
 		pageSize = 100000
 	}
 
-	query := database.DB.Model(new(T))
-
-	// Date filtering
-	dateField := c.Query("dateField")
-	startDate := c.Query("startDate")
-	endDate := c.Query("endDate")
-	if dateField != "" && startDate != "" && endDate != "" {
-		if regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(dateField) {
-			query = query.Where(fmt.Sprintf("%s >= ? AND %s <= ?", dateField, dateField), startDate+" 00:00:00", endDate+" 23:59:59")
-		}
-	}
-
-	// Searching
-	search := c.Query("search")
-	if search != "" {
-		cols := getSearchColumns(new(T))
-		if len(cols) > 0 {
-			var orConditions []string
-			var args []interface{}
-			searchTerm := "%" + search + "%"
-			for _, col := range cols {
-				orConditions = append(orConditions, fmt.Sprintf("%s LIKE ?", col))
-				args = append(args, searchTerm)
-			}
-			// Allow searching by computed remarks keyword ("Shortage"/"Gain"/"Match")
-			// for models that have a variance field.
-			if hasJSONField(new(T), "variance") {
-				lower := strings.ToLower(search)
-				if strings.Contains(lower, "shortage") {
-					orConditions = append(orConditions, "variance < 0")
-				}
-				if strings.Contains(lower, "gain") {
-					orConditions = append(orConditions, "variance > 0")
-				}
-				if strings.Contains(lower, "match") {
-					orConditions = append(orConditions, "variance = 0")
-				}
-			}
-			query = query.Where(strings.Join(orConditions, " OR "), args...)
-		}
-	}
-
-	// Column filters (comma-separated IN lists), e.g. ?brand=A,B&zone=Z1
-	// Only string columns are filterable, so only params matching a column name apply.
-	for _, col := range getSearchColumns(new(T)) {
-		if v := c.Query(col); v != "" {
-			parts := strings.Split(v, ",")
-			if len(parts) == 1 {
-				query = query.Where(fmt.Sprintf("%s = ?", col), parts[0])
-			} else {
-				query = query.Where(fmt.Sprintf("%s IN ?", col), parts)
-			}
-		}
-	}
-
-	// Remarks filter (computed from variance) — only for models that have a variance field
-	if hasJSONField(new(T), "variance") {
-		if v := c.Query("remarks"); v != "" {
-			var conds []string
-			for _, r := range strings.Split(v, ",") {
-				switch r {
-				case "Shortage":
-					conds = append(conds, "variance < 0")
-				case "Gain":
-					conds = append(conds, "variance > 0")
-				case "Match":
-					conds = append(conds, "variance = 0")
-				}
-			}
-			if len(conds) > 0 {
-				query = query.Where(strings.Join(conds, " OR "))
-			}
-		}
-	}
+	query, _ := applyResourceFilters[T](c, database.DB.Model(new(T)))
 
 	// Count total before limit/offset
 	var total int64
@@ -280,6 +306,38 @@ func (h *ResourceHandler[T]) BulkDelete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"deleted": len(req.IDs)})
+}
+
+// BulkDeleteFiltered removes all records matching the same filters used by List.
+func (h *ResourceHandler[T]) BulkDeleteFiltered(c *gin.Context) {
+	var req struct {
+		Confirm bool `json:"confirm"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !req.Confirm {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Filtered delete requires confirm: true"})
+		return
+	}
+	if !hasOnlySupportedResourceFilters[T](c) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "One or more active filters cannot be applied to a server-side delete"})
+		return
+	}
+
+	query, hasFilters := applyResourceFilters[T](c, database.DB.Model(new(T)))
+	if !hasFilters {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one valid filter is required"})
+		return
+	}
+
+	result := query.Delete(new(T))
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"deleted": result.RowsAffected})
 }
 
 // Sync truncates the table and re-inserts all data (for import/full sync)
@@ -428,6 +486,7 @@ func (h *ResourceHandler[T]) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.PUT("/:id", h.Update)
 	rg.DELETE("/:id", h.Delete)
 	rg.POST("/bulk-delete", h.BulkDelete)
+	rg.POST("/bulk-delete-filtered", h.BulkDeleteFiltered)
 	rg.POST("/sync", h.Sync)
 	rg.POST("/import", h.BatchImport)
 }

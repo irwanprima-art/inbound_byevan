@@ -10,6 +10,9 @@ import {
 import { inboundRejectionsApi, beritaAcaraApi } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 export default function InboundRejectionPage() {
     useAuth();
@@ -209,12 +212,27 @@ export default function InboundRejectionPage() {
         },
     ];
 
+    const { filteredRows: tableFilteredRows, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredRows, columns);
+    const manualFilteredRows = tableFilteredRows.filter(row => !row._baSource);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(inboundRejectionsApi.bulkDelete, manualFilteredRows.map(row => row.id));
+        setSelectedKeys([]);
+        fetchAll();
+    };
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <Space>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Tambah</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Inbound Rejection"
+                        count={manualFilteredRows.length}
+                        active={searchTerms.length > 0 || hasColumnFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     <Upload accept=".csv" showUploadList={false} beforeUpload={handleImport as any}>
                         <Button icon={<UploadOutlined />}>Import</Button>
                     </Upload>
@@ -232,7 +250,7 @@ export default function InboundRejectionPage() {
             )}
 
             <Table
-                dataSource={filteredRows}
+                dataSource={tableFilteredRows}
                 columns={columns}
                 rowKey="id"
                 loading={loading}
@@ -244,6 +262,7 @@ export default function InboundRejectionPage() {
                     onChange: setSelectedKeys,
                     getCheckboxProps: (r: any) => ({ disabled: r._baSource }),
                 }}
+                onChange={onTableChange}
             />
 
             <Modal

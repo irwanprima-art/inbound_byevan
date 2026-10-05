@@ -8,6 +8,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { useAuth } from '../contexts/AuthContext';
 import { locationsApi, sohApi } from '../api/client';
 import { downloadCsvTemplate } from '../utils/csvTemplate';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 interface LocationRecord {
     id: number;
@@ -277,6 +280,15 @@ export default function LocationPage() {
         }] : []),
     ];
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(locationsApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchData();
+    };
+
     return (
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -292,6 +304,12 @@ export default function LocationPage() {
                     )}
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['location', 'location_category', 'zone', 'location_type', 'location_group', 'damage_type'], 'Location_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Master Location"
+                        count={tableFilteredData.length}
+                        active={canDelete && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
@@ -306,7 +324,7 @@ export default function LocationPage() {
             <Table
                 rowKey="id"
                 columns={columns}
-                dataSource={filteredData}
+                dataSource={tableFilteredData}
                 loading={loading}
                 size="small"
                 scroll={{ x: 1100, y: 'calc(100vh - 280px)' }}
@@ -315,6 +333,7 @@ export default function LocationPage() {
                     selectedRowKeys: selectedKeys,
                     onChange: (keys) => setSelectedKeys(keys as number[]),
                 } : undefined}
+                onChange={onTableChange}
             />
 
             <Modal title={editRecord ? 'Edit Location' : 'Tambah Location'} open={modalOpen} onOk={handleSave} onCancel={() => setModalOpen(false)}>

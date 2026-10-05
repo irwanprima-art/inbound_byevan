@@ -13,6 +13,9 @@ import { downloadCsvTemplate, normalizeDateTime, normalizeDate } from '../utils/
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 const { Title, Text } = Typography;
 
@@ -578,6 +581,15 @@ export default function VasPage() {
         boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
     };
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(dateRange || searchTerms.length || hasColumnFilters);
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(vasApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchData();
+    };
+
     return (
         <div>
             {/* ───── NEW TASK FORM ───── */}
@@ -889,6 +901,12 @@ export default function VasPage() {
                     </Upload>
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['date', 'start_time', 'end_time', 'brand', 'sku', 'vas_type', 'qty', 'operator', 'item_type'], 'VAS_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="VAS"
+                        count={tableFilteredData.length}
+                        active={isSupervisor && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {isSupervisor && data.length > 0 && (
                         <Button danger icon={<ClearOutlined />} onClick={handleClearAll}>Clear All</Button>
                     )}
@@ -936,7 +954,7 @@ export default function VasPage() {
             })()}
 
             <Table
-                dataSource={filteredData}
+                dataSource={tableFilteredData}
                 columns={columns}
                 rowKey="id"
                 loading={loading}
@@ -944,6 +962,7 @@ export default function VasPage() {
                 scroll={{ x: 1200, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 20, showSizeChanger: true, showTotal: t => `Total ${t} data` }}
                 rowSelection={isSupervisor ? { selectedRowKeys: selectedKeys, onChange: setSelectedKeys } : undefined}
+                onChange={onTableChange}
             />
 
             {/* ───── EDIT MODAL ───── */}

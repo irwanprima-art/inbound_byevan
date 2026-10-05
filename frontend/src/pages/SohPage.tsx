@@ -10,6 +10,9 @@ import { sohApi, locationsApi } from '../api/client';
 import { downloadCsvTemplate, normalizeDate } from '../utils/csvTemplate';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
+import DeleteFilteredButton from '../components/DeleteFilteredButton';
+import useFilteredTableData from '../hooks/useFilteredTableData';
+import { bulkDeleteIds } from '../utils/bulkDeleteIds';
 
 // Helper: parse date string — backend returns consistent YYYY-MM-DD via FlexDate
 const parseDate = (dateStr: string): dayjs.Dayjs | null => {
@@ -177,27 +180,16 @@ export default function SohPage() {
     };
 
     const handleClearAll = () => {
-        const hasFilter = dateRange || filterEdNote.length > 0 || filterLocCategory.length > 0 || filterBrand.length > 0 || filterAgingNote.length > 0 || search;
-        const targetIds = hasFilter ? filteredData.map(r => r.id) : data.map(r => r.id);
-        const targetCount = targetIds.length;
-        const filterLabel = hasFilter ? `${targetCount} data yang terfilter` : `SEMUA ${targetCount} data`;
         Modal.confirm({
-            title: hasFilter ? '⚠️ Clear Filtered Data' : '⚠️ Clear All Data',
-            content: `Apakah Anda yakin ingin menghapus ${filterLabel} Stock on Hand? Tindakan ini tidak bisa dibatalkan!`,
-            okText: hasFilter ? `Ya, Hapus ${targetCount} Data` : 'Ya, Hapus Semua',
+            title: '⚠️ Clear All Data',
+            content: `Apakah Anda yakin ingin menghapus SEMUA ${data.length} data Stock on Hand? Tindakan ini tidak bisa dibatalkan!`,
+            okText: 'Ya, Hapus Semua',
             okType: 'danger',
             cancelText: 'Batal',
             onOk: async () => {
                 try {
-                    if (!hasFilter) {
-                        await sohApi.sync([]);
-                    } else {
-                        const CHUNK = 1000;
-                        for (let i = 0; i < targetIds.length; i += CHUNK) {
-                            await sohApi.bulkDelete(targetIds.slice(i, i + CHUNK));
-                        }
-                    }
-                    message.success(`${targetCount} data Stock on Hand berhasil dihapus`);
+                    await sohApi.sync([]);
+                    message.success('Semua data Stock on Hand berhasil dihapus');
                     setSelectedKeys([]);
                     fetchData();
                 } catch { message.error('Gagal menghapus data'); }
@@ -447,6 +439,18 @@ export default function SohPage() {
         }] : []),
     ];
 
+    const { filteredRows: tableFilteredData, onTableChange, hasColumnFilters } =
+        useFilteredTableData(filteredData, columns);
+    const hasActiveFilters = Boolean(
+        dateRange || filterEdNote.length || filterLocCategory.length || filterBrand.length
+        || filterAgingNote.length || searchTerms.length || hasColumnFilters,
+    );
+    const handleDeleteFiltered = async () => {
+        await bulkDeleteIds(sohApi.bulkDelete, tableFilteredData.map(row => row.id));
+        setSelectedKeys([]);
+        fetchData();
+    };
+
     return (
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -471,6 +475,12 @@ export default function SohPage() {
                     )}
                     <Button icon={<DownloadOutlined />} onClick={() => downloadCsvTemplate(['location', 'sku', 'sku_category', 'brand', 'zone', 'location_type', 'owner', 'status', 'qty', 'wh_arrival_date', 'receipt_no', 'mfg_date', 'exp_date', 'batch_no', 'update_date'], 'SOH_template')}>Template</Button>
                     <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <DeleteFilteredButton
+                        title="Stock on Hand"
+                        count={tableFilteredData.length}
+                        active={canDelete && hasActiveFilters}
+                        onDelete={handleDeleteFiltered}
+                    />
                     {canDelete && selectedKeys.length > 0 && (
                         <Popconfirm title={`Hapus ${selectedKeys.length} data?`} onConfirm={handleBulkDelete}>
                             <Button danger icon={<DeleteOutlined />}>Hapus ({selectedKeys.length})</Button>
@@ -508,10 +518,11 @@ export default function SohPage() {
                 )}
             </div>
             <Table
-                rowKey="id" columns={columns} dataSource={filteredData} loading={loading} size="small"
+                rowKey="id" columns={columns} dataSource={tableFilteredData} loading={loading} size="small"
                 scroll={{ x: 2500, y: 'calc(100vh - 280px)' }}
                 pagination={{ defaultPageSize: 50, showTotal: (t) => `Total: ${t}`, showSizeChanger: true }}
                 rowSelection={canDelete ? { selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys as number[]) } : undefined}
+                onChange={onTableChange}
             />
             <Modal title={editRecord ? 'Edit Stock' : 'Tambah Stock'} open={modalOpen} onOk={handleSave} onCancel={() => setModalOpen(false)}>
                 <Form form={form} layout="vertical">
